@@ -15,7 +15,7 @@ You need to drop a config files call config.json next to the python code to make
 # Run and Query
 So far only the query command is supported.
 
-```bash
+```
 % ./inflightsql.py
 Welcome to my IOx CLI.
 
