@@ -26,7 +26,7 @@ class IOXCLI(cmd.Cmd):
             query = self._flight_sql_client.execute(arg)
             reader = self._flight_sql_client.do_get(query.endpoints[0].ticket)
             table = reader.read_all()
-            print(table.to_pandas())
+            print(table.to_pandas().to_markdown())
         except Exception as e:
             print(e)
 
