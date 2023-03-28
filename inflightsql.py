@@ -27,7 +27,6 @@ class IOXCLI(cmd.Cmd):
             print(e)
 
     def do_write(self, arg):
-        print(arg, self._bucket_name)
         self._cloud_writer.write(bucket=self._bucket_name, record=arg)
 
     def do_exit(self, arg):
