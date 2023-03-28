@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import cmd
+import argparse
 from flightsql import FlightSQLClient
 import json
 from prompt_toolkit import PromptSession
@@ -17,11 +18,11 @@ class IOXCLI(cmd.Cmd):
 
         self._load_config()   
 
-    def do_query(self, arg):
-        'Run a SQL query: query [sql]'
-        self._execute()(arg)
+    def do_sql(self, arg):
+        'Run a SQL query: sql [query]'
+        self.execute()(arg)
 
-    def _execute(self, arg):
+    def execute(self, arg):
         try: 
             query = self._flight_sql_client.execute(arg)
             reader = self._flight_sql_client.do_get(query.endpoints[0].ticket)
@@ -32,7 +33,7 @@ class IOXCLI(cmd.Cmd):
 
     def do_exit(self, arg):
         'Exit the shell: exit'
-        print('Exiting the CLIApp shell...')
+        print('Exiting ...')
         return True
 
     def do_EOF(self, arg):
@@ -40,13 +41,13 @@ class IOXCLI(cmd.Cmd):
         return self.do_exit(arg)
 
     def precmd(self, line):
-        if line.strip() == 'query':
+        if line.strip() == 'sql':
             while True:
                 try:
-                    statement = self.prompt_session.prompt('(query >) ')
+                    statement = self.prompt_session.prompt('(sql >) ')
                     if statement.strip().lower() == 'exit':
                         break
-                    self._execute(statement)
+                    self.execute(statement)
                 except KeyboardInterrupt:
                     print('Ctrl-D pressed, exiting SQL mode...')
                     break
@@ -60,6 +61,30 @@ class IOXCLI(cmd.Cmd):
                                                   token=conf['token'],
                                                   metadata={'bucket-name':conf['bucket']})
 
-if __name__ == '__main__':
+class StoreRemainingInput(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, ' '.join(values))
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='CLI application for Querying IOx with arguments and interactive mode.')
+    subparsers = parser.add_subparsers(dest='command')
+
+    sql_parser = subparsers.add_parser('sql', help='execute the given SQL query')
+    sql_parser.add_argument('query', metavar='QUERY', nargs='*', action=StoreRemainingInput, help='the SQL query to execute')
+
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
     app = IOXCLI()
-    app.cmdloop()
+
+    if args.command == 'sql':
+        print(args.query)
+        app.execute(args.query)
+    if args.command is None:
+        app.cmdloop()
+
+
+if __name__ == '__main__':
+    main()
+
