@@ -59,7 +59,7 @@ class IOXCLI(cmd.Cmd):
         conf = json.loads(f.read())
         self._flight_sql_client = FlightSQLClient(host=conf['host'],
                                                   token=conf['token'],
-                                                  metadata={'bucket-name':conf['bucket']})
+                                                  metadata={'bucket-name':conf['namespace']})
 
 class StoreRemainingInput(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):

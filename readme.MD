@@ -8,7 +8,7 @@ You need to drop a config files call config.json next to the python code to make
 {
     "host":"",
     "token":"",
-    "bucket":""
+    "namespace":""
 }
 ```
 
