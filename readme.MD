@@ -12,6 +12,8 @@ You need to drop a config files call config.json next to the python code to make
 }
 ```
 
+If you are running against InfluxDB Cloud, then use the bucket name for the namespace in you configuration.
+
 # Run as a Command
 ```
 % ./inflightsql.py sql "select * from anomalies"
