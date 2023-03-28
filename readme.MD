@@ -11,8 +11,7 @@ You need to drop a config files call config.json next to the python code to make
     "host":"us-east-1-1.aws.cloud2.influxdata.com",
     "token":"",
     "namespace":"",
-    "org":"",
-    "url":"https://us-east-1-1.aws.cloud2.influxdata.com"
+    "org":""
 }
 ```
 
