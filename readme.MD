@@ -14,7 +14,6 @@ You need to drop a config files call config.json next to the python code to make
     "org":"",
     "url":"https://us-east-1-1.aws.cloud2.influxdata.com"
 }
-
 ```
 
 If you are running against InfluxDB Cloud, then use the bucket name for the namespace in you configuration.

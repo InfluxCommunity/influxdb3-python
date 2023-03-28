@@ -79,7 +79,7 @@ class IOXCLI(cmd.Cmd):
                                                   token=conf['token'],
                                                   metadata={'bucket-name':self._bucket_name})
         
-        client = InfluxDBCloudClient(conf['url'],
+        client = InfluxDBCloudClient(f"https://{conf['host']}",
                                                  org=conf['org'],
                                                  token=conf['token'])
         self._cloud_writer = client.write_api(write_options=WriteOptions(batch_size=1))
@@ -89,7 +89,18 @@ class StoreRemainingInput(argparse.Action):
         setattr(namespace, self.dest, ' '.join(values))
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='CLI application for Querying IOx with arguments and interactive mode.')
+    parser = argparse.ArgumentParser(description='CLI application for Querying IOx with arguments and interactive mode.',
+                                     usage = """
+to write data use influxdb line protocol:
+> influx3 write testmes,tag1=tagvalue field1=0.0 <optional timestamp>
+
+to read data with sql:
+> influx3 sql select * from testmes where time > now() - interval'1 minute'
+
+to enter interactive mode:
+> influx3
+"""
+                                     )
     subparsers = parser.add_subparsers(dest='command')
 
     sql_parser = subparsers.add_parser('sql', help='execute the given SQL query')
