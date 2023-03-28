@@ -1,6 +1,8 @@
 # About
 This tool is an interactive shell for working with IOx-based InfluxDB instances. Supports writing data and quering with SQL.
 
+I have cheekily named it "influx3" for now.
+
 # Add a Config
 You need to drop a config files call config.json next to the python code to make it work for now. 
 
@@ -19,18 +21,18 @@ If you are running against InfluxDB Cloud, then use the bucket name for the name
 
 # Run as a Command
 ```
-% ./inflightsql.py sql "select * from anomalies"
+% ./influx3 sql "select * from anomalies"
 ```
 
 ```
-% ./inflightsql.py write testmes f=7 
+% ./influx3 write testmes f=7 
 ```
 
 # Run and Query Interactively
 So far only the query command is supported.
 
 ```
-% ./inflightsql.py
+% ./influx3
 Welcome to my IOx CLI.
 
 (>) sql

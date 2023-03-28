@@ -31,7 +31,7 @@ class IOXCLI(cmd.Cmd):
 
     def do_exit(self, arg):
         'Exit the shell: exit'
-        print('Exiting ...')
+        print('\nExiting ...')
         return True
 
     def do_EOF(self, arg):
@@ -50,6 +50,9 @@ class IOXCLI(cmd.Cmd):
                 except KeyboardInterrupt:
                     print('Ctrl-D pressed, exiting SQL mode...')
                     break
+                except EOFError:
+                    print('Ctrl-D pressed, exiting SQL mode...')
+                    break
             return ''
         if line.strip() == 'write':
             while True:
@@ -60,6 +63,9 @@ class IOXCLI(cmd.Cmd):
                         break
                     self.do_write(statement)
                 except KeyboardInterrupt:
+                    print('Ctrl-D pressed, exiting write mode...')
+                    break
+                except EOFError:
                     print('Ctrl-D pressed, exiting write mode...')
                     break
             return ''
@@ -104,7 +110,6 @@ def main():
         app.do_write(args.line_protocol)
     if args.command is None:
         app.cmdloop()
-
 
 if __name__ == '__main__':
     main()
