@@ -25,6 +25,10 @@ from influxdb_client_3 import InfluxDBClient3, Point
 ```
 
 ## Initialization
+If you are using InfluxDB Cloud, then you should note that:
+1. You will need to supply your org id, this is not necessary for InfluxDB Dedicated.
+2. Support a bucketname for the namespace argument.
+
 ```python
 client = InfluxDBClient3(token="your-token",
                          host="your-host",
@@ -33,6 +37,8 @@ client = InfluxDBClient3(token="your-token",
 ```
 
 ## Writing Data
+You can write data using the Point class, or supplying line protocol.
+
 ### Using Points
 ```python
 point = Point("measurement").tag("tag_key", "tag_value").field("field_key", 42)
