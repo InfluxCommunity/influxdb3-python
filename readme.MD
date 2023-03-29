@@ -10,10 +10,10 @@ You can drop a config files call config.json next to the python code:
 {
 {
     "my-config": {
-        "namespace": "boring-observability",
-        "host": "us-east-1-1.aws.cloud2.influxdata.com",
-        "token": "bBBvtg5EBsa9iayvmP36UtN327gQti1D-1uReiptl_gEfODHmGFxU2IgFdoAWgJxltl8qanrSU4Q3a8nUIrHsQ==",
-        "org": "847e9dbb25976492",
+        "namespace": "your-namespace",
+        "host": "your-host",
+        "token": "your-token",
+        "org": "your-org-id",
         "active": true
     }
 }
