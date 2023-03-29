@@ -8,6 +8,20 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.lexers import PygmentsLexer
 from pygments.lexers import SqlLexer
 from influxdb_client import InfluxDBClient as InfluxDBCloudClient, WriteOptions
+import os
+
+_usage_string = """
+to write data use influxdb line protocol:
+> influx3 write testmes,tag1=tagvalue field1=0.0 <optional timestamp>
+
+to read data with sql:
+> influx3 sql select * from testmes where time > now() - interval'1 minute'
+
+to enter interactive mode:
+> influx3
+"""
+
+_description_string = 'CLI application for Querying IOx with arguments and interactive mode.'
 
 class IOXCLI(cmd.Cmd):
     intro = 'Welcome to my IOx CLI.\n'
@@ -15,9 +29,13 @@ class IOXCLI(cmd.Cmd):
 
     def __init__(self):
         super().__init__()
+        self._configuration = None
         self._load_config()   
 
     def do_sql(self, arg):
+        if self._configuration is None:
+            print("can't query, no configuration set")
+            return
         try: 
             query = self._flight_sql_client.execute(arg)
             reader = self._flight_sql_client.do_get(query.endpoints[0].ticket)
@@ -27,6 +45,13 @@ class IOXCLI(cmd.Cmd):
             print(e)
 
     def do_write(self, arg):
+        if arg == "":
+            print("can't write, no line protocol supplied")
+            return
+        if self._configuration is None:
+            print("can't write, no congiuration set")
+            return
+        
         self._cloud_writer.write(bucket=self._bucket_name, record=arg)
 
     def do_exit(self, arg):
@@ -71,9 +96,18 @@ class IOXCLI(cmd.Cmd):
             return ''
         return line
     
+    def do_config(self, args):
+        print(args)
+
     def _load_config(self):
-        f = open('config.json')
+        if not os.path.exists('config.json'):
+            print("no configuration found")
+            print("use the config command to create a configuration")
+            return
+        f = open('config.json', 'r')
+
         conf = json.loads(f.read())
+        self._configuration = conf
         self._bucket_name = conf['namespace']
         self._flight_sql_client = FlightSQLClient(host=conf['host'],
                                                   token=conf['token'],
@@ -89,17 +123,7 @@ class StoreRemainingInput(argparse.Action):
         setattr(namespace, self.dest, ' '.join(values))
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='CLI application for Querying IOx with arguments and interactive mode.',
-                                     usage = """
-to write data use influxdb line protocol:
-> influx3 write testmes,tag1=tagvalue field1=0.0 <optional timestamp>
-
-to read data with sql:
-> influx3 sql select * from testmes where time > now() - interval'1 minute'
-
-to enter interactive mode:
-> influx3
-"""
+    parser = argparse.ArgumentParser(description= _description_string
                                      )
     subparsers = parser.add_subparsers(dest='command')
 
@@ -107,7 +131,15 @@ to enter interactive mode:
     sql_parser.add_argument('query', metavar='QUERY', nargs='*', action=StoreRemainingInput, help='the SQL query to execute')
 
     write_parser = subparsers.add_parser('write', help='write line protocol to InfluxDB')
-    write_parser.add_argument('line_protocol', metavar='LINE PROTOCOL', nargs='*', action=StoreRemainingInput, help='the data to write')
+    write_parser.add_argument('line_protocol', metavar='LINE PROTOCOL',  nargs='*', action=StoreRemainingInput, help='the data to write')
+
+    config_parser = subparsers.add_parser("config", help="configure the application")
+    config_parser.add_argument("--name", help="Configuration name", required=True)
+    config_parser.add_argument("--host", help="Host string")
+    config_parser.add_argument("--token", help="Token string")
+    config_parser.add_argument("--namespace", help="Namespace string")
+
+    config_parser = subparsers.add_parser("help")
 
     return parser.parse_args()
 
@@ -119,8 +151,13 @@ def main():
         app.do_sql(args.query)
     if args.command == 'write':
         app.do_write(args.line_protocol)
+    if args.command == 'config':
+        app.do_config(args)
+    if args.command == 'help':
+        print(_usage_string)
     if args.command is None:
         app.cmdloop()
+    
 
 if __name__ == '__main__':
     main()
