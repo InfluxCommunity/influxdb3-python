@@ -33,6 +33,7 @@ class IOXCLI(cmd.Cmd):
         self._load_config()
         self._sql_prompt_session = PromptSession(lexer=PygmentsLexer(SqlLexer))
         self._write_prompt_session = PromptSession(lexer=None)
+
     def do_sql(self, arg):
         if self._configurations == {}:
             print("can't query, no active configs")
@@ -95,22 +96,18 @@ class IOXCLI(cmd.Cmd):
         else:
             config = {}
 
-        if args.namespace is not None:
-            config['namespace'] = args.namespace
-        if args.host is not None:
-            config['host'] = args.host
-        if args.token is not None:
-            config['token'] = args.token
-        if args.org is not None:
-            config['org'] = args.org
+        attributes = ['namespace', 'host', 'token', 'org']
+
+        for attribute in attributes:
+            arg_value = getattr(args, attribute)
+            if arg_value is not None:
+                config[attribute] = arg_value
+
         config['active'] = True
 
-        required_attributes = ["namespace","host","token","org"]
-        missing_attributes = []
-        for attribute in required_attributes:
-            if attribute not in config:
-                missing_attributes.append(attribute)
-        if len(missing_attributes) > 0:
+        missing_attributes = [attribute for attribute in attributes if attribute not in config]
+
+        if missing_attributes:
             print(f"configuration {args.name} is missing the following required attributes: {missing_attributes}")
 
         self._configurations[args.name] = config
