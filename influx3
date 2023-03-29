@@ -31,7 +31,8 @@ class IOXCLI(cmd.Cmd):
         super().__init__()
         self._configurations = {}
         self._load_config()
-
+        self._sql_prompt_session = PromptSession(lexer=PygmentsLexer(SqlLexer))
+        self._write_prompt_session = PromptSession(lexer=None)
     def do_sql(self, arg):
         if self._configurations == {}:
             print("can't query, no active configs")
@@ -63,38 +64,30 @@ class IOXCLI(cmd.Cmd):
         'Exit the shell with Ctrl-D'
         return self.do_exit(arg)
 
+ 
     def precmd(self, line):
         if line.strip() == 'sql':
-            while True:
-                try:
-                    self.prompt_session = PromptSession(lexer=PygmentsLexer(SqlLexer))
-                    statement = self.prompt_session.prompt('(sql >) ')
-                    if statement.strip().lower() == 'exit':
-                        break
-                    self.do_sql(statement)
-                except KeyboardInterrupt:
-                    print('Ctrl-D pressed, exiting SQL mode...')
-                    break
-                except EOFError:
-                    print('Ctrl-D pressed, exiting SQL mode...')
-                    break
+            self._run_prompt_loop('(sql >) ', self.do_sql, 'SQL mode')
             return ''
         if line.strip() == 'write':
-            while True:
-                try:
-                    self.prompt_session = PromptSession(lexer=None)
-                    statement = self.prompt_session.prompt('(write >) ')
-                    if statement.strip().lower() == 'exit':
-                        break
-                    self.do_write(statement)
-                except KeyboardInterrupt:
-                    print('Ctrl-D pressed, exiting write mode...')
-                    break
-                except EOFError:
-                    print('Ctrl-D pressed, exiting write mode...')
-                    break
+            self._run_prompt_loop('(write >) ', self.do_write, 'write mode')
             return ''
         return line
+
+    def _run_prompt_loop(self, prompt, action, mode_name):
+        prompt_session = self._sql_prompt_session if mode_name == 'SQL mode' else self._write_prompt_session
+        while True:
+            try:
+                statement = prompt_session.prompt(prompt)
+                if statement.strip().lower() == 'exit':
+                    break
+                action(statement)
+            except KeyboardInterrupt:
+                print(f'Ctrl-D pressed, exiting {mode_name}...')
+                break
+            except EOFError:
+                print(f'Ctrl-D pressed, exiting {mode_name}...')
+                break
     
     def config(self, args):
         if args.name in self._configurations:
