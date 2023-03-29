@@ -1,0 +1,53 @@
+# README.md for `influxdb_client_3` Python Module
+
+## Introduction
+
+`influxdb_client_3` is a Python module that provides a simple and convenient way to interact with InfluxDB 3.0. This module supports both writing data to InfluxDB and querying data using the FlightSQL client, which allows you to execute SQL queries on InfluxDB IOx.
+
+## Dependencies
+
+- `pyarrow`
+- `flightsql`
+- `influxdb-client`
+
+## Installation
+
+You can install the dependencies using `pip`:
+
+```bash
+pip install pyarrow flightsql influxdb-client
+```
+
+# Usage
+## Importing the Module
+```python
+from influxdb_client_3 import InfluxDBClient3, Point
+```
+
+## Initialization
+```python
+client = InfluxDBClient3(token="your-token",
+                         host="your-host",
+                         org="your-org",
+                         namespace="your-namespace")
+```
+
+## Writing Data
+### Using Points
+```python
+point = Point("measurement").tag("tag_key", "tag_value").field("field_key", 42)
+client.write(point)
+```
+### Using Line Protocol
+```python
+point = "measurement fieldname=0"
+client.write(point)
+```
+
+## Querying with SQL
+```python
+sql = "select * from measurement"
+reader = self.influxdb_client.query(sql_query=sql)
+table = reader.read_all()
+print(table.to_pandas().to_markdown())
+```
