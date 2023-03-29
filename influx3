@@ -29,12 +29,12 @@ class IOXCLI(cmd.Cmd):
 
     def __init__(self):
         super().__init__()
-        self._configuration = None
-        self._load_config()   
+        self._configurations = {}
+        self._load_config()
 
     def do_sql(self, arg):
-        if self._configuration is None:
-            print("can't query, no configuration set")
+        if self._configurations == {}:
+            print("can't query, no active configs")
             return
         try: 
             query = self._flight_sql_client.execute(arg)
@@ -45,11 +45,11 @@ class IOXCLI(cmd.Cmd):
             print(e)
 
     def do_write(self, arg):
+        if self._configurations == {}:
+            print("can't write, no active configs")
+            return
         if arg == "":
             print("can't write, no line protocol supplied")
-            return
-        if self._configuration is None:
-            print("can't write, no congiuration set")
             return
         
         self._cloud_writer.write(bucket=self._bucket_name, record=arg)
@@ -96,18 +96,40 @@ class IOXCLI(cmd.Cmd):
             return ''
         return line
     
-    def do_config(self, args):
-        print(args)
+    def config(self, args):
+        if args.name in self._configurations:
+            config = self._configurations[args.name]
+        else:
+            config = {}
 
+        if args.namespace is not None:
+            config['namespace'] = args.namespace
+        if args.host is not None:
+            config['host'] = args.host
+        if args.token is not None:
+            config['token'] = args.token
+        if args.org is not None:
+            config['org'] = args.org
+        config['active'] = True
+
+        required_attributes = ["namespace","host","token","org"]
+        missing_attributes = []
+        for attribute in required_attributes:
+            if attribute not in config:
+                missing_attributes.append(attribute)
+        if len(missing_attributes) > 0:
+            print(f"configuration {args.name} is missing the following required attributes: {missing_attributes}")
+
+        self._configurations[args.name] = config
+        print(json.dumps(self._configurations))
+    
     def _load_config(self):
         if not os.path.exists('config.json'):
-            print("no configuration found")
-            print("use the config command to create a configuration")
             return
         f = open('config.json', 'r')
 
         conf = json.loads(f.read())
-        self._configuration = conf
+        self._configurations = conf
         self._bucket_name = conf['namespace']
         self._flight_sql_client = FlightSQLClient(host=conf['host'],
                                                   token=conf['token'],
@@ -138,6 +160,7 @@ def parse_args():
     config_parser.add_argument("--host", help="Host string")
     config_parser.add_argument("--token", help="Token string")
     config_parser.add_argument("--namespace", help="Namespace string")
+    config_parser.add_argument("--org", help="Organization string")
 
     config_parser = subparsers.add_parser("help")
 
@@ -152,7 +175,7 @@ def main():
     if args.command == 'write':
         app.do_write(args.line_protocol)
     if args.command == 'config':
-        app.do_config(args)
+        app.config(args)
     if args.command == 'help':
         print(_usage_string)
     if args.command is None:
