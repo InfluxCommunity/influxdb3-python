@@ -121,23 +121,30 @@ class IOXCLI(cmd.Cmd):
             print(f"configuration {args.name} is missing the following required attributes: {missing_attributes}")
 
         self._configurations[args.name] = config
-        print(json.dumps(self._configurations))
+        with open('config.json', 'w') as f:
+            f.write(json.dumps(self._configurations))
+        
     
     def _load_config(self):
         if not os.path.exists('config.json'):
             return
         f = open('config.json', 'r')
 
-        conf = json.loads(f.read())
-        self._configurations = conf
-        self._bucket_name = conf['namespace']
-        self._flight_sql_client = FlightSQLClient(host=conf['host'],
-                                                  token=conf['token'],
+        self._configurations = json.loads(f.read())
+        active_conf = None
+        for c in self._configurations.keys():
+            if self._configurations[c]["active"]:
+                active_conf = self._configurations[c]
+        if active_conf is None:
+            print("no active configuration found")
+        self._bucket_name = active_conf['namespace']
+        self._flight_sql_client = FlightSQLClient(host=active_conf['host'],
+                                                  token=active_conf['token'],
                                                   metadata={'bucket-name':self._bucket_name})
         
-        client = InfluxDBCloudClient(f"https://{conf['host']}",
-                                                 org=conf['org'],
-                                                 token=conf['token'])
+        client = InfluxDBCloudClient(f"https://{active_conf['host']}",
+                                                 org=active_conf['org'],
+                                                 token=active_conf['token'])
         self._cloud_writer = client.write_api(write_options=WriteOptions(batch_size=1))
 
 class StoreRemainingInput(argparse.Action):

@@ -4,15 +4,25 @@ This tool is an interactive shell for working with IOx-based InfluxDB instances.
 I have cheekily named it "influx3" for now.
 
 # Add a Config
-You need to drop a config files call config.json next to the python code to make it work for now. 
+You can drop a config files call config.json next to the python code: 
 
 ```json
 {
-    "host":"us-east-1-1.aws.cloud2.influxdata.com",
-    "token":"",
-    "namespace":"",
-    "org":""
+{
+    "my-config": {
+        "namespace": "boring-observability",
+        "host": "us-east-1-1.aws.cloud2.influxdata.com",
+        "token": "bBBvtg5EBsa9iayvmP36UtN327gQti1D-1uReiptl_gEfODHmGFxU2IgFdoAWgJxltl8qanrSU4Q3a8nUIrHsQ==",
+        "org": "847e9dbb25976492",
+        "active": true
+    }
 }
+}
+```
+
+Or you can use the config command to create or modify a config:
+```
+% ./influx3 config --name="my-config" --namespace="boring-observability" --host="us-east-1-1.aws.cloud2.influxdata.com" --token="bBBvtg5EBsa9iayvmP36UtN327gQti1D-1uReiptl_gEfODHmGFxU2IgFdoAWgJxltl8qanrSU4Q3a8nUIrHsQ==" --org="847e9dbb25976492"
 ```
 
 If you are running against InfluxDB Cloud, then use the bucket name for the namespace in you configuration.
