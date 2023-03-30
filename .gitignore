@@ -1,3 +1,4 @@
 config.json
 __pychache__
 influxdb_client_3/__pycache__/
+.venv
