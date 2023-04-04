@@ -54,3 +54,6 @@ Welcome to my IOx CLI.
 (>) write 
 testmes f=5 boring-observability
 ```
+
+# Client library
+This project also includes a new client library that strives for utter simplicity. It includes 3 functions, a constuctor, write(), and read().
