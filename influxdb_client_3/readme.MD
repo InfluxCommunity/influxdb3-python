@@ -7,7 +7,7 @@
 ## Dependencies
 
 - `pyarrow`
-- `flightsql`
+- `flightsql-dbapi`
 - `influxdb-client`
 
 ## Installation
@@ -15,7 +15,7 @@
 You can install the dependencies using `pip`:
 
 ```bash
-pip install pyarrow flightsql influxdb-client
+pip install pyarrow flightsql-dbapi influxdb-client
 ```
 
 # Usage
@@ -41,7 +41,7 @@ You can write data using the Point class, or supplying line protocol.
 
 ### Using Points
 ```python
-point = Point("measurement").tag("tag_key", "tag_value").field("field_key", 42)
+point = Point("measurement").tag("location", "london").field("temperature", 42)
 client.write(point)
 ```
 ### Using Line Protocol
@@ -53,7 +53,7 @@ client.write(point)
 ## Querying with SQL
 ```python
 sql = "select * from measurement"
-reader = self.influxdb_client.query(sql_query=sql)
+reader = client.query(sql_query=sql)
 table = reader.read_all()
 print(table.to_pandas().to_markdown())
 ```
