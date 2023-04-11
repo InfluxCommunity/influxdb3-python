@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='pyinflux3',
-    version='0.1',
+    version='0.2',
     description='Community Python client for InfluxDB IOx',
     author='InfluxData',
     author_email='contact@influxdata.com',
