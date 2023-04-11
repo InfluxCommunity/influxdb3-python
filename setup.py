@@ -1,12 +1,21 @@
 from setuptools import setup
 import os
+import subprocess
 
 binary_name = "influx3"
 binary_destination = os.path.join("bin", binary_name)
 
+
+def get_git_tag():
+    try:
+        return subprocess.check_output(["git", "describe", "--tags"]).strip().decode()
+    except Exception as e:
+        print(f"Error getting git tag: {e}")
+        return "0.0.0"
+
 setup(
     name='pyinflux3',
-    version='0.4',
+    version=get_git_tag(),
     description='Community Python client for InfluxDB IOx',
     author='InfluxData',
     author_email='contact@influxdata.com',
