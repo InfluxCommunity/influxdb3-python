@@ -38,8 +38,8 @@ If you are running against InfluxDB Cloud, then use the bucket name for the name
 % influx3 write testmes f=7 
 ```
 
-# Run and Query Interactively
-So far only the query command is supported.
+# Query and Write Interactively
+
 
 ```
 % influx3
