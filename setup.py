@@ -5,6 +5,8 @@ import subprocess
 binary_name = "influx3"
 binary_destination = os.path.join("bin", binary_name)
 
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
 
 def get_git_tag():
     try:
@@ -17,6 +19,8 @@ setup(
     name='pyinflux3',
     version=get_git_tag(),
     description='Community Python client for InfluxDB IOx',
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author='InfluxData',
     author_email='contact@influxdata.com',
     url='https://github.com/InfluxCommunity/pyinflux3',
