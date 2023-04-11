@@ -26,7 +26,7 @@ def get_version():
         return version
 
     # Fallback to a default version if not in GitHub Actions
-    return "0.0.0"
+    return "v0.6.2"
 
 setup(
     name='pyinflux3',
@@ -50,7 +50,7 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
     ],
-    data_files=[('influx3', ['influxdb_client_3/influx3'])],
-    entry_points={"console_scripts": [f"{binary_name} = {binary_name}:main"]},
+    data_files=[('influx3', ['influxdb_client_3/influx3.py'])],
+    entry_points={"console_scripts": [f"{binary_name} = influxdb_client_3.influx3:main"]},
 
 )

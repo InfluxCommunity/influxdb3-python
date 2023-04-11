@@ -24,25 +24,25 @@ You can drop a config files call config.json next to the python code:
 
 Or you can use the config command to create or modify a config:
 ```
-% ./influx3 config --name="my-config" --namespace="boring-observability" --host="us-east-1-1.aws.cloud2.influxdata.com" --token="bBBvtg5EBsa9iayvmP36UtN327gQti1D-1uReiptl_gEfODHmGFxU2IgFdoAWgJxltl8qanrSU4Q3a8nUIrHsQ==" --org="847e9dbb25976492"
+% influx3 config --name="my-config" --namespace="boring-observability" --host="us-east-1-1.aws.cloud2.influxdata.com" --token="bBBvtg5EBsa9iayvmP36UtN327gQti1D-1uReiptl_gEfODHmGFxU2IgFdoAWgJxltl8qanrSU4Q3a8nUIrHsQ==" --org="847e9dbb25976492"
 ```
 
 If you are running against InfluxDB Cloud, then use the bucket name for the namespace in you configuration.
 
 # Run as a Command
 ```
-% ./influx3 sql "select * from anomalies"
+% influx3 sql "select * from anomalies"
 ```
 
 ```
-% ./influx3 write testmes f=7 
+% influx3 write testmes f=7 
 ```
 
 # Run and Query Interactively
 So far only the query command is supported.
 
 ```
-% ./influx3
+% influx3
 Welcome to my IOx CLI.
 
 (>) sql
