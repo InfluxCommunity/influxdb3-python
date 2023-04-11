@@ -8,7 +8,7 @@ setup(
     author_email='contact@influxdata.com',
     url='https://github.com/InfluxCommunity/pyinflux3',
     packages=['influxdb_client_3'],
-    install_requires=['pyarrow', 'flightsql-dbapi', 'influxdb-client'],
+    install_requires=['pyarrow', 'flightsql-dbapi', 'influxdb-client', 'pygments', 'prompt_toolkit' ],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
