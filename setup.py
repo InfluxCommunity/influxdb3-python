@@ -37,7 +37,7 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
     ],
-    data_files=[('influx3', ['influx3'])],
+    data_files=[('influx3', ['influxdb_client_3/influx3'])],
     entry_points={"console_scripts": [f"{binary_name} = {binary_name}:main"]},
 
 )
