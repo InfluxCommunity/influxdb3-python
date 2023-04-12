@@ -6,7 +6,7 @@ When installed, you have access to 2 pieces of functionality:
 2. A client library for reading and writing data to InfluxDB with IOx.
 
 # Add a Config
-You can drop a config files call config.json next to the python code: 
+You can drop a config file called config.json in the directory where you are running the influx3 command:
 
 ```json
 {
