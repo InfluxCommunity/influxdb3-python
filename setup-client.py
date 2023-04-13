@@ -5,7 +5,7 @@ import re
 binary_name = "influx3"
 binary_destination = os.path.join("bin", binary_name)
 
-with open("README.md", "r", encoding="utf-8") as fh:
+with open("../README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 def get_version_from_github_ref():
