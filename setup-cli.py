@@ -1,9 +1,6 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 import os
 import re
-
-binary_name = "influx3"
-binary_destination = os.path.join("bin", binary_name)
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -26,19 +23,21 @@ def get_version():
         return version
 
     # Fallback to a default version if not in GitHub Actions
-    return "v0.6.3"
+    return "v0.7.4"
+
+
 
 setup(
-    name='pyinflux3',
+    name='pyinflux3-cli',
     version=get_version(),
-    description='Community Python client for InfluxDB IOx',
+    description='Community Python client for InfluxDB IOx (CLI)',
     long_description=long_description,
     long_description_content_type="text/markdown",
     author='InfluxData',
     author_email='contact@influxdata.com',
     url='https://github.com/InfluxCommunity/pyinflux3',
-    packages=['influxdb_client_3'],
-    install_requires=['pyarrow', 'flightsql-dbapi', 'influxdb-client', 'pygments', 'prompt_toolkit', 'pandas', "tabulate"],
+    packages=['influxdb_cli'],
+    install_requires=['pyarrow', 'flightsql-dbapi', 'influxdb-client', 'pathlib', 'pygments', 'prompt_toolkit', 'pandas', "tabulate"],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
@@ -50,7 +49,6 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
     ],
-    data_files=[('influx3', ['influxdb_client_3/influx3.py'])],
-    entry_points={"console_scripts": [f"{binary_name} = influxdb_client_3.influx3:main"]},
-
+    data_files=[('influx3', ['influxdb_cli/influx3.py'])],
+    entry_points={'console_scripts': [f"influx3 = influxdb_cli.influx3:main"]},
 )
