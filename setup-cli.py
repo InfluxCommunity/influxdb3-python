@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import os
 import re
 
-with open("../README.md", "r", encoding="utf-8") as fh:
+with open("./README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 def get_version_from_github_ref():
