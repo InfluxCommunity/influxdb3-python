@@ -5,6 +5,17 @@ When installed, you have access to 2 pieces of functionality:
 1. A CLI for reading and writing data to InfluxDB with IOx.
 2. A client library for reading and writing data to InfluxDB with IOx.
 
+# Install
+To install only the client:
+```bash
+python3 -m pip install pyinflux3
+```
+To install the client and CLI:
+```bash
+sudo python3 -m pip install "pyinflux3[cli]"
+```
+***Note: Use sudo if you would like to directly install the client onto your path. Otherwise use the `--user` flag.**
+
 # Add a Config
 You can drop a config file called config.json in the directory where you are running the influx3 command:
 
