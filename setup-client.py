@@ -26,7 +26,7 @@ def get_version():
         return version
 
     # Fallback to a default version if not in GitHub Actions
-    return "v0.7.5"
+    return "v0.0.0"
 
 setup(
     name='pyinflux3',
@@ -38,7 +38,7 @@ setup(
     author_email='contact@influxdata.com',
     url='https://github.com/InfluxCommunity/pyinflux3',
     packages=['influxdb_client_3'],
-    install_requires=['pyarrow', 'flightsql-dbapi', 'influxdb-client', 'pygments', 'prompt_toolkit', 'pandas', "tabulate"],
+    install_requires=['pyarrow', 'flightsql-dbapi', 'influxdb-client'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',

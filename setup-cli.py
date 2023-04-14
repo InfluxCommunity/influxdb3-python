@@ -23,7 +23,7 @@ def get_version():
         return version
 
     # Fallback to a default version if not in GitHub Actions
-    return "v0.7.4"
+    return "v0.0.0"
 
 
 
