@@ -23,7 +23,7 @@ You can drop a config file called config.json in the directory where you are run
 {
 {
     "my-config": {
-        "namespace": "your-namespace",
+        "database": "your-database",
         "host": "your-host",
         "token": "your-token",
         "org": "your-org-id",
@@ -35,10 +35,10 @@ You can drop a config file called config.json in the directory where you are run
 
 Or you can use the config command to create or modify a config:
 ```
-% influx3 config --name="my-config" --namespace="<database or bucket name>" --host="us-east-1-1.aws.cloud2.influxdata.com" --token="<your token>" --org="<your org ID>"
+% influx3 config --name="my-config" --database="<database or bucket name>" --host="us-east-1-1.aws.cloud2.influxdata.com" --token="<your token>" --org="<your org ID>"
 ```
 
-If you are running against InfluxDB Cloud, then use the bucket name for the namespace in you configuration.
+If you are running against InfluxDB Cloud Serverless, then use the bucket name for the database in you configuration.
 
 # Run as a Command
 ```
