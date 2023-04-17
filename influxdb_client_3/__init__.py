@@ -1,5 +1,6 @@
 # influxdb_client_3/__init__.py
 
+from pyarrow import csv
 import pyarrow.flight as flight
 from flightsql import FlightSQLClient
 from influxdb_client import InfluxDBClient as _InfluxDBClient
@@ -46,6 +47,26 @@ class InfluxDBClient3:
         """
         try:
             self._write_api.write(bucket=self._database, record=record, **kwargs)
+        except Exception as e:
+            print(e)
+    
+    def write_csv(self, csv_file, measurement_name=None, tag_columns = [],timestamp_column = 'time',  **kwargs):
+        """
+        Write data from a CSV file to InfluxDB.
+
+        :param csv_file: The CSV file to write.
+        :type csv_file: str
+        :param kwargs: Additional arguments to pass to the write API.
+        """
+        try:
+            atable = csv.read_csv(csv_file, **kwargs)
+     
+            df = atable.to_pandas()
+            print(df)
+            self._write_api.write(bucket=self._database, record=df, 
+                                  data_frame_measurement_name=measurement_name, 
+                                  data_frame_tag_columns=tag_columns,
+                                  data_frame_timestamp_column = timestamp_column )
         except Exception as e:
             print(e)
     

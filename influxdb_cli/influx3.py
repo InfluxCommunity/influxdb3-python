@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import cmd
+import cmd, ast
 import argparse
 from flightsql import FlightSQLClient
 import json
@@ -54,6 +54,28 @@ class IOXCLI(cmd.Cmd):
             return
         
         self.influxdb_client.write(record=arg)
+    
+    def do_write_csv(self, args):
+        if self._configurations == {}:
+            print("can't write, no active configs")
+            return
+
+        temp = {}
+        attributes = ['file', 'measurement', 'time', 'tags']
+        temp['tags'] = []
+
+        for attribute in attributes:
+            arg_value = getattr(args, attribute)
+            if arg_value is not None:
+                temp[attribute] = arg_value
+        if isinstance(temp['tags'], str):
+            temp['tags'] =  ast.literal_eval( temp['tags'])
+
+
+        self.influxdb_client.write_csv(csv_file=temp['file'], 
+                                       measurement_name=temp['measurement'], 
+                                       timestamp_column=temp['time'], 
+                                       tag_columns=temp['tags'])
 
     def do_exit(self, arg):
         'Exit the shell: exit'
@@ -149,6 +171,12 @@ def parse_args():
     write_parser = subparsers.add_parser('write', help='write line protocol to InfluxDB')
     write_parser.add_argument('line_protocol', metavar='LINE PROTOCOL',  nargs='*', action=StoreRemainingInput, help='the data to write')
 
+    write_csv_parser = subparsers.add_parser('write_csv', help='write CSV data to InfluxDB')
+    write_csv_parser.add_argument('--file', help='the CSV file to import', required=True)
+    write_csv_parser.add_argument('--measurement', help='Define the name of the measurement', required=True)
+    write_csv_parser.add_argument('--time', help='Define the name of the time column with the csv file', required=True)
+    write_csv_parser.add_argument('--tags', help='(optional) array of column names which are tags. Format should be: ["tag1", "tag2"]', required=False)
+
     config_parser = subparsers.add_parser("config", help="configure the application")
     config_parser.add_argument("--name", help="Configuration name", required=True)
     config_parser.add_argument("--host", help="Host string")
@@ -168,6 +196,8 @@ def main():
         app.do_sql(args.query)
     if args.command == 'write':
         app.do_write(args.line_protocol)
+    if args.command == 'write_csv':
+        app.do_write_csv(args)
     if args.command == 'config':
         app.config(args)
     if args.command == 'help':
