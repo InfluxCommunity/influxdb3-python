@@ -68,5 +68,18 @@ Welcome to my IOx CLI.
 testmes f=5 boring-observability
 ```
 
+# Write from a File
+Both the InfluxDB CLI and Client libary support writing from a CSV file. The CSV file must have a header row with the column names. The there must be a column containing a timestamp. Here are the parse options:
+* `--file` - The path to the csv file.
+* `--time` - The name of the column containing the timestamp.
+* `--measurment` - The name of the measurment to store the CSV data under. (Currently only supports user specified string)
+* `--tags` - (optional) Specify an array of column names to use as tags. (Currently only supports user specified strings) for example: `--tags=host,region`
+
+```bash
+influx3 write_csv --file ./Examples/example.csv --measurement table2 --time Date --tags host,region
+```
+
+
 # Client library
 This project also includes a new client library that strives for utter simplicity. It includes 3 functions, a constuctor, write(), and read().
+

@@ -4,4 +4,5 @@ influxdb_client_3/__pycache__/
 .venv
 dist
 build
-pyinflux3.egg-info
+pyinflux3*.egg-info
+.DS_store
