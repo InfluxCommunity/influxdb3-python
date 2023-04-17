@@ -8,18 +8,18 @@ from influxdb_client.client.write_api import SYNCHRONOUS, ASYNCHRONOUS
 from influxdb_client import Point
 
 class InfluxDBClient3:
-    def __init__(self, host=None, org=None, namespace=None, token=None, write_options="SYNCHRONOUS", **kwargs):
+    def __init__(self, host=None, org=None, database=None, token=None, write_options="SYNCHRONOUS", **kwargs):
         """
         This class provides an interface for interacting with an InfluxDB server, simplifying common operations such as writing, querying.
         * host (str, optional): The hostname or IP address of the InfluxDB server. Defaults to None.
         * org (str, optional): The InfluxDB organization name to be used for operations. Defaults to None.
-        * namespace (str, optional): The namespace to be used for InfluxDB operations. Defaults to None.
+        * database (str, optional): The database to be used for InfluxDB operations. Defaults to None.
         * token (str, optional): The authentication token for accessing the InfluxDB server. Defaults to None.
         * write_options (enum, optional): Specifies the write mode (synchronous or asynchronous) to use when writing data points to InfluxDB. Defaults to SYNCHRONOUS.
         * **kwargs: Additional arguments to be passed to the InfluxDB Client.
         """
         self._org = org
-        self._namespace = namespace
+        self._database = database
 
         if write_options == "SYNCHRONOUS":
             self.write_options = SYNCHRONOUS
@@ -33,19 +33,19 @@ class InfluxDBClient3:
         self._write_api = _WriteApi(self._client, write_options=self.write_options )
         self._flight_sql_client = FlightSQLClient(host=host,
                                                   token=token,
-                                                  metadata={'bucket-name':namespace})
+                                                  metadata={'bucket-name':database})
 
     def write(self, record=None, **kwargs):
         """
         Write data to InfluxDB.
 
-        :type namespace: str
+        :type database: str
         :param record: The data point(s) to write.
         :type record: Point or list of Point objects
         :param kwargs: Additional arguments to pass to the write API.
         """
         try:
-            self._write_api.write(bucket=self._namespace, record=record, **kwargs)
+            self._write_api.write(bucket=self._database, record=record, **kwargs)
         except Exception as e:
             print(e)
     

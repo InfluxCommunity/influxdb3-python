@@ -95,7 +95,7 @@ class IOXCLI(cmd.Cmd):
         else:
             config = {}
 
-        attributes = ['namespace', 'host', 'token', 'org']
+        attributes = ['database', 'host', 'token', 'org']
 
         for attribute in attributes:
             arg_value = getattr(args, attribute)
@@ -126,17 +126,17 @@ class IOXCLI(cmd.Cmd):
                 active_conf = self._configurations[c]
         if active_conf is None:
             print("no active configuration found")
-        self._namespace = active_conf['namespace']
+        self._database = active_conf['database']
 
         self.influxdb_client = InfluxDBClient3(host=f"{active_conf['host']}",
                                                  org=active_conf['org'],
                                                  token=active_conf['token'],
-                                                 namespace=active_conf['namespace']
+                                                 database=active_conf['database']
                                                  )
 
 class StoreRemainingInput(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, ' '.join(values))
+    def __call__(self, parser, database, values, option_string=None):
+        setattr(database, self.dest, ' '.join(values))
 
 def parse_args():
     parser = argparse.ArgumentParser(description= _description_string
@@ -153,7 +153,7 @@ def parse_args():
     config_parser.add_argument("--name", help="Configuration name", required=True)
     config_parser.add_argument("--host", help="Host string")
     config_parser.add_argument("--token", help="Token string")
-    config_parser.add_argument("--namespace", help="Namespace string")
+    config_parser.add_argument("--database", help="Database string")
     config_parser.add_argument("--org", help="Organization string")
 
     config_parser = subparsers.add_parser("help")
