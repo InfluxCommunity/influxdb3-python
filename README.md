@@ -38,7 +38,7 @@ Or you can use the config command to create or modify a config:
 % influx3 config --name="my-config" --database="<database or bucket name>" --host="us-east-1-1.aws.cloud2.influxdata.com" --token="<your token>" --org="<your org ID>"
 ```
 
-If you are running against InfluxDB Cloud, then use the bucket name for the database in you configuration.
+If you are running against InfluxDB Cloud Serverless, then use the bucket name for the database in you configuration.
 
 # Run as a Command
 ```
