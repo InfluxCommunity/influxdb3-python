@@ -11,4 +11,4 @@ client = InfluxDBClient3.InfluxDBClient3(token="pjvlpe-olsMjvdmw8pejTIqkknI2KUGI
 
 
 
-client.write_csv('./example.csv', measurement_name='table2', timestamp_column='Date')
+client.write_csv('./Examples/example.csv', measurement_name='table2', timestamp_column='Date')

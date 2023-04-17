@@ -69,7 +69,7 @@ class IOXCLI(cmd.Cmd):
             if arg_value is not None:
                 temp[attribute] = arg_value
         if isinstance(temp['tags'], str):
-            temp['tags'] =  ast.literal_eval( temp['tags'])
+            temp['tags'] =  temp['tags'].split(',')
 
 
         self.influxdb_client.write_csv(csv_file=temp['file'], 

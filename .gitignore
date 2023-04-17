@@ -5,3 +5,4 @@ influxdb_client_3/__pycache__/
 dist
 build
 pyinflux3*.egg-info
+.DS_store
