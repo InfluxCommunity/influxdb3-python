@@ -83,3 +83,16 @@ influx3 write_csv --file ./Examples/example.csv --measurement table2 --time Date
 # Client library
 This project also includes a new client library that strives for utter simplicity. It includes 3 functions, a constuctor, write(), and read().
 
+# Contribution
+If you are working on a new feature for either the CLI or the Client Libary please make sure you test both for breaking changes. This can currently be achived using the following method:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+chmod +x ./test/test-package.sh 
+./test/test-package.sh 
+```
+Any time you make changes in your code and want to retest just run the script again:
+```
+./test/test-package.sh 
+```
+
