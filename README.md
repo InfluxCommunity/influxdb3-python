@@ -21,7 +21,6 @@ You can drop a config file called config.json in the directory where you are run
 
 ```json
 {
-{
     "my-config": {
         "database": "your-database",
         "host": "your-host",
@@ -29,7 +28,6 @@ You can drop a config file called config.json in the directory where you are run
         "org": "your-org-id",
         "active": true
     }
-}
 }
 ```
 
