@@ -39,7 +39,7 @@ class IOXCLI(cmd.Cmd):
             print("can't query, no active configs")
             return
         try: 
-            reader = self.influxdb_client.query(sql_query=arg)
+            reader = self.influxdb_client.query(query=arg, language="sql")
             table = reader.read_all()
             print(table.to_pandas().to_markdown())
         except Exception as e:
