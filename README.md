@@ -24,21 +24,20 @@ sudo python3 -m pip install "pyinflux3[cli]"
 
 To configure `pyinflux3` and the CLI, do one of the following:
 
-- Create a `config.json` file in the directory where you run the `influx3` command:
+You can drop a config file called `config.json` in the directory where you are running the `influx3` command:
 
-    ```json
-    {
-    {
-        "my-config": {
-         "database": "your-database",
-         "host": "your-host",
-         "token": "your-token",
-         "org": "your-org-id",
-         "active": true
-        }
+```json
+{
+    "my-config": {
+        "database": "your-database",
+        "host": "your-host",
+        "token": "your-token",
+        "org": "your-org-id",
+        "active": true
     }
-    }
-    ```
+}
+```
+
 
 - Use the `config` command to create or modify a config:
 
