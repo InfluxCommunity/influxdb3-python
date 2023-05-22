@@ -3,13 +3,19 @@
 from pyarrow import csv
 from pyarrow.flight import FlightClient, Ticket, FlightCallOptions
 from influxdb_client import InfluxDBClient as _InfluxDBClient
+from influxdb_client import WriteOptions as _WriteOptions
 from influxdb_client.client.write_api import WriteApi as _WriteApi
 from influxdb_client.client.write_api import SYNCHRONOUS, ASYNCHRONOUS
 from influxdb_client import Point
 import json
 
+def write_options(**kwargs):
+   return  _WriteOptions(**kwargs)
+
+
+
 class InfluxDBClient3:
-    def __init__(self, host=None, org=None, database=None, token=None, write_options="SYNCHRONOUS", **kwargs):
+    def __init__(self, host=None, org=None, database=None, token=None, write_options=None, **kwargs):
         """
         This class provides an interface for interacting with an InfluxDB server, simplifying common operations such as writing, querying.
         * host (str, optional): The hostname or IP address of the InfluxDB server. Defaults to None.
@@ -21,13 +27,10 @@ class InfluxDBClient3:
         """
         self._org = org
         self._database = database
+        self.write_options = write_options
 
-        if write_options == "SYNCHRONOUS":
+        if self.write_options == None:
             self.write_options = SYNCHRONOUS
-        elif write_options == "ASYNCHRONOUS":
-            self.write_options = ASYNCHRONOUS
-        else:
-            raise ValueError("write_options must be SYNCHRONOUS or ASYNCHRONOUS")
 
      
         self._client = _InfluxDBClient(url=f"https://{host}", token=token, org=self._org, **kwargs )
