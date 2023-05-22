@@ -52,8 +52,16 @@ client.write(point)
 
 ## Querying with SQL
 ```python
-sql = "select * from measurement"
-reader = client.query(sql_query=sql)
+query = "select * from measurement"
+reader = client.query(query=query, language="sql")
+table = reader.read_all()
+print(table.to_pandas().to_markdown())
+```
+
+## Querying with influxql
+```python
+query = "select * from measurement"
+reader = client.query(query=query, language="influxql")
 table = reader.read_all()
 print(table.to_pandas().to_markdown())
 ```
