@@ -1,12 +1,12 @@
 # influxdb_client_3/__init__.py
 
 from pyarrow import csv
-import pyarrow.flight as flight
-from flightsql import FlightSQLClient
+from pyarrow.flight import FlightClient, Ticket, FlightCallOptions
 from influxdb_client import InfluxDBClient as _InfluxDBClient
 from influxdb_client.client.write_api import WriteApi as _WriteApi
 from influxdb_client.client.write_api import SYNCHRONOUS, ASYNCHRONOUS
 from influxdb_client import Point
+import json
 
 class InfluxDBClient3:
     def __init__(self, host=None, org=None, database=None, token=None, write_options="SYNCHRONOUS", **kwargs):
@@ -32,9 +32,10 @@ class InfluxDBClient3:
      
         self._client = _InfluxDBClient(url=f"https://{host}", token=token, org=self._org, **kwargs )
         self._write_api = _WriteApi(self._client, write_options=self.write_options )
-        self._flight_sql_client = FlightSQLClient(host=host,
-                                                  token=token,
-                                                  metadata={'bucket-name':database})
+        
+        self._flight_client = FlightClient(f"grpc+tls://{host}:443")
+        # create an authorization header
+        self._options = FlightCallOptions(headers=[(b"authorization",f"Bearer {token}".encode('utf-8'))])
 
     def write(self, record=None, **kwargs):
         """
@@ -73,16 +74,24 @@ class InfluxDBClient3:
 
 
 
-    def query(self, sql_query):
-        """
-        Query data from InfluxDB IOx using FlightSQL.
+    def query(self, query, language="sql"):
+        # create a flight client pointing to the InfluxDB
+        # create a ticket
+        ticket_data = {
+        "database": self._database,
+        "sql_query": query,
+        "query_type": language}
+        
+        ticket_bytes = json.dumps(ticket_data)
+        ticket = Ticket(ticket_bytes)
+        
+        # execute the query and return all the data
+        flight_reader = self._flight_client.do_get(ticket, self._options)
 
-        :param sql_query: The SQL query string to execute.
-        :type sql_query: str
-        :return: pyarrow.Table
-        """
-        query = self._flight_sql_client.execute(sql_query)
-        return self._flight_sql_client.do_get(query.endpoints[0].ticket)
+        # use read_all() to get all of the data as an Arrow table
+        # there are other functions to iterate through rows or read only parts of the data
+        # which is useful if you have huge data sets
+        return flight_reader.read_all()
 
     def __del__(self):
         self._write_api.__del__()
