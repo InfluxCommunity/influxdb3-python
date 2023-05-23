@@ -6,11 +6,14 @@ from influxdb_client import InfluxDBClient as _InfluxDBClient
 from influxdb_client import WriteOptions as _WriteOptions
 from influxdb_client.client.write_api import WriteApi as _WriteApi
 from influxdb_client.client.write_api import SYNCHRONOUS, ASYNCHRONOUS
+from influxdb_client.client.write_api import PointSettings
+from influxdb_client.domain.write_precision import WritePrecision
 from influxdb_client import Point
 import json
 
 def write_options(**kwargs):
    return  _WriteOptions(**kwargs)
+
 
 
 
@@ -27,15 +30,9 @@ class InfluxDBClient3:
         """
         self._org = org
         self._database = database
-        self.write_options = write_options
-
-        if self.write_options == None:
-            self.write_options = SYNCHRONOUS
-
-     
+        self.write_options = write_options if write_options is not None else SYNCHRONOUS
         self._client = _InfluxDBClient(url=f"https://{host}", token=token, org=self._org, **kwargs )
         self._write_api = _WriteApi(self._client, write_options=self.write_options )
-        
         self._flight_client = FlightClient(f"grpc+tls://{host}:443")
         # create an authorization header
         self._options = FlightCallOptions(headers=[(b"authorization",f"Bearer {token}".encode('utf-8'))])
@@ -66,7 +63,6 @@ class InfluxDBClient3:
             atable = csv.read_csv(csv_file, **kwargs)
      
             df = atable.to_pandas()
-            print(df)
             self._write_api.write(bucket=self._database, record=df, 
                                   data_frame_measurement_name=measurement_name, 
                                   data_frame_tag_columns=tag_columns,
@@ -96,8 +92,21 @@ class InfluxDBClient3:
         # which is useful if you have huge data sets
         return flight_reader.read_all()
 
-    def __del__(self):
-        self._write_api.__del__()
-        return self._client.__del__()
 
-__all__ = ["InfluxDBClient3", "Point"]
+    def close(self):
+        # Clean up resources here.
+        # Call close method of _write_api and _flight_client, if they exist.
+        if hasattr(self._write_api, 'close'):
+            self._write_api.close()
+        if hasattr(self._flight_client, 'close'):
+            self._flight_client.close()
+        if hasattr(self._client, 'close'):
+            self._client.close()
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+__all__ = ["InfluxDBClient3", "Point", "PointSettings", "SYNCHRONOUS", "ASYNCHRONOUS", "write_options", "WritePrecision"]
