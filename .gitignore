@@ -6,3 +6,4 @@ dist
 build
 pyinflux3*.egg-info
 .DS_store
+__pycache__
