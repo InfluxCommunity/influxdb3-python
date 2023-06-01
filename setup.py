@@ -2,8 +2,6 @@ from setuptools import setup
 import os
 import re
 
-binary_name = "influx3"
-binary_destination = os.path.join("bin", binary_name)
 
 with open("./README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -29,16 +27,16 @@ def get_version():
     return "v0.0.0"
 
 setup(
-    name='pyinflux3',
+    name='influxdb3-python',
     version=get_version(),
-    description='Community Python client for InfluxDB IOx',
+    description='Community Python client for InfluxDB 3.0',
     long_description=long_description,
     long_description_content_type="text/markdown",
     author='InfluxData',
     author_email='contact@influxdata.com',
-    url='https://github.com/InfluxCommunity/pyinflux3',
+    url='https://github.com/InfluxCommunity/influxdb3-python',
     packages=['influxdb_client_3'],
-    install_requires=['pyarrow', 'flightsql-dbapi', 'influxdb-client'],
+    install_requires=['pyarrow','influxdb-client'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
@@ -49,9 +47,5 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
-    ],
-   # Use extras_require to make data_files and entry_points optional
-    extras_require={
-        'cli': ['pyinflux3-cli']
-    },
+    ]
 )

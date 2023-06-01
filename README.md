@@ -1,144 +1,87 @@
-# About
-This is a community repository of Python code for InfluxDB with IOx. While this code is built on officially supported APIs, the library and CLI here are not officially support by Influx Data. 
+<p align="center">
+    <img src="python-logo.png" alt="Your Image" width="150px">
+</p>
 
-When installed, you have access to 2 pieces of functionality:
-1. A CLI for reading and writing data to InfluxDB with IOx.
-2. A client library for reading and writing data to InfluxDB with IOx.
+<p align="center">
+    <a href="https://pypi.org/project/influxdb3-python/">
+        <img src="https://img.shields.io/pypi/v/influxdb3-python.svg" alt="PyPI version">
+    </a>
+    <a href="https://pypi.org/project/influxdb3-python/">
+        <img src="https://img.shields.io/pypi/dm/influxdb3-python.svg" alt="PyPI downloads">
+    </a>
+    <a href="https://github.com/InfluxCommunity/influxdb3-python/actions/workflows/pylint.yml">
+        <img src="https://github.com/InfluxCommunity/influxdb3-python/actions/workflows/pylint.yml/badge.svg" alt="Lint Code Base">
+    </a>
+        <a href="https://github.com/InfluxCommunity/influxdb3-python/actions/workflows/python-publish.yml">
+        <img src="https://github.com/InfluxCommunity/influxdb3-python/actions/workflows/python-publish.yml/badge.svg" alt="Lint Code Base">
+    </a>
+    <a href="https://app.slack.com/huddle/influxcommunity/">
+        <img src="https://img.shields.io/badge/slack-join_chat-white.svg?logo=slack&style=social" alt="Community Slack">
+    </a>
+</p>
 
-# Install
-To install only the client:
+# InfluxDB 3.0 Python Client
+## Introduction
 
-```bash
-python3 -m pip install pyinflux3
-```
+`influxdb_client_3` is a Python module that provides a simple and convenient way to interact with InfluxDB 3.0. This module supports both writing data to InfluxDB and querying data using the Flight client, which allows you to execute SQL and InfluxQL queries on InfluxDB 3.0.
 
-To install the client and CLI:
+## Dependencies
 
-```bash
-sudo python3 -m pip install "pyinflux3[cli]"
-```
+- `pyarrow`
+- `influxdb-client`
 
-***Note: Use sudo if you would like to directly install the client onto your path. Otherwise use the `--user` flag.**
+## Installation
 
-# Add a Config
-
-To configure `pyinflux3` and the CLI, do one of the following:
-
-You can drop a config file called `config.json` in the directory where you are running the `influx3` command:
-
-```json
-{
-    "my-config": {
-        "database": "your-database",
-        "host": "your-host",
-        "token": "your-token",
-        "org": "your-org-id",
-        "active": true
-    }
-}
-```
-
-
-- Use the `config` command to create or modify a config:
-
-    ```
-    influx3 config \
-    --name="my-config" \
-    --database="<database or bucket name>" \
-    --host="us-east-1-1.aws.cloud2.influxdata.com" \
-    --token="<your token>" \
-    --org="<your org ID>"
-    ```
-
-If you are running against InfluxDB Cloud Serverless, then use the _bucket name_ as the database in your configuration.
-
-# Run as a Command
-
-```
-influx3 sql "select * from anomalies"
-```
-
-```
-influx3 write testmes f=7 
-```
-
-# Query and Write Interactively
-
-In your terminal, enter the following command:
-
-```
-influx3
-```
-
-`influx3` displays the `(>)` interactive prompt and waits for input.
-
-```
-Welcome to my IOx CLI.
-
-(>)
-```
-
-To query, type `sql` at the prompt.
-
-```
-(>) sql
-```
-
-At the `(sql >)` prompt, enter your query statement:
-
-```
-(sql >) select * from home
-```
-
-The `influx3` CLI displays query results in Markdown table format--for example:
-
-```
-|     |   co |   hum | room        |   temp | time                          |
-|----:|-----:|------:|:------------|-------:|:------------------------------|
-|   0 |    0 |  35.9 | Kitchen     |   21   | 2023-03-09 08:00:00           |
-|   1 |    0 |  35.9 | Kitchen     |   21   | 2023-03-09 08:00:50           |
-```
-
-To write, type `write` at the `(>)` prompt.
-
-```
-(>) write
-```
-
-At the `(write >)` prompt, enter line protocol data.
-
-```
-(>) write 
-home,room=kitchen temp=70.5,hum=80
-```
-
-To exit a prompt, enter `exit`.
-
-# Write from a File
-
-Both the InfluxDB CLI and Client libary support writing from a CSV file. The CSV file must have a header row with the column names. The there must be a column containing a timestamp. Here are the parse options:
-* `--file` - The path to the csv file.
-* `--time` - The name of the column containing the timestamp.
-* `--measurement` - The name of the measurment to store the CSV data under. (Currently only supports user specified string)
-* `--tags` - (optional) Specify an array of column names to use as tags. (Currently only supports user specified strings) for example: `--tags=host,region`
+You can install the dependencies using `pip`:
 
 ```bash
-influx3 write_csv --file ./Examples/example.csv --measurement table2 --time Date --tags host,region
+pip install influxdb3-client
 ```
 
-# Client library
-This project also includes a new client library that strives for utter simplicity. It includes 3 functions, a constuctor, write(), and read().
-
-# Contribution
-If you are working on a new feature for either the CLI or the Client Libary please make sure you test both for breaking changes. This can currently be achived using the following method:
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-chmod +x ./test/test-package.sh 
-./test/test-package.sh 
-```
-Any time you make changes in your code and want to retest just run the script again:
-```
-./test/test-package.sh 
+# Usage
+## Importing the Module
+```python
+from influxdb_client_3 import InfluxDBClient3, Point
 ```
 
+## Initialization
+If you are using InfluxDB Cloud, then you should note that:
+1. You will need to supply your org id, this is not necessary for InfluxDB Dedicated.
+2. Use a bucketname for the database argument.
+
+```python
+client = InfluxDBClient3(token="your-token",
+                         host="your-host",
+                         org="your-org",
+                         database="your-database")
+```
+
+## Writing Data
+You can write data using the Point class, or supplying line protocol.
+
+### Using Points
+```python
+point = Point("measurement").tag("location", "london").field("temperature", 42)
+client.write(point)
+```
+### Using Line Protocol
+```python
+point = "measurement fieldname=0"
+client.write(point)
+```
+
+## Querying with SQL
+```python
+query = "select * from measurement"
+reader = client.query(query=query, language="sql")
+table = reader.read_all()
+print(table.to_pandas().to_markdown())
+```
+
+## Querying with influxql
+```python
+query = "select * from measurement"
+reader = client.query(query=query, language="influxql")
+table = reader.read_all()
+print(table.to_pandas().to_markdown())
+```
