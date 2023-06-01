@@ -27,8 +27,8 @@ class InfluxDBClient3:
             org=None,
             database=None,
             token=None,
-            write_client_options=None,
-            flight_client_options=None,
+            _write_client_options=None,
+            _flight_client_options=None,
             **kwargs):
         """
         This class provides an interface for interacting with an InfluxDB server, simplifying common operations such as writing, querying.
@@ -41,7 +41,7 @@ class InfluxDBClient3:
         """
         self._org = org
         self._database = database
-        self.write_client_options = write_client_options if write_client_options is not None else write_client_options(write_options=SYNCHRONOUS)
+        self._write_client_options = _write_client_options if _write_client_options is not None else write_client_options(write_options=SYNCHRONOUS)
         self._client = _InfluxDBClient(
             url=f"https://{host}",
             token=token,
@@ -49,9 +49,9 @@ class InfluxDBClient3:
             **kwargs)
         
         self._write_api = _WriteApi(
-            self._client, **self.write_client_options)
+            self._client, **self._write_client_options)
 
-        self._flight_client_options = flight_client_options if flight_client_options is not None else {}
+        self._flight_client_options = _flight_client_options if _flight_client_options is not None else {}
         self._flight_client = FlightClient(
             f"grpc+tls://{host}:443",
             **self._flight_client_options)

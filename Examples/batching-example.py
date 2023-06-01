@@ -59,7 +59,7 @@ wco = write_client_options(success_callback=callback.success,
 with InfluxDBClient3.InfluxDBClient3(token=token,
                                      host=url,
                                      org=org,
-                                     database=database, enable_gzip=True, write_client_options=wco) as _client:
+                                     database=database, enable_gzip=True, _write_client_options=wco) as _client:
  
 
     # Creating iterator for one hour worth of data (6 sensor readings per

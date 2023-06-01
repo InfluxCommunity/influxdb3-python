@@ -5,9 +5,8 @@ import numpy as np
 client = InfluxDBClient3.InfluxDBClient3(
     token="",
     host="eu-central-1-1.aws.cloud2.influxdata.com",
-    org="6a841c0c08328fb1",
-    database="test",
-    write_options="SYNCHRONOUS")
+    org="",
+    database="")
 
 
 # Create a dataframe
