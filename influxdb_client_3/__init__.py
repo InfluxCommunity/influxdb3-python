@@ -11,19 +11,25 @@ from influxdb_client.domain.write_precision import WritePrecision
 from influxdb_client import Point
 import json
 
+
 def write_options(**kwargs):
-   return  _WriteOptions(**kwargs)
+    return _WriteOptions(**kwargs)
+
 
 def flight_client_options(**kwargs):
     return kwargs  # You can replace this with a specific data structure if needed
 
 
-
-
-
-
 class InfluxDBClient3:
-    def __init__(self, host=None, org=None, database=None, token=None, write_options=None, flight_client_options=None ,**kwargs):
+    def __init__(
+            self,
+            host=None,
+            org=None,
+            database=None,
+            token=None,
+            write_options=None,
+            flight_client_options=None,
+            **kwargs):
         """
         This class provides an interface for interacting with an InfluxDB server, simplifying common operations such as writing, querying.
         * host (str, optional): The hostname or IP address of the InfluxDB server. Defaults to None.
@@ -36,13 +42,21 @@ class InfluxDBClient3:
         self._org = org
         self._database = database
         self.write_options = write_options if write_options is not None else SYNCHRONOUS
-        self._client = _InfluxDBClient(url=f"https://{host}", token=token, org=self._org, **kwargs )
-        self._write_api = _WriteApi(self._client, write_options=self.write_options )
+        self._client = _InfluxDBClient(
+            url=f"https://{host}",
+            token=token,
+            org=self._org,
+            **kwargs)
+        self._write_api = _WriteApi(
+            self._client, write_options=self.write_options)
 
         self._flight_client_options = flight_client_options if flight_client_options is not None else {}
-        self._flight_client = FlightClient(f"grpc+tls://{host}:443", **self._flight_client_options)
+        self._flight_client = FlightClient(
+            f"grpc+tls://{host}:443",
+            **self._flight_client_options)
         # create an authorization header
-        self._options = FlightCallOptions(headers=[(b"authorization",f"Bearer {token}".encode('utf-8'))])
+        self._options = FlightCallOptions(
+            headers=[(b"authorization", f"Bearer {token}".encode('utf-8'))])
 
     def write(self, record=None, **kwargs):
         """
@@ -54,11 +68,18 @@ class InfluxDBClient3:
         :param kwargs: Additional arguments to pass to the write API.
         """
         try:
-            self._write_api.write(bucket=self._database, record=record, **kwargs)
+            self._write_api.write(
+                bucket=self._database, record=record, **kwargs)
         except Exception as e:
             print(e)
-    
-    def write_csv(self, csv_file, measurement_name=None, tag_columns = [],timestamp_column = 'time',  **kwargs):
+
+    def write_csv(
+            self,
+            csv_file,
+            measurement_name=None,
+            tag_columns=[],
+            timestamp_column='time',
+            **kwargs):
         """
         Write data from a CSV file to InfluxDB.
 
@@ -68,29 +89,26 @@ class InfluxDBClient3:
         """
         try:
             atable = csv.read_csv(csv_file, **kwargs)
-     
+
             df = atable.to_pandas()
-            self._write_api.write(bucket=self._database, record=df, 
-                                  data_frame_measurement_name=measurement_name, 
+            self._write_api.write(bucket=self._database, record=df,
+                                  data_frame_measurement_name=measurement_name,
                                   data_frame_tag_columns=tag_columns,
-                                  data_frame_timestamp_column = timestamp_column )
+                                  data_frame_timestamp_column=timestamp_column)
         except Exception as e:
             print(e)
-    
-
-
 
     def query(self, query, language="sql"):
         # create a flight client pointing to the InfluxDB
         # create a ticket
         ticket_data = {
-        "database": self._database,
-        "sql_query": query,
-        "query_type": language}
-        
+            "database": self._database,
+            "sql_query": query,
+            "query_type": language}
+
         ticket_bytes = json.dumps(ticket_data)
         ticket = Ticket(ticket_bytes)
-        
+
         # execute the query and return all the data
         flight_reader = self._flight_client.do_get(ticket, self._options)
 
@@ -98,7 +116,6 @@ class InfluxDBClient3:
         # there are other functions to iterate through rows or read only parts of the data
         # which is useful if you have huge data sets
         return flight_reader.read_all()
-
 
     def close(self):
         # Clean up resources here.
@@ -109,11 +126,20 @@ class InfluxDBClient3:
             self._flight_client.close()
         if hasattr(self._client, 'close'):
             self._client.close()
-    
+
     def __enter__(self):
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-__all__ = ["InfluxDBClient3", "Point", "PointSettings", "SYNCHRONOUS", "ASYNCHRONOUS", "write_options", "WritePrecision", "flight_client_options"]
+
+__all__ = [
+    "InfluxDBClient3",
+    "Point",
+    "PointSettings",
+    "SYNCHRONOUS",
+    "ASYNCHRONOUS",
+    "write_options",
+    "WritePrecision",
+    "flight_client_options"]
