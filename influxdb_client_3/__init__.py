@@ -3,17 +3,17 @@
 from pyarrow import csv
 from pyarrow.flight import FlightClient, Ticket, FlightCallOptions
 from influxdb_client import InfluxDBClient as _InfluxDBClient
-from influxdb_client import WriteOptions as _WriteOptions
+from influxdb_client import WriteOptions as WriteOptions
 from influxdb_client.client.write_api import WriteApi as _WriteApi
-from influxdb_client.client.write_api import SYNCHRONOUS, ASYNCHRONOUS
-from influxdb_client.client.write_api import PointSettings
+from influxdb_client.client.write_api import SYNCHRONOUS, ASYNCHRONOUS, PointSettings
 from influxdb_client.domain.write_precision import WritePrecision
+from influxdb_client.client.exceptions import InfluxDBError
 from influxdb_client import Point
 import json
 
 
-def write_options(**kwargs):
-    return _WriteOptions(**kwargs)
+def write_client_options(**kwargs):
+    return kwargs
 
 
 def flight_client_options(**kwargs):
@@ -27,7 +27,7 @@ class InfluxDBClient3:
             org=None,
             database=None,
             token=None,
-            write_options=None,
+            write_client_options=None,
             flight_client_options=None,
             **kwargs):
         """
@@ -36,24 +36,26 @@ class InfluxDBClient3:
         * org (str, optional): The InfluxDB organization name to be used for operations. Defaults to None.
         * database (str, optional): The database to be used for InfluxDB operations. Defaults to None.
         * token (str, optional): The authentication token for accessing the InfluxDB server. Defaults to None.
-        * write_options (enum, optional): Specifies the write mode (synchronous or asynchronous) to use when writing data points to InfluxDB. Defaults to SYNCHRONOUS.
+        * write_options (ANY, optional): Exposes InfuxDB WriteAPI options.
         * **kwargs: Additional arguments to be passed to the InfluxDB Client.
         """
         self._org = org
         self._database = database
-        self.write_options = write_options if write_options is not None else SYNCHRONOUS
+        self.write_client_options = write_client_options if write_client_options is not None else write_client_options(write_options=SYNCHRONOUS)
         self._client = _InfluxDBClient(
             url=f"https://{host}",
             token=token,
             org=self._org,
             **kwargs)
+        
         self._write_api = _WriteApi(
-            self._client, write_options=self.write_options)
+            self._client, **self.write_client_options)
 
         self._flight_client_options = flight_client_options if flight_client_options is not None else {}
         self._flight_client = FlightClient(
             f"grpc+tls://{host}:443",
             **self._flight_client_options)
+        
         # create an authorization header
         self._options = FlightCallOptions(
             headers=[(b"authorization", f"Bearer {token}".encode('utf-8'))])
@@ -140,6 +142,7 @@ __all__ = [
     "PointSettings",
     "SYNCHRONOUS",
     "ASYNCHRONOUS",
-    "write_options",
+    "write_client_options",
     "WritePrecision",
-    "flight_client_options"]
+    "flight_client_options",
+    "WriteOptions"]

@@ -5,9 +5,21 @@ from bson import ObjectId
 import influxdb_client_3 as InfluxDBClient3
 import pandas as pd
 import numpy as np
-from influxdb_client_3 import write_options, WritePrecision
+from influxdb_client_3 import write_client_options, WritePrecision, WriteOptions, InfluxDBError
 import datetime
 import time
+
+
+class BatchingCallback(object):
+
+    def success(self, conf, data: str):
+        print(f"Written batch: {conf}, data: {data}")
+
+    def error(self, conf, data: str, exception: InfluxDBError):
+        print(f"Cannot write batch: {conf}, data: {data} due: {exception}")
+
+    def retry(self, conf, data: str, exception: InfluxDBError):
+        print(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
 
 
 # Creating 5.000 gatewayId values as MongoDB ObjectIDs
@@ -18,27 +30,37 @@ precision = 2
 
 # Setting timestamp for first sensor reading
 now = datetime.datetime.now()
-now = now - datetime.timedelta(days=366)
+now = now - datetime.timedelta(days=30)
 teststart = datetime.datetime.now()
 
 # InfluxDB connection details
 token = ""
 org = ""
-bucket = ""
-url = ""
+database = ""
+url = "eu-central-1-1.aws.cloud2.influxdata.com"
 
+callback = BatchingCallback()
+
+write_options = WriteOptions(batch_size=5_000,
+                                        flush_interval=10_000,
+                                        jitter_interval=2_000,
+                                        retry_interval=5_000,
+                                        max_retries=5,
+                                        max_retry_delay=30_000,
+                                        exponential_base=2)
+
+wco = write_client_options(success_callback=callback.success,
+                          error_callback=callback.error,
+                          retry_callback=callback.retry,
+                          WriteOptions=write_options 
+                        )
 # Opening InfluxDB client with a batch size of 5k points or flush interval
 # of 10k ms and gzip compression
 with InfluxDBClient3.InfluxDBClient3(token=token,
                                      host=url,
                                      org=org,
-                                     database="solarmanager", enable_gzip=True, write_options=write_options(batch_size=5_000,
-                                                                                                            flush_interval=10_000,
-                                                                                                            jitter_interval=2_000,
-                                                                                                            retry_interval=5_000,
-                                                                                                            max_retries=5,
-                                                                                                            max_retry_delay=30_000,
-                                                                                                            exponential_base=2, write_type='batching')) as _client:
+                                     database=database, enable_gzip=True, write_client_options=wco) as _client:
+ 
 
     # Creating iterator for one hour worth of data (6 sensor readings per
     # minute)
