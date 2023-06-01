@@ -6,8 +6,8 @@
     <a href="https://pypi.org/project/influxdb3-python/">
         <img src="https://img.shields.io/pypi/v/influxdb3-python.svg" alt="PyPI version">
     </a>
-    <a href="https://pypi.org/project/influxdb-client/">
-        <img src="https://img.shields.io/pypi/dm/influxdb-client.svg" alt="PyPI downloads">
+    <a href="https://pypi.org/project/influxdb3-python/">
+        <img src="https://img.shields.io/pypi/dm/influxdb3-python.svg" alt="PyPI downloads">
     </a>
     <a href="https://github.com/InfluxCommunity/influxdb3-python/actions/workflows/pylint.yml">
         <img src="https://github.com/InfluxCommunity/influxdb3-python/actions/workflows/pylint.yml/badge.svg" alt="Lint Code Base">
