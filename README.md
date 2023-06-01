@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="python-logo.png" alt="Your Image" width="150px">
+    <img src="https://github.com/InfluxCommunity/influxdb3-python/blob/main/python-logo.png?raw=true" alt="Your Image" width="150px">
 </p>
 
 <p align="center">
