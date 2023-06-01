@@ -35,7 +35,7 @@
 You can install the dependencies using `pip`:
 
 ```bash
-pip install influxdb3-client
+pip install influxdb3-python
 ```
 
 # Usage
