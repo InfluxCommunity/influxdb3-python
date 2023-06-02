@@ -1,6 +1,6 @@
 # influxdb_client_3/__init__.py
 
-from pyarrow import csv
+import pyarrow as pa
 from pyarrow.flight import FlightClient, Ticket, FlightCallOptions
 from influxdb_client import InfluxDBClient as _InfluxDBClient
 from influxdb_client import WriteOptions as WriteOptions
@@ -10,6 +10,8 @@ from influxdb_client.domain.write_precision import WritePrecision
 from influxdb_client.client.exceptions import InfluxDBError
 from influxdb_client import Point
 import json
+
+from influxdb_client_3.read_file import upload_file
 
 
 def write_client_options(**kwargs):
@@ -75,28 +77,56 @@ class InfluxDBClient3:
         except Exception as e:
             print(e)
 
-    def write_csv(
+    def write_file(
             self,
-            csv_file,
+            file,
             measurement_name=None,
             tag_columns=[],
             timestamp_column='time',
             **kwargs):
         """
-        Write data from a CSV file to InfluxDB.
+        Write data from a  file to InfluxDB.
 
-        :param csv_file: The CSV file to write.
-        :type csv_file: str
+        :param file: The file to write.
         :param kwargs: Additional arguments to pass to the write API.
         """
         try:
-            atable = csv.read_csv(csv_file, **kwargs)
+            rf = upload_file(file)
+            Table = rf.load_file()
 
-            df = atable.to_pandas()
-            self._write_api.write(bucket=self._database, record=df,
-                                  data_frame_measurement_name=measurement_name,
-                                  data_frame_tag_columns=tag_columns,
-                                  data_frame_timestamp_column=timestamp_column)
+            if isinstance(Table, pa.Table):
+                df = Table.to_pandas()
+            else:
+                df = Table
+            print(df)
+
+            measurement_column = None
+
+            if measurement_name is None:
+                if 'measurement' in df.columns:
+                        measurement_column = 'measurement'
+                elif 'iox::measurement' in df.columns:
+                        measurement_column = 'iox::measurement'
+
+                if measurement_column is not None:
+                    unique_measurements = df[measurement_column].unique()
+                    for measurement in unique_measurements:
+                        df_measurement = df[df[measurement_column] == measurement]
+                        df_measurement = df_measurement.drop(columns=[measurement_column])
+                        print(df_measurement)
+                        self._write_api.write(bucket=self._database, record=df_measurement,
+                                            data_frame_measurement_name=measurement,
+                                            data_frame_tag_columns=tag_columns,
+                                            data_frame_timestamp_column=timestamp_column)
+                else:
+                    print("'measurement' column not found in the dataframe.")
+            else:
+                if 'measurement' in df.columns:
+                    df = df.drop(columns=['measurement'])
+                self._write_api.write(bucket=self._database, record=df,
+                                    data_frame_measurement_name=measurement_name,
+                                    data_frame_tag_columns=tag_columns,
+                                    data_frame_timestamp_column=timestamp_column)
         except Exception as e:
             print(e)
 
