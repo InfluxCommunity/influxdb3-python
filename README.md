@@ -124,7 +124,7 @@ with  InfluxDBClient3.InfluxDBClient3(
 
 ```
 
-##Querying 
+## Querying 
 
 ### Querying with SQL
 ```python
