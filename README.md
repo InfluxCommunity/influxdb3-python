@@ -29,15 +29,18 @@
 
 - `pyarrow`
 - `influxdb-client`
+  
 *These are installed as part of the package*
 
 ## Installation
 
-You can install the dependencies using `pip`:
+You can install 'influxdb3-python' using `pip`:
 
 ```bash
 pip install influxdb3-python
 ```
+
+*Note: Please make sure you are using 3.6 or above. For the best performance use 3.11+*
 
 # Usage
 ## Importing the Module
