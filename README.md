@@ -29,6 +29,7 @@
 
 - `pyarrow`
 - `influxdb-client`
+*These are installed as part of the package*
 
 ## Installation
 
