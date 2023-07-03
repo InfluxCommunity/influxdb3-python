@@ -130,7 +130,7 @@ class InfluxDBClient3:
         except Exception as e:
             print(e)
 
-    def query(self, query, language="sql"):
+    def query(self, query, language="sql", mode="all"):
         # create a flight client pointing to the InfluxDB
         # create a ticket
         ticket_data = {
@@ -144,10 +144,20 @@ class InfluxDBClient3:
         # execute the query and return all the data
         flight_reader = self._flight_client.do_get(ticket, self._options)
 
+        if mode == "all":
+            # use read_all() to get all of the data as an Arrow table
+            return flight_reader.read_all()
         # use read_all() to get all of the data as an Arrow table
-        # there are other functions to iterate through rows or read only parts of the data
-        # which is useful if you have huge data sets
-        return flight_reader.read_all()
+        elif mode == "pandas":
+            return flight_reader.read_pandas()
+        elif mode == "chunk":
+            return flight_reader
+        elif mode == "reader":
+            return flight_reader.to_reader()
+        elif mode == "schema":
+            return flight_reader.schema
+        else:
+            return flight_reader.read_all()
 
     def close(self):
         # Clean up resources here.
