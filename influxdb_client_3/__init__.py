@@ -1,4 +1,5 @@
 import json
+import urllib.parse
 import pyarrow as pa
 from influxdb_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
 from influxdb_client.client.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, PointSettings
@@ -45,6 +46,11 @@ class InfluxDBClient3:
         self._org = org
         self._database = database
         self._write_client_options = write_client_options or {'write_options': SYNCHRONOUS}
+
+        # Extracting the hostname from URL if provided
+        parsed_url = urllib.parse.urlparse(host)
+        host = parsed_url.hostname or host
+
         self._client = _InfluxDBClient(
             url=f"https://{host}",
             token=token,
