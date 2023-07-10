@@ -45,7 +45,7 @@ class InfluxDBClient3:
         """
         self._org = org
         self._database = database
-        self._write_client_options = write_client_options or {'write_options': SYNCHRONOUS}
+        self._write_client_options = write_client_options or write_client_options(write_options=SYNCHRONOUS)
 
         # Extracting the hostname from URL if provided
         parsed_url = urllib.parse.urlparse(host)
