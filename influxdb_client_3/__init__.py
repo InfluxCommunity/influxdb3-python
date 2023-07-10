@@ -57,7 +57,7 @@ class InfluxDBClient3:
             org=self._org,
             **kwargs)
         
-        self._write_api = _WriteApi(self._client, **self._write_client_options)
+        self._write_api = _WriteApi(influxdb_client=self._client, **self._write_client_options)
         self._flight_client_options = flight_client_options or {}
         self._flight_client = FlightClient(f"grpc+tls://{host}:443", **self._flight_client_options)
         
@@ -75,7 +75,8 @@ class InfluxDBClient3:
         try:
             self._write_api.write(bucket=self._database, record=record, **kwargs)
         except InfluxDBError as e:
-            print(f"InfluxDB Error: {e}")
+            raise e
+          
 
     def write_file(self, file, measurement_name=None, tag_columns=None, timestamp_column='time', **kwargs):
         """
@@ -96,7 +97,8 @@ class InfluxDBClient3:
             df = table.to_pandas() if isinstance(table, pa.Table) else table
             self._process_dataframe(df, measurement_name, tag_columns or [], timestamp_column)
         except Exception as e:
-            print(f"Error writing file: {e}")
+            raise e
+            
 
     def _process_dataframe(self, df, measurement_name, tag_columns, timestamp_column):
         # This function is factored out for clarity.
@@ -133,19 +135,22 @@ class InfluxDBClient3:
         :type mode: str
         :return: The queried data.
         """
-        ticket_data = {"database": self._database, "sql_query": query, "query_type": language}
-        ticket = Ticket(json.dumps(ticket_data).encode('utf-8'))
-        flight_reader = self._flight_client.do_get(ticket, self._options)
+        try:
+            ticket_data = {"database": self._database, "sql_query": query, "query_type": language}
+            ticket = Ticket(json.dumps(ticket_data).encode('utf-8'))
+            flight_reader = self._flight_client.do_get(ticket, self._options)
 
-        mode_func = {
-            "all": flight_reader.read_all,
-            "pandas": flight_reader.read_pandas,
-            "chunk": lambda: flight_reader,
-            "reader": flight_reader.to_reader,
-            "schema": lambda: flight_reader.schema
-        }.get(mode, flight_reader.read_all)
+            mode_func = {
+                "all": flight_reader.read_all,
+                "pandas": flight_reader.read_pandas,
+                "chunk": lambda: flight_reader,
+                "reader": flight_reader.to_reader,
+                "schema": lambda: flight_reader.schema
+            }.get(mode, flight_reader.read_all)
 
-        return mode_func() if callable(mode_func) else mode_func
+            return mode_func() if callable(mode_func) else mode_func
+        except Exception as e:
+            raise e
 
     def close(self):
         """Close the client and clean up resources."""
