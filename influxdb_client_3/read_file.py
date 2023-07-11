@@ -2,7 +2,12 @@ from pyarrow import json as pa_json
 import pyarrow.csv as csv
 import pyarrow.feather as feather
 import pyarrow.parquet as parquet
-import pyarrow.orc as orc
+import os
+
+# Check if the OS is not Windows
+if os.name != 'nt':
+    import pyarrow.orc as orc
+
 import pandas as pd
 
 class upload_file:
@@ -20,6 +25,7 @@ class upload_file:
             elif self._file.endswith(".json"):
                 return self.load_json(self._file)
             elif self._file.endswith(".orc"):
+
                 return self.load_orc(self._file)
             else:
                 raise ValueError("Unsupported file type")
@@ -34,7 +40,10 @@ class upload_file:
         return csv.read_csv(file, **self._kwargs)
     
     def load_orc(self, file):
-        return orc.read_table(file, **self._kwargs)
+        if os.name == 'nt':
+            raise ValueError("Unsupported file type for this OS")
+        else:
+            return orc.read_table(file, **self._kwargs)
     
     #TODO: Use pyarrow.json.read_json() instead of pandas.read_json()
     def load_json(self, file):
