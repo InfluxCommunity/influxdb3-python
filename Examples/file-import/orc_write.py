@@ -1,7 +1,7 @@
 import influxdb_client_3 as InfluxDBClient3
 import pandas as pd
 import numpy as np
-from influxdb_client_3 import write_client_options, WritePrecision, WriteOptions, InfluxDBError
+from influxdb_client_3 import write_client_options, WriteOptions, InfluxDBError
 
 
 class BatchingCallback(object):
@@ -35,7 +35,7 @@ with  InfluxDBClient3.InfluxDBClient3(
     token="INSERT_TOKEN",
     host="eu-central-1-1.aws.cloud2.influxdata.com",
     org="6a841c0c08328fb1",
-    database="python", _write_client_options=wco) as client:
+    database="python") as client:
 
 
 

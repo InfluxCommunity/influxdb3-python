@@ -12,6 +12,8 @@ from influxdb_client_3.read_file import upload_file
 def write_client_options(**kwargs):
     return kwargs
 
+def default_client_options(**kwargs):
+    return kwargs
 
 def flight_client_options(**kwargs):
     return kwargs  # You can replace this with a specific data structure if needed
@@ -45,7 +47,7 @@ class InfluxDBClient3:
         """
         self._org = org
         self._database = database
-        self._write_client_options = write_client_options or write_client_options(write_options=SYNCHRONOUS)
+        self._write_client_options = write_client_options if write_client_options is not None else default_client_options(write_options=SYNCHRONOUS)
 
         # Extracting the hostname from URL if provided
         parsed_url = urllib.parse.urlparse(host)
