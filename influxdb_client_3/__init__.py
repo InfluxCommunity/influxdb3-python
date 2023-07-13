@@ -18,6 +18,7 @@ def default_client_options(**kwargs):
 def flight_client_options(**kwargs):
     return kwargs  # You can replace this with a specific data structure if needed
 
+
 class InfluxDBClient3:
     def __init__(
             self,
@@ -47,6 +48,7 @@ class InfluxDBClient3:
         """
         self._org = org
         self._database = database
+        self._token = token
         self._write_client_options = write_client_options if write_client_options is not None else default_client_options(write_options=SYNCHRONOUS)
 
         # Extracting the hostname from URL if provided
@@ -55,7 +57,7 @@ class InfluxDBClient3:
 
         self._client = _InfluxDBClient(
             url=f"https://{host}",
-            token=token,
+            token=self._token,
             org=self._org,
             **kwargs)
         
@@ -63,10 +65,9 @@ class InfluxDBClient3:
         self._flight_client_options = flight_client_options or {}
         self._flight_client = FlightClient(f"grpc+tls://{host}:443", **self._flight_client_options)
         
-        # Create an authorization header
-        self._options = FlightCallOptions(headers=[(b"authorization", f"Bearer {token}".encode('utf-8'))])
 
-    def write(self, record=None, **kwargs):
+
+    def write(self, record=None, database=None ,**kwargs):
         """
         Write data to InfluxDB.
 
@@ -74,13 +75,16 @@ class InfluxDBClient3:
         :type record: Point or list of Point objects
         :param kwargs: Additional arguments to pass to the write API.
         """
+        if database is None:
+            database = self._database
+
         try:
-            self._write_api.write(bucket=self._database, record=record, **kwargs)
+            self._write_api.write(bucket=database, record=record, **kwargs)
         except InfluxDBError as e:
             raise e
           
 
-    def write_file(self, file, measurement_name=None, tag_columns=None, timestamp_column='time', **kwargs):
+    def write_file(self, file, measurement_name=None, tag_columns=None, timestamp_column='time', database=None, **kwargs):
         """
         Write data from a file to InfluxDB.
 
@@ -94,15 +98,18 @@ class InfluxDBClient3:
         :type timestamp_column: str
         :param kwargs: Additional arguments to pass to the write API.
         """
+        if database is None:
+            database = self._database
+
         try:
             table = upload_file(file).load_file()
             df = table.to_pandas() if isinstance(table, pa.Table) else table
-            self._process_dataframe(df, measurement_name, tag_columns or [], timestamp_column)
+            self._process_dataframe(df, measurement_name, tag_columns or [], timestamp_column, database=database, **kwargs)
         except Exception as e:
             raise e
             
 
-    def _process_dataframe(self, df, measurement_name, tag_columns, timestamp_column):
+    def _process_dataframe(self, df, measurement_name, tag_columns, timestamp_column, database, **kwargs):
         # This function is factored out for clarity.
         # It processes a DataFrame before writing to InfluxDB.
 
@@ -120,12 +127,12 @@ class InfluxDBClient3:
                 print("'measurement' column not found in the dataframe.")
         else:
             df = df.drop(columns=['measurement'], errors='ignore')
-            self._write_api.write(bucket=self._database, record=df,
+            self._write_api.write(bucket=database, record=df,
                                   data_frame_measurement_name=measurement_name,
                                   data_frame_tag_columns=tag_columns,
-                                  data_frame_timestamp_column=timestamp_column)
+                                  data_frame_timestamp_column=timestamp_column, **kwargs)
 
-    def query(self, query, language="sql", mode="all"):
+    def query(self, query, language="sql", mode="all", database=None, **kwargs ):
         """
         Query data from InfluxDB.
 
@@ -137,10 +144,15 @@ class InfluxDBClient3:
         :type mode: str
         :return: The queried data.
         """
+        if database is None:
+            database = self._database
+        
         try:
-            ticket_data = {"database": self._database, "sql_query": query, "query_type": language}
+            # Create an authorization header
+            _options = FlightCallOptions(headers=[(b"authorization", f"Bearer {self._token}".encode('utf-8'))], **kwargs)
+            ticket_data = {"database": database, "sql_query": query, "query_type": language}
             ticket = Ticket(json.dumps(ticket_data).encode('utf-8'))
-            flight_reader = self._flight_client.do_get(ticket, self._options)
+            flight_reader = self._flight_client.do_get(ticket, _options)
 
             mode_func = {
                 "all": flight_reader.read_all,
