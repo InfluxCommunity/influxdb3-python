@@ -1,22 +1,42 @@
-import json
-import urllib.parse
+import urllib.parse, json
 import pyarrow as pa
 from influxdb_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
 from influxdb_client.client.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, PointSettings
 from influxdb_client.domain.write_precision import WritePrecision
 from influxdb_client.client.exceptions import InfluxDBError
 from pyarrow.flight import FlightClient, Ticket, FlightCallOptions
-from influxdb_client_3.read_file import upload_file
+from influxdb_client_3.read_file import UploadFile
 
 
 def write_client_options(**kwargs):
+    """
+    Function for providing additional arguments for the WriteApi client.
+
+    :param kwargs: Additional arguments for the WriteApi client.
+    :return: dict with the arguments.
+    """
     return kwargs
 
 def default_client_options(**kwargs):
     return kwargs
 
 def flight_client_options(**kwargs):
-    return kwargs  # You can replace this with a specific data structure if needed
+    """
+    Function for providing additional arguments for the FlightClient.
+
+    :param kwargs: Additional arguments for the FlightClient.
+    :return: dict with the arguments.
+    """
+    return kwargs
+
+def file_parser_options(**kwargs):
+    """
+    Function for providing additional arguments for the file parser.
+
+    :param kwargs: Additional arguments for the file parser.
+    :return: dict with the arguments.
+    """
+    return kwargs  
 
 
 class InfluxDBClient3:
@@ -40,13 +60,13 @@ class InfluxDBClient3:
         :type database: str
         :param token: The authentication token for accessing the InfluxDB server.
         :type token: str
-        :param write_client_options: Options for the WriteAPI.
-        :type write_client_options: dict
-        :param flight_client_options: Options for the FlightClient.
-        :type flight_client_options: dict
+        :param write_client_options: Function for providing additional arguments for the WriteApi client.
+        :type write_client_options: callable
+        :param flight_client_options: Function for providing additional arguments for the FlightClient.
+        :type flight_client_options: callable
         :param kwargs: Additional arguments for the InfluxDB Client.
         """
-        self._org = org
+        self._org = org if org is not None else "default"
         self._database = database
         self._token = token
         self._write_client_options = write_client_options if write_client_options is not None else default_client_options(write_options=SYNCHRONOUS)
@@ -72,7 +92,9 @@ class InfluxDBClient3:
         Write data to InfluxDB.
 
         :param record: The data point(s) to write.
-        :type record: Point or list of Point objects
+        :type record: object or list of objects
+        :param database: The database to write to. If not provided, uses the database provided during initialization.
+        :type database: str
         :param kwargs: Additional arguments to pass to the write API.
         """
         if database is None:
@@ -84,7 +106,7 @@ class InfluxDBClient3:
             raise e
           
 
-    def write_file(self, file, measurement_name=None, tag_columns=None, timestamp_column='time', database=None, **kwargs):
+    def write_file(self, file, measurement_name=None, tag_columns=None, timestamp_column='time', database=None, file_parser_options=None ,**kwargs):
         """
         Write data from a file to InfluxDB.
 
@@ -96,13 +118,17 @@ class InfluxDBClient3:
         :type tag_columns: list
         :param timestamp_column: Timestamp column name. Defaults to 'time'.
         :type timestamp_column: str
+        :param database: The database to write to. If not provided, uses the database provided during initialization.
+        :type database: str
+        :param file_parser_options: Function for providing additional arguments for the file parser.
+        :type file_parser_options: callable
         :param kwargs: Additional arguments to pass to the write API.
         """
         if database is None:
             database = self._database
 
         try:
-            table = upload_file(file).load_file()
+            table = UploadFile(file, file_parser_options).load_file()
             df = table.to_pandas() if isinstance(table, pa.Table) else table
             self._process_dataframe(df, measurement_name, tag_columns or [], timestamp_column, database=database, **kwargs)
         except Exception as e:
@@ -138,10 +164,13 @@ class InfluxDBClient3:
 
         :param query: The query string.
         :type query: str
-        :param language: The query language (default is "sql").
+        :param language: The query language; "sql" or "influxql" (default is "sql").
         :type language: str
         :param mode: The mode of fetching data (all, pandas, chunk, reader, schema).
         :type mode: str
+        :param database: The database to query from. If not provided, uses the database provided during initialization.
+        :type database: str
+        :param kwargs: Additional arguments for the query.
         :return: The queried data.
         """
         if database is None:
@@ -188,5 +217,6 @@ __all__ = [
     "WritePrecision",
     "WriteOptions",
     "write_client_options",
-    "flight_client_options"
+    "flight_client_options",
+    "file_parser_options"
 ]
