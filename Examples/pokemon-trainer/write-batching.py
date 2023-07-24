@@ -1,7 +1,5 @@
 from influxdb_client_3 import InfluxDBClient3,InfluxDBError,WriteOptions,write_client_options
 import pandas as pd
-import numpy as np
-import datetime
 import random
 
 
