@@ -2,7 +2,9 @@ import os
 import pyarrow.csv as csv
 import pyarrow.feather as feather
 import pyarrow.parquet as parquet
-import pandas as pd
+
+
+
 
 # Check if the OS is not Windows
 if os.name != 'nt':
@@ -21,6 +23,11 @@ class UploadFile:
         :type file: str
         :param kwargs: Additional arguments for file loading functions.
         """
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError("Pandas is required for write_file(). Please install it using 'pip install pandas' or 'pip install influxdb3-python[pandas]'")
+
         self._file = file
         self._kwargs = file_parser_options if file_parser_options is not None else {}
 

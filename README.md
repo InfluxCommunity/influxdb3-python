@@ -27,10 +27,10 @@
 
 ## Dependencies
 
-- `pyarrow`
-- `influxdb-client`
+- `pyarrow` (automatically installed)
+- `influxdb-client` (automatically installed)
+- `pandas` (optional)
   
-*These are installed as part of the package*
 
 ## Installation
 
@@ -40,9 +40,13 @@ You can install 'influxdb3-python' using `pip`:
 pip install influxdb3-python
 ```
 
+Note: This does not include Pandas support. If you would like to use key features such as `to_pandas()`  and `write_file()` you will need to install `pandas` separately.
+
 *Note: Please make sure you are using 3.6 or above. For the best performance use 3.11+*
 
 # Usage
+One of the easiest ways to get started is to checkout the ["Pokemon-Trainer cookbook"](Examples/pokemon-trainer/cookbook.ipynb). This scenario takes you through the basics of both the client library and Pyarrow.
+
 ## Importing the Module
 ```python
 from influxdb_client_3 import InfluxDBClient3, Point

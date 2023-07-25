@@ -36,6 +36,7 @@ setup(
     author_email='contact@influxdata.com',
     url='https://github.com/InfluxCommunity/influxdb3-python',
     packages=['influxdb_client_3'],
+    extras_require={'pandas': ['pandas']},
     install_requires=['pyarrow','influxdb-client'],
     classifiers=[
         'Development Status :: 4 - Beta',

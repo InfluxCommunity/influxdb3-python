@@ -1,6 +1,4 @@
 from influxdb_client_3 import InfluxDBClient3, Point
-import pandas as pd
-import numpy as np
 import datetime
 
 
