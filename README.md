@@ -42,18 +42,10 @@ pip install influxdb3-python
 
 Note: This does not include Pandas support. If you would like to use key features such as `to_pandas()`  and `write_file()` you will need to install `pandas` separately.
 
-```bash
-pip install influxdb3-python[pandas]
-```
-or
-```bash
-pip install pandas
-```
-
 *Note: Please make sure you are using 3.6 or above. For the best performance use 3.11+*
 
 # Usage
-One of the easiest ways to get started is to checkout the ["Pokemon-Trainer cookbook"](Examples/pokemon-trainer/cookbook.ipynb). This scenario takes you through the basics of both the client library and Pyarrow.
+One of the easiest ways to get started is to checkout the ["Pokemon Trainer Cookbook"](Examples/pokemon-trainer/cookbook.ipynb). This scenario takes you through the basics of both the client library and Pyarrow.
 
 ## Importing the Module
 ```python
