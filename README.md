@@ -151,7 +151,7 @@ print(table.to_pandas().to_markdown())
 ```
 
 ## Windows Users
-Currently, Windows users require an extra installation when querying via Flight natively. This is due to the fact gRPC can locate Windows root certificates. To work around this please follow these steps:
+Currently, Windows users require an extra installation when querying via Flight natively. This is due to the fact gRPC cannot locate Windows root certificates. To work around this please follow these steps:
 Install `certifi`
 ```bash
 pip install certifi
@@ -184,3 +184,4 @@ table = client.query(
 
 print(table.to_pandas())
 ```
+You may also include your own root certificate via this manor aswell. 
