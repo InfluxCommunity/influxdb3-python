@@ -149,3 +149,38 @@ reader = client.query(query=query, language="influxql")
 table = reader.read_all()
 print(table.to_pandas().to_markdown())
 ```
+
+## Windows Users
+Currently, Windows users require an extra installation when querying via Flight natively. This is due to the fact gRPC can locate Windows root certificates. To work around this please follow these steps:
+Install `certifi`
+```bash
+pip install certifi
+```
+Next include certifi within the flight client options:
+```python
+import influxdb_client_3 as InfluxDBClient3
+import pandas as pd
+import numpy as np
+from influxdb_client_3 import flight_client_options
+import certifi
+
+fh = open(certifi.where(), "r")
+cert = fh.read()
+fh.close()
+
+
+client = InfluxDBClient3.InfluxDBClient3(
+    token="",
+    host="b0c7cce5-8dbc-428e-98c6-7f996fb96467.a.influxdb.io",
+    org="6a841c0c08328fb1",
+    database="flightdemo",
+    flight_client_options=flight_client_options(
+        tls_root_certs=cert))
+
+
+table = client.query(
+    query="SELECT * FROM flight WHERE time > now() - 4h",
+    language="influxql")
+
+print(table.to_pandas())
+```
