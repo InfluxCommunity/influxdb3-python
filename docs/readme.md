@@ -12,7 +12,6 @@ This guide provides details on errors returned by Arrow Flight, along with poten
     - [Internal Error: stream terminated by RST\_STREAM with NO\_ERROR](#internal-error-stream-terminated-by-rst_stream-with-no_error)
     - [ArrowInvalid: Flight returned invalid argument error with message: bucket "" not found](#arrowinvalid-flight-returned-invalid-argument-error-with-message-bucket--not-found)
   - [Contributions](#contributions)
-  - [License](#license)
 
 ## Errors
 
@@ -50,7 +49,3 @@ This guide provides details on errors returned by Arrow Flight, along with poten
 ## Contributions
 
 We welcome contributions to this guide. If you've encountered an Arrow Flight error not listed here, please raise an issue or submit a pull request.
-
-## License
-
-This guide is released under the [MIT License](LICENSE).
