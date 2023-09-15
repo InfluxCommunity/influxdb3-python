@@ -6,6 +6,7 @@ from influxdb_client.domain.write_precision import WritePrecision
 from influxdb_client.client.exceptions import InfluxDBError
 from pyarrow.flight import FlightClient, Ticket, FlightCallOptions
 from influxdb_client_3.read_file import UploadFile
+import urllib.parse
 
 
 
@@ -49,6 +50,8 @@ class InfluxDBClient3:
             token=None,
             write_client_options=None,
             flight_client_options=None,
+            write_port_overwrite=None,
+            query_port_overwrite=None,
             **kwargs):
         """
         Initialize an InfluxDB client.
@@ -71,21 +74,32 @@ class InfluxDBClient3:
         self._database = database
         self._token = token
         self._write_client_options = write_client_options if write_client_options is not None else default_client_options(write_options=SYNCHRONOUS)
-
-        # Extracting the hostname from URL if provided
+        
+        # Parse the host input
         parsed_url = urllib.parse.urlparse(host)
-        host = parsed_url.hostname or host
+        
+        # Determine the protocol (scheme), hostname, and port
+        scheme = parsed_url.scheme if parsed_url.scheme else "https"
+        hostname = parsed_url.hostname if parsed_url.hostname else host
+        port = parsed_url.port if parsed_url.port else 443
+
+        # Construct the clients using the parsed values
+        if write_port_overwrite is not None:
+            port = write_port_overwrite
 
         self._client = _InfluxDBClient(
-            url=f"https://{host}",
+            url=f"{scheme}://{hostname}:{port}",
             token=self._token,
             org=self._org,
             **kwargs)
         
         self._write_api = _WriteApi(influxdb_client=self._client, **self._write_client_options)
         self._flight_client_options = flight_client_options or {}
-        self._flight_client = FlightClient(f"grpc+tls://{host}:443", **self._flight_client_options)
         
+        if query_port_overwrite is not None:
+            port = query_port_overwrite
+        self._flight_client = FlightClient(f"grpc+tls://{hostname}:{port}", **self._flight_client_options)
+
 
 
     def write(self, record=None, database=None ,**kwargs):
