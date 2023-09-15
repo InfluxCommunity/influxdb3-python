@@ -8,6 +8,7 @@ from pyarrow.flight import FlightClient, Ticket, FlightCallOptions
 from influxdb_client_3.read_file import UploadFile
 
 
+
 def write_client_options(**kwargs):
     """
     Function for providing additional arguments for the WriteApi client.
@@ -158,7 +159,7 @@ class InfluxDBClient3:
                                   data_frame_tag_columns=tag_columns,
                                   data_frame_timestamp_column=timestamp_column, **kwargs)
 
-    def query(self, query, language="sql", mode="all", database=None, **kwargs ):
+    def query(self, query, language="sql", mode="all", database=None,**kwargs ):
         """
         Query data from InfluxDB.
 
@@ -173,12 +174,16 @@ class InfluxDBClient3:
         :param kwargs: Additional arguments for the query.
         :return: The queried data.
         """
+        
+
         if database is None:
             database = self._database
         
         try:
+            headers = [(b"authorization", f"Bearer {self._token}".encode('utf-8'))]
+    
             # Create an authorization header
-            _options = FlightCallOptions(headers=[(b"authorization", f"Bearer {self._token}".encode('utf-8'))], **kwargs)
+            _options = FlightCallOptions(headers=headers, **kwargs)
             ticket_data = {"database": database, "sql_query": query, "query_type": language}
             ticket = Ticket(json.dumps(ticket_data).encode('utf-8'))
             flight_reader = self._flight_client.do_get(ticket, _options)
