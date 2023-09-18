@@ -1,9 +1,9 @@
 import urllib.parse, json
 import pyarrow as pa
-from write_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
-from write_client.write_api.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, PointSettings
-from write_client.domain.write_precision import WritePrecision
-from write_client.write_api.exceptions import InfluxDBError
+from influxdb_client_3.write_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
+from influxdb_client_3.write_client.client.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, PointSettings
+from influxdb_client_3.write_client.domain.write_precision import WritePrecision
+from influxdb_client_3.write_client.client.exceptions import InfluxDBError
 from pyarrow.flight import FlightClient, Ticket, FlightCallOptions
 from influxdb_client_3.read_file import UploadFile
 import urllib.parse

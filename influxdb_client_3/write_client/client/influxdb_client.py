@@ -6,10 +6,10 @@ import logging
 import warnings
 
 
-from write_client.write_api._base import _BaseClient
-from write_client.write_api.write_api import WriteApi, WriteOptions, PointSettings
+from influxdb_client_3.write_client.client._base import _BaseClient
+from influxdb_client_3.write_client.client.write_api import WriteApi, WriteOptions, PointSettings
 
-logger = logging.getLogger('influxdb_client.client.influxdb_client')
+logger = logging.getLogger('influxdb_client_3.write_client.client.influxdb_client')
 
 
 class InfluxDBClient(_BaseClient):
@@ -54,7 +54,7 @@ class InfluxDBClient(_BaseClient):
         super().__init__(url=url, token=token, debug=debug, timeout=timeout, enable_gzip=enable_gzip, org=org,
                          default_tags=default_tags, http_client_logger="urllib3", **kwargs)
 
-        from .._sync.api_client import ApiClient
+        from influxdb_client_3.write_client._sync.api_client import ApiClient
         self.api_client = ApiClient(configuration=self.conf, header_name=self.auth_header_name,
                                     header_value=self.auth_header_value, retries=self.retries)
 

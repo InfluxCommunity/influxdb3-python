@@ -14,7 +14,7 @@ from __future__ import absolute_import
 
 import re  # noqa: F401
 
-from write_client.service._base_service import _BaseService
+from influxdb_client_3.write_client.service._base_service import _BaseService
 
 
 class SignoutService(_BaseService):

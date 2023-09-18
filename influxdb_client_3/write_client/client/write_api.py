@@ -16,15 +16,15 @@ from reactivex import operators as ops, Observable
 from reactivex.scheduler import ThreadPoolScheduler
 from reactivex.subject import Subject
 
-from write_client import WritePrecision
-from write_client.write_api._base import _BaseWriteApi, _HAS_DATACLASS
-from write_client.write_api.util.helpers import get_org_query_param
-from write_client.write_api.write.dataframe_serializer import DataframeSerializer
-from write_client.write_api.write.point import Point, DEFAULT_WRITE_PRECISION
-from write_client.write_api.write.retry import WritesRetry
-from write_client.rest import _UTF_8_encoding
+from influxdb_client_3.write_client.domain import WritePrecision
+from influxdb_client_3.write_client.client._base import _BaseWriteApi, _HAS_DATACLASS
+from influxdb_client_3.write_client.client.util.helpers import get_org_query_param
+from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
+from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION
+from influxdb_client_3.write_client.client.write.retry import WritesRetry
+from influxdb_client_3.write_client.rest import _UTF_8_encoding
 
-logger = logging.getLogger('influxdb_client.client.write_api')
+logger = logging.getLogger('influxdb_client_3.write_client.client.write_api')
 
 
 if _HAS_DATACLASS:

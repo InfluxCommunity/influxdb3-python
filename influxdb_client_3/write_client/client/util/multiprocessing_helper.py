@@ -7,8 +7,8 @@ For more information how the multiprocessing works see Python's
 import logging
 import multiprocessing
 
-from write_client import InfluxDBClient, WriteOptions
-from write_client.write_api.exceptions import InfluxDBError
+from influxdb_client_3.write_client import InfluxDBClient, WriteOptions
+from influxdb_client_3.write_client.client.exceptions import InfluxDBError
 
 logger = logging.getLogger('influxdb_client.client.util.multiprocessing_helper')
 

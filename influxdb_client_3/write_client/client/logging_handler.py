@@ -1,7 +1,7 @@
 """Use the influxdb_client with python native logging."""
 import logging
 
-from write_client import InfluxDBClient
+from influxdb_client_3.write_client import InfluxDBClient
 
 
 class InfluxLoggingHandler(logging.Handler):

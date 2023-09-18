@@ -19,12 +19,12 @@ import tempfile
 from multiprocessing.pool import ThreadPool
 from urllib.parse import quote
 
-import write_client.domain
-from write_client import SigninService
-from write_client import SignoutService
-from write_client._sync import rest
-from write_client.configuration import Configuration
-from write_client.rest import _requires_create_user_session, _requires_expire_user_session
+import influxdb_client_3.write_client.domain
+from influxdb_client_3.write_client import SigninService
+from influxdb_client_3.write_client import SignoutService
+from influxdb_client_3.write_client._sync import rest
+from influxdb_client_3.write_client.configuration import Configuration
+from influxdb_client_3.write_client.rest import _requires_create_user_session, _requires_expire_user_session
 
 
 class ApiClient(object):
@@ -76,7 +76,7 @@ class ApiClient(object):
             self.default_headers[header_name] = header_value
         self.cookie = cookie
         # Set default User-Agent.
-        from write_client import VERSION
+        from influxdb_client_3.write_client.version import VERSION
         self.user_agent = f'influxdb-client-python/{VERSION}'
 
     def __del__(self):
@@ -282,7 +282,7 @@ class ApiClient(object):
             if klass in self.NATIVE_TYPES_MAPPING:
                 klass = self.NATIVE_TYPES_MAPPING[klass]
             else:
-                klass = getattr(write_client.domain, klass)
+                klass = getattr(influxdb_client_3.write_client.domain, klass)
 
         if klass in self.PRIMITIVE_TYPES:
             return self.__deserialize_primitive(data, klass)

@@ -8,8 +8,8 @@ import logging
 import math
 import re
 
-from write_client import WritePrecision
-from write_client.write_api.write.point import _ESCAPE_KEY, _ESCAPE_STRING, _ESCAPE_MEASUREMENT, DEFAULT_WRITE_PRECISION
+from influxdb_client_3.write_client.domain import WritePrecision
+from influxdb_client_3.write_client.client.write.point import _ESCAPE_KEY, _ESCAPE_STRING, _ESCAPE_MEASUREMENT, DEFAULT_WRITE_PRECISION
 
 logger = logging.getLogger('influxdb_client.client.write.dataframe_serializer')
 

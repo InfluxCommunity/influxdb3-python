@@ -1,6 +1,6 @@
 """Pandas date utils."""
-from write_client.write_api.util.date_utils import DateHelper
-from write_client.extras import pd
+from influxdb_client_3.write_client.client.util.date_utils import DateHelper
+from influxdb_client_3.write_client.extras import pd
 
 
 class PandasDateTimeHelper(DateHelper):

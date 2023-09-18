@@ -10,10 +10,11 @@ from typing import List, Generator, Any, Union, Iterable, AsyncGenerator
 
 from urllib3 import HTTPResponse
 
-from write_client import Configuration, WriteService
+from influxdb_client_3.write_client.configuration import Configuration
+from influxdb_client_3.write_client.service.write_service import WriteService
 
-from write_client.write_api.write.dataframe_serializer import DataframeSerializer
-from write_client.rest import _UTF_8_encoding
+from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
+from influxdb_client_3.write_client.rest import _UTF_8_encoding
 
 try:
     import dataclasses
@@ -236,7 +237,7 @@ class _BaseWriteApi(object):
                 self._append_default_tag(key, val, record)
 
     def _serialize(self, record, write_precision, payload, **kwargs):
-        from write_client import Point
+        from influxdb_client_3.write_client.client.write.point import Point
         if isinstance(record, bytes):
             payload[write_precision].append(record)
 

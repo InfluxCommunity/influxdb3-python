@@ -18,8 +18,8 @@ import re
 import ssl
 from urllib.parse import urlencode
 
-from write_client.rest import ApiException
-from write_client.rest import _BaseRESTClient
+from influxdb_client_3.write_client.rest import ApiException
+from influxdb_client_3.write_client.rest import _BaseRESTClient
 
 try:
     import urllib3

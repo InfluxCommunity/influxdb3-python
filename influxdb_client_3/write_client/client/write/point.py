@@ -7,8 +7,8 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from numbers import Integral
 
-from write_client.write_api.util.date_utils import get_date_helper
-from write_client.domain.write_precision import WritePrecision
+from influxdb_client_3.write_client.client.util.date_utils import get_date_helper
+from influxdb_client_3.write_client.domain.write_precision import WritePrecision
 
 EPOCH = datetime.utcfromtimestamp(0).replace(tzinfo=timezone.utc)
 
