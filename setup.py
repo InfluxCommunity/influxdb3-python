@@ -1,7 +1,16 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 import os
 import re
 
+
+requires = [
+    'reactivex >= 4.0.4',
+    'certifi >= 14.05.14',
+    'python_dateutil >= 2.5.3',
+    'setuptools >= 21.0.0',
+    'urllib3 >= 1.26.0',
+    'pyarrow'
+]
 
 with open("./README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -35,9 +44,9 @@ setup(
     author='InfluxData',
     author_email='contact@influxdata.com',
     url='https://github.com/InfluxCommunity/influxdb3-python',
-    packages=['influxdb_client_3'],
+    packages=find_packages(exclude=['tests', 'tests.*', 'examples', 'examples.*']),
     extras_require={'pandas': ['pandas']},
-    install_requires=['pyarrow','influxdb-client'],
+    install_requires=requires,
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
