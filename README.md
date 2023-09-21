@@ -28,7 +28,6 @@
 ## Dependencies
 
 - `pyarrow` (automatically installed)
-- `influxdb-client` (automatically installed)
 - `pandas` (optional)
   
 
