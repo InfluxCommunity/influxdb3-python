@@ -117,7 +117,11 @@ class InfluxDBClient3:
             port = query_port_overwrite
         self._flight_client = FlightClient(f"grpc+tls://{hostname}:{port}", **self._flight_client_options)
 
-
+    # Merge defaults with user-provided arguments
+    def _merge_options(self, defaults, custom={}):
+        if len(custom) == 0:
+            return defaults
+        return _deep_merge(defaults, {key: value for key, value in custom.items()})
 
     def write(self, record=None, database=None ,**kwargs):
         """
@@ -213,11 +217,14 @@ class InfluxDBClient3:
         
         try:
             # Create an authorization header
-            args = {"headers": [(b"authorization", f"Bearer {self._token}".encode('utf-8'))]}
-            custom_args = {key: value for key, value in kwargs.items()}
-            # Merge defaults with user-provided arguments
-            _deep_merge(args, custom_args)
-            _options = FlightCallOptions(headers=args["headers"])
+            optargs = {
+                "headers": [(b"authorization", f"Bearer {self._token}".encode('utf-8'))],
+                "timeout": 300
+            }
+            opts = self._merge_options(optargs, kwargs)
+            _options = FlightCallOptions(
+                headers=opts["headers"],
+                timeout=opts["timeout"])
             ticket_data = {"database": database, "sql_query": query, "query_type": language}
             ticket = Ticket(json.dumps(ticket_data).encode('utf-8'))
             flight_reader = self._flight_client.do_get(ticket, _options)
