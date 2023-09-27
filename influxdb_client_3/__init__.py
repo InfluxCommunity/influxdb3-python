@@ -217,7 +217,6 @@ class InfluxDBClient3:
             custom_args = {key: value for key, value in kwargs.items()}
             # Merge defaults with user-provided arguments
             _deep_merge(args, custom_args)
-            print(args["headers"])
             _options = FlightCallOptions(headers=args["headers"])
             ticket_data = {"database": database, "sql_query": query, "query_type": language}
             ticket = Ticket(json.dumps(ticket_data).encode('utf-8'))
