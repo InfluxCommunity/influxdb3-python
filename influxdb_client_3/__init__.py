@@ -42,6 +42,10 @@ def file_parser_options(**kwargs):
 
 
 def _deep_merge(target, source):
+    """
+    Performs a deep merge of dictionaries or lists,
+    recursively merging the contents, handling nested structures, and concatenation of lists.
+    """
     if isinstance(target, dict) and isinstance(source, dict):
         for key, value in source.items():
             if key in target and isinstance(target[key], (dict, list)) and isinstance(value, (dict, list)):
@@ -117,8 +121,10 @@ class InfluxDBClient3:
             port = query_port_overwrite
         self._flight_client = FlightClient(f"grpc+tls://{hostname}:{port}", **self._flight_client_options)
 
-    # Merge defaults with user-provided arguments
     def _merge_options(self, defaults, custom={}):
+        """
+        Merge default option arguments with custom (user-provided) arguments.
+        """
         if len(custom) == 0:
             return defaults
         return _deep_merge(defaults, {key: value for key, value in custom.items()})
@@ -222,9 +228,7 @@ class InfluxDBClient3:
                 "timeout": 300
             }
             opts = self._merge_options(optargs, kwargs)
-            _options = FlightCallOptions(
-                headers=opts["headers"],
-                timeout=opts["timeout"])
+            _options = FlightCallOptions(**opts)
             ticket_data = {"database": database, "sql_query": query, "query_type": language}
             ticket = Ticket(json.dumps(ticket_data).encode('utf-8'))
             flight_reader = self._flight_client.do_get(ticket, _options)
