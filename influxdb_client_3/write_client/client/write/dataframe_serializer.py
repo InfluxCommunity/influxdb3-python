@@ -7,6 +7,7 @@ Much of the code here is inspired by that in the aioinflux packet found here: ht
 import logging
 import math
 import re
+from typing import List
 
 from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.client.write.point import _ESCAPE_KEY, _ESCAPE_STRING, _ESCAPE_MEASUREMENT, DEFAULT_WRITE_PRECISION
@@ -278,6 +279,48 @@ class DataframeSerializer:
         :return: number of chunks or None if chunk_size is not specified.
         """
         return self.number_of_chunks
+
+
+
+class PolarsDataframeSerializer:
+        """Serialize DataFrame into LineProtocols."""
+    def __init__(self, data_frame, point_settings, precision=DEFAULT_WRITE_PRECISION, chunk_size: int = None,
+                 **kwargs) -> None:
+        """
+        Init serializer.
+
+        :param data_frame: Pandas DataFrame to serialize
+        :param point_settings: Default Tags
+        :param precision: The precision for the unix timestamps within the body line-protocol.
+        :param chunk_size: The size of chunk for serializing into chunks.
+        :key data_frame_measurement_name: name of measurement for writing Pandas DataFrame
+        :key data_frame_tag_columns: list of DataFrame columns which are tags, rest columns will be fields
+        :key data_frame_timestamp_column: name of DataFrame column which contains a timestamp. The column can be defined as a :class:`~str` value
+                                          formatted as `2018-10-26`, `2018-10-26 12:00`, `2018-10-26 12:00:00-05:00`
+                                          or other formats and types supported by `pandas.to_datetime <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.to_datetime.html#pandas.to_datetime>`_ - ``DataFrame``
+        :key data_frame_timestamp_timezone: name of the timezone which is used for timestamp column - ``DataFrame``
+
+        """ 
+        from ...extras import pl
+        if not isinstance(data_frame, pl.DataFrame):
+            raise TypeError('Must be DataFrame, but type was: {0}.'
+                            .format(type(data_frame)))
+        
+        data_frame_measurement_name = kwargs.get('data_frame_measurement_name')
+        if data_frame_measurement_name is None:
+            raise TypeError('"data_frame_measurement_name" is a Required Argument')
+        
+        timestamp_column = kwargs.get('data_frame_timestamp_column', None)
+        timestamp_timezone = kwargs.get('data_frame_timestamp_timezone', None)
+        
+        data_frame_timestamp = data_frame.index if timestamp_column is None else data_frame[timestamp_column]
+
+        if isinstance(data_frame_timestamp, pl.PeriodIndex):
+            data_frame_timestamp = data_frame_timestamp.to_timestamp()
+
+
+
+
 
 
 def data_frame_to_list_of_points(data_frame, point_settings, precision=DEFAULT_WRITE_PRECISION, **kwargs):

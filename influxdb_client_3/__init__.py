@@ -8,6 +8,13 @@ from pyarrow.flight import FlightClient, Ticket, FlightCallOptions
 from influxdb_client_3.read_file import UploadFile
 import urllib.parse
 
+try:
+    import polars as pl
+    polars = True
+except ImportError:
+    polars = False
+
+
 
 
 def write_client_options(**kwargs):
@@ -181,7 +188,7 @@ class InfluxDBClient3:
         :type query: str
         :param language: The query language; "sql" or "influxql" (default is "sql").
         :type language: str
-        :param mode: The mode of fetching data (all, pandas, chunk, reader, schema).
+        :param mode: The mode of fetching data (all, pandas, polars, chunk, reader, schema).
         :type mode: str
         :param database: The database to query from. If not provided, uses the database provided during initialization.
         :type database: str
@@ -192,6 +199,9 @@ class InfluxDBClient3:
 
         if database is None:
             database = self._database
+        
+        if mode == "polars" and polars is False:
+            raise ImportError("Polars is not installed. Please install it with `pip install polars`.")
         
         try:
             headers = [(b"authorization", f"Bearer {self._token}".encode('utf-8'))]
@@ -205,9 +215,11 @@ class InfluxDBClient3:
             mode_func = {
                 "all": flight_reader.read_all,
                 "pandas": flight_reader.read_pandas,
+                "polars": lambda: pl.from_arrow(flight_reader.read_all()),
                 "chunk": lambda: flight_reader,
                 "reader": flight_reader.to_reader,
                 "schema": lambda: flight_reader.schema
+                
             }.get(mode, flight_reader.read_all)
 
             return mode_func() if callable(mode_func) else mode_func
