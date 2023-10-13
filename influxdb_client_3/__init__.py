@@ -229,6 +229,7 @@ class InfluxDBClient3:
             }
             opts = self._merge_options(optargs, kwargs)
             _options = FlightCallOptions(**opts)
+            
             ticket_data = {"database": database, "sql_query": query, "query_type": language}
             ticket = Ticket(json.dumps(ticket_data).encode('utf-8'))
             flight_reader = self._flight_client.do_get(ticket, _options)
