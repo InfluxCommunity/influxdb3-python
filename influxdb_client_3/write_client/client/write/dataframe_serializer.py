@@ -310,6 +310,9 @@ class PolarsDataframeSerializer:
 
         self.column_indices = {name: index for index, name in enumerate(data_frame.columns)}
 
+        if self.timestamp_column is not None or self.timestamp_column not in self.column_indices:
+            raise ValueError(f"Timestamp column {self.timestamp_column} not found in DataFrame. Please define a valid timestamp column.")
+
         #
         # prepare chunks
         #
@@ -373,7 +376,6 @@ class PolarsDataframeSerializer:
         df = self.data_frame
 
         # Convert timestamp to unix timestamp
-        print(self.precision)
         if self.precision is None:
             df = df.with_columns(pl.col(self.timestamp_column).dt.epoch(time_unit="ns").alias(self.timestamp_column))
         elif self.precision == 'ns':
