@@ -310,7 +310,7 @@ class PolarsDataframeSerializer:
 
         self.column_indices = {name: index for index, name in enumerate(data_frame.columns)}
 
-        if self.timestamp_column is not None or self.timestamp_column not in self.column_indices:
+        if self.timestamp_column is None or self.timestamp_column not in self.column_indices:
             raise ValueError(f"Timestamp column {self.timestamp_column} not found in DataFrame. Please define a valid timestamp column.")
 
         #
