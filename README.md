@@ -131,6 +131,16 @@ with  InfluxDBClient3.InfluxDBClient3(
 
 ```
 
+### Pandas DF
+```python
+client._write_api.write(bucket="pokemon-codex", record=pd_df, data_frame_measurement_name='caught', data_frame_tag_columns=['trainer', 'id', 'num'], data_frame_timestamp_column='timestamp')
+```
+
+### Polars DF
+```python
+client._write_api.write(bucket="pokemon-codex", record=pl_df, data_frame_measurement_name='caught', data_frame_tag_columns=['trainer', 'id', 'num'], data_frame_timestamp_column='timestamp')
+```
+
 ## Querying 
 
 ### Querying with SQL
