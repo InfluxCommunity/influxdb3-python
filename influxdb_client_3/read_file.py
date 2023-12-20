@@ -3,13 +3,6 @@ import pyarrow.csv as csv
 import pyarrow.feather as feather
 import pyarrow.parquet as parquet
 
-try:
-    import pandas as pd
-except ImportError:
-    raise ImportError("Pandas is required for write_file(). Please install it using 'pip install pandas' or 'pip install influxdb3-python[pandas]'")
-
-
-
 # Check if the OS is not Windows
 if os.name != 'nt':
     import pyarrow.orc as orc
@@ -103,4 +96,9 @@ class UploadFile:
         :type file: str
         :return: The loaded JSON file.
         """
+        try:
+            import pandas as pd
+        except ImportError:
+            raise ImportError("Pandas is required for write_file(). Please install it using 'pip install pandas' or 'pip install influxdb3-python[pandas]'")
+        
         return pd.read_json(file, **self._kwargs)
