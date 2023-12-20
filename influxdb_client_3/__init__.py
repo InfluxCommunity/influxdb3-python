@@ -7,6 +7,11 @@ from influxdb_client_3.write_client.client.exceptions import InfluxDBError
 from pyarrow.flight import FlightClient, Ticket, FlightCallOptions
 from influxdb_client_3.read_file import UploadFile
 import urllib.parse
+try:
+    import polars as pl
+    polars = True
+except ImportError:
+    polars = False
 
 
 
@@ -216,7 +221,10 @@ class InfluxDBClient3:
         :param kwargs: FlightClientCallOptions for the query.
         :return: The queried data.
         """
+        if mode == "polars" and polars is False:
+            raise ImportError("Polars is not installed. Please install it with `pip install polars`.")
         
+    
 
         if database is None:
             database = self._database
@@ -237,9 +245,11 @@ class InfluxDBClient3:
             mode_func = {
                 "all": flight_reader.read_all,
                 "pandas": flight_reader.read_pandas,
+                "polars": lambda: pl.from_arrow(flight_reader.read_all()),
                 "chunk": lambda: flight_reader,
                 "reader": flight_reader.to_reader,
                 "schema": lambda: flight_reader.schema
+                
             }.get(mode, flight_reader.read_all)
 
             return mode_func() if callable(mode_func) else mode_func

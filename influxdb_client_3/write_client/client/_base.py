@@ -219,7 +219,7 @@ class _BaseWriteApi(object):
                 self._point_settings.add_default_tag(key, value)
 
     def _append_default_tag(self, key, val, record):
-        from write_client import Point
+        from influxdb_client_3.write_client import Point
         if isinstance(record, bytes) or isinstance(record, str):
             pass
         elif isinstance(record, Point):

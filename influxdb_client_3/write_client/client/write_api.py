@@ -19,7 +19,7 @@ from reactivex.subject import Subject
 from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.client._base import _BaseWriteApi, _HAS_DATACLASS
 from influxdb_client_3.write_client.client.util.helpers import get_org_query_param
-from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
+from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer, PolarsDataframeSerializer
 from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION
 from influxdb_client_3.write_client.client.write.retry import WritesRetry
 from influxdb_client_3.write_client.rest import _UTF_8_encoding
@@ -460,14 +460,24 @@ You can use native asynchronous version of the client:
         elif isinstance(data, dict):
             self._write_batching(bucket, org, Point.from_dict(data, write_precision=precision, **kwargs),
                                  precision, **kwargs)
+            
+        elif 'polars' in str(type(data)):
+            serializer = PolarsDataframeSerializer(data, self._point_settings, precision, self._write_options.batch_size,
+                                             **kwargs)
+            for chunk_idx in range(serializer.number_of_chunks):
+                self._write_batching(bucket, org,
+                                     serializer.serialize(chunk_idx),
+                                     precision, **kwargs)
 
-        elif 'DataFrame' in type(data).__name__:
+        elif 'pandas' in str(type(data)):
             serializer = DataframeSerializer(data, self._point_settings, precision, self._write_options.batch_size,
                                              **kwargs)
             for chunk_idx in range(serializer.number_of_chunks):
                 self._write_batching(bucket, org,
                                      serializer.serialize(chunk_idx),
                                      precision, **kwargs)
+
+
         elif hasattr(data, "_asdict"):
             # noinspection PyProtectedMember
             self._write_batching(bucket, org, data._asdict(), precision, **kwargs)
