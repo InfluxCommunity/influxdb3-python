@@ -9,7 +9,7 @@ requires = [
     'python_dateutil >= 2.5.3',
     'setuptools >= 21.0.0',
     'urllib3 >= 1.26.0',
-    'pyarrow'
+    'pyarrow >= 8.0.0'
 ]
 
 with open("./README.md", "r", encoding="utf-8") as fh:
@@ -45,14 +45,13 @@ setup(
     author_email='contact@influxdata.com',
     url='https://github.com/InfluxCommunity/influxdb3-python',
     packages=find_packages(exclude=['tests', 'tests.*', 'examples', 'examples.*']),
-    extras_require={'pandas': ['pandas']},
+    extras_require={'pandas': ['pandas'], 'polars': ['polars'], 'dataframe': ['pandas', 'polars']},
     install_requires=requires,
+    python_requires='>=3.7',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
