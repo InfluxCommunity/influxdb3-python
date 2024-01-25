@@ -322,8 +322,11 @@ class PolarsDataframeSerializer:
         else:
             self.number_of_chunks = None
     
-    def escape_value(self,value):
+    def escape_key(self,value):
         return str(value).translate(_ESCAPE_KEY)
+    
+    def escape_value(self,value):
+        return str(value).translate(_ESCAPE_STRING)
 
     
     def to_line_protocol(self, row):
@@ -331,14 +334,14 @@ class PolarsDataframeSerializer:
         tags = ""
       
         tags = ",".join(
-            f'{self.escape_value(col)}={self.escape_value(row[self.column_indices[col]])}' 
+            f'{self.escape_key(col)}={self.escape_key(row[self.column_indices[col]])}' 
             for col in self.tag_columns
             if row[self.column_indices[col]] is not None and row[self.column_indices[col]] != ""
         )
 
         if self.point_settings.defaultTags:
             default_tags = ",".join(
-                f'{self.escape_value(key)}={self.escape_value(value)}'
+                f'{self.escape_key(key)}={self.escape_key(value)}'
                 for key, value in self.point_settings.defaultTags.items()
             )
             # Ensure there's a comma between existing tags and default tags if both are present
