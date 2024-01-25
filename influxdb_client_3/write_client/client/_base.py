@@ -13,7 +13,7 @@ from urllib3 import HTTPResponse
 from influxdb_client_3.write_client.configuration import Configuration
 from influxdb_client_3.write_client.service.write_service import WriteService
 
-from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
+from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer, PolarsDataframeSerializer
 from influxdb_client_3.write_client.rest import _UTF_8_encoding
 
 try:
@@ -252,9 +252,15 @@ class _BaseWriteApi(object):
         elif isinstance(record, dict):
             self._serialize(Point.from_dict(record, write_precision=write_precision, **kwargs),
                             write_precision, payload, **kwargs)
-        elif 'DataFrame' in type(record).__name__:
+        elif 'polars' in str(type(record)):
+            serializer = PolarsDataframeSerializer(record, self._point_settings, write_precision, **kwargs)
+            self._serialize(serializer.serialize(), write_precision, payload, **kwargs)
+
+        elif 'pandas' in str(type(record)):
             serializer = DataframeSerializer(record, self._point_settings, write_precision, **kwargs)
             self._serialize(serializer.serialize(), write_precision, payload, **kwargs)
+
+
         elif hasattr(record, "_asdict"):
             # noinspection PyProtectedMember
             self._serialize(record._asdict(), write_precision, payload, **kwargs)
