@@ -352,13 +352,15 @@ class PolarsDataframeSerializer:
         # add escape symbols for special characters to tags
 
         fields = ",".join(
-            f"{col}=\"{row[self.column_indices[col]]}\"" if isinstance(row[self.column_indices[col]], str)
+            f"{col}=\"{self.escape_value(row[self.column_indices[col]])}\"" if isinstance(row[self.column_indices[col]], str)
+            else f"{col}={str(row[self.column_indices[col]]).lower()}" if isinstance(row[self.column_indices[col]], bool)  # Check for bool first
             else f"{col}={row[self.column_indices[col]]}i" if isinstance(row[self.column_indices[col]], int)
             else f"{col}={row[self.column_indices[col]]}"
             for col in self.column_indices
             if col not in self.tag_columns + [self.timestamp_column]
             and row[self.column_indices[col]] is not None and row[self.column_indices[col]] != ""
         )
+
 
         # Access the Unix timestamp
         timestamp = row[self.column_indices[self.timestamp_column]]
@@ -375,19 +377,22 @@ class PolarsDataframeSerializer:
         
         df = self.data_frame
 
-        # Convert timestamp to unix timestamp
-        if self.precision is None:
-            df = df.with_columns(pl.col(self.timestamp_column).dt.epoch(time_unit="ns").alias(self.timestamp_column))
-        elif self.precision == 'ns':
-            df = df.with_columns(pl.col(self.timestamp_column).dt.epoch(time_unit="ns").alias(self.timestamp_column))
-        elif self.precision == 'us':
-            df = df.with_columns(pl.col(self.timestamp_column).dt.epoch(time_unit="us").alias(self.timestamp_column))
-        elif self.precision == 'ms':
-            df = df.with_columns(pl.col(self.timestamp_column).dt.epoch(time_unit="ms").alias(self.timestamp_column))
-        elif self.precision == 's':
-            df = df.with_columns(pl.col(self.timestamp_column).dt.epoch(time_unit="s").alias(self.timestamp_column))
+        # Check if the timestamp column is already an integer
+        if df[self.timestamp_column].dtype in [pl.Int32, pl.Int64]:
+            # The timestamp column is already an integer, assuming it's in Unix format
+            pass
         else:
-            raise ValueError(f"Unsupported precision: {self.precision}")
+            # Convert timestamp to Unix timestamp based on specified precision
+            if self.precision in [None, 'ns']:
+                df = df.with_columns(pl.col(self.timestamp_column).dt.epoch(time_unit="ns").alias(self.timestamp_column))
+            elif self.precision == 'us':
+                df = df.with_columns(pl.col(self.timestamp_column).dt.epoch(time_unit="us").alias(self.timestamp_column))
+            elif self.precision == 'ms':
+                df = df.with_columns(pl.col(self.timestamp_column).dt.epoch(time_unit="ms").alias(self.timestamp_column))
+            elif self.precision == 's':
+                df = df.with_columns(pl.col(self.timestamp_column).dt.epoch(time_unit="s").alias(self.timestamp_column))
+            else:
+                raise ValueError(f"Unsupported precision: {self.precision}")
         
         if chunk_idx is None:
             chunk = df
