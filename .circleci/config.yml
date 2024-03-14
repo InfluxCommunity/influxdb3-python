@@ -1,0 +1,128 @@
+version: 2.1
+
+commands:
+  client-test:
+    description: "Run tests"
+    parameters:
+      python-image:
+        type: string
+    steps:
+      - restore_cache:
+          name: Restoring Pip Cache
+          keys:
+            - &cache-key pip-cache-v11-<< parameters.python-image >>-{{ checksum "setup.py" }}
+            - pip-cache-v11-<< parameters.python-image >>-
+      - run:
+          name: "Running tests"
+          command: |
+            python --version
+            mkdir test-reports || true
+            pip install . --user
+            pip install .\[dataframe\] --user
+            pip install pytest pytest-cov --user
+            pytest tests --junitxml=test-reports/junit.xml --cov=./ --cov-report xml:coverage.xml
+      - save_cache:
+          name: Saving Pip Cache
+          key: *cache-key
+          paths:
+            - ".venv"
+            - "~/.cache/pip"
+            - "/usr/local/lib/site-python"
+          when: always
+jobs:
+  tests-python:
+    parameters:
+      python-image:
+        type: string
+        default: &default-python "cimg/python:3.7"
+    docker:
+      - image: << parameters.python-image >>
+        environment:
+          PIPENV_VENV_IN_PROJECT: true
+    steps:
+      - checkout
+      - client-test:
+          python-image: << parameters.python-image >>
+      - store_test_results:
+          path: test-reports
+      - run:
+          name: Collecting coverage reports
+          command: |
+            curl -Os https://uploader.codecov.io/latest/linux/codecov
+            curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
+            curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM.sig
+            curl -s https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            chmod +x ./codecov
+            ./codecov
+  check-code-style:
+    docker:
+      - image: *default-python
+        environment:
+          PIPENV_VENV_IN_PROJECT: true
+    steps:
+      - checkout
+      - run:
+          name: Checks style consistency across sources.
+          command: |
+            pip install flake8 --user
+            flake8  influxdb_client_3/
+  check-twine:
+    docker:
+      - image: *default-python
+        environment:
+          PIPENV_VENV_IN_PROJECT: true
+    steps:
+      - checkout
+      - run:
+          name: Checks that the description will render correctly on PyPI.
+          command: |
+            pip install --upgrade pip
+            pip install twine --user
+            python setup.py sdist bdist_wheel
+            twine check dist/*
+  check-docstyle:
+    docker:
+      - image: *default-python
+        environment:
+          PIPENV_VENV_IN_PROJECT: true
+    steps:
+      - checkout
+      - run:
+          name: Checks compliance with Python docstring convention.
+          command: |
+            pip install pydocstyle --user
+            pydocstyle --count influxdb_client_3
+
+workflows:
+  version: 2
+  build:
+    when:
+      not:
+        equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
+    jobs:
+      - check-code-style
+      - check-docstyle
+      - check-twine
+      - tests-python:
+          name: test-3.8
+          python-image: "cimg/python:3.8"
+      - tests-python:
+          name: test-3.9
+          python-image: "cimg/python:3.9"
+      - tests-python:
+          name: test-3.10
+          python-image: "cimg/python:3.10"
+      - tests-python:
+          name: test-3.11
+          python-image: "cimg/python:3.11"
+      - tests-python:
+          name: test-3.12
+          python-image: "cimg/python:3.12"
+
+  nightly:
+    when:
+      equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
+    jobs:
+      - tests-python
