@@ -1,0 +1,17 @@
+name: Support request
+description: Open a support request
+labels: ["support"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        WOAHH, hold up. This isn't the best place for support questions. 
+        You can get a faster response on slack or forums:
+
+        Please redirect any QUESTIONS about Client usage to 
+        - InfluxData Slack Channel: https://app.slack.com/huddle/TH8RGQX5Z/C02UDUPLQKA
+        - InfluxData Community Site: https://community.influxdata.com
+
+  - type: textarea
+    attributes:
+      label: "Please direct all support questions to slack or the forums. Thank you."
