@@ -9,11 +9,14 @@
     <a href="https://pypi.org/project/influxdb3-python/">
         <img src="https://img.shields.io/pypi/dm/influxdb3-python.svg" alt="PyPI downloads">
     </a>
-    <a href="https://github.com/InfluxCommunity/influxdb3-python/actions/workflows/pylint.yml">
-        <img src="https://github.com/InfluxCommunity/influxdb3-python/actions/workflows/pylint.yml/badge.svg" alt="Lint Code Base">
+    <a href="https://github.com/InfluxCommunity/influxdb3-python/actions/workflows/codeql-analysis.yml">
+        <img src="https://github.com/InfluxCommunity/influxdb3-python/actions/workflows/codeql-analysis.yml/badge.svg?branch=main" alt="CodeQL analysis">
     </a>
-        <a href="https://github.com/InfluxCommunity/influxdb3-python/actions/workflows/python-publish.yml">
-        <img src="https://github.com/InfluxCommunity/influxdb3-python/actions/workflows/python-publish.yml/badge.svg" alt="Lint Code Base">
+    <a href="https://dl.circleci.com/status-badge/redirect/gh/InfluxCommunity/influxdb3-python/tree/main">
+        <img src="https://dl.circleci.com/status-badge/img/gh/InfluxCommunity/influxdb3-python/tree/main.svg?style=svg" alt="CircleCI">
+    </a>
+    <a href="https://codecov.io/gh/InfluxCommunity/influxdb3-python">
+        <img src="https://codecov.io/gh/InfluxCommunity/influxdb3-python/branch/main/graph/badge.svg" alt="Code Cov"/>
     </a>
     <a href="https://influxcommunity.slack.com">
         <img src="https://img.shields.io/badge/slack-join_chat-white.svg?logo=slack&style=social" alt="Community Slack">
