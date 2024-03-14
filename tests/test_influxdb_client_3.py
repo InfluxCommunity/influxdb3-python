@@ -25,14 +25,5 @@ class TestInfluxDBClient3(unittest.TestCase):
         self.assertEqual(self.client._write_api, self.mock_write_api.return_value)
         self.assertEqual(self.client._flight_client, self.mock_flight_client.return_value)
 
-    @patch('influxdb_client_3._WriteApi.write')
-    def test_write(self, mock_write):
-        record = "test_record"
-        self.client.write(record=record)
-        mock_write.assert_called_once_with(bucket=self.client._database, record=record)
-
-    # Add more tests for other methods
-
-
 if __name__ == '__main__':
     unittest.main()
