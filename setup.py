@@ -47,7 +47,7 @@ setup(
     packages=find_packages(exclude=['tests', 'tests.*', 'examples', 'examples.*']),
     extras_require={'pandas': ['pandas'], 'polars': ['polars'], 'dataframe': ['pandas', 'polars']},
     install_requires=requires,
-    python_requires='>=3.7',
+    python_requires='>=3.8',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
