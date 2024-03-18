@@ -7,3 +7,5 @@ build
 pyinflux3*.egg-info
 .DS_store
 __pycache__
+.idea
+*.egg-info/
