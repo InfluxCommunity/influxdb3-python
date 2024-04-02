@@ -1,6 +1,6 @@
-from influxdb_client_3 import InfluxDBClient3, Point
 import datetime
 
+from influxdb_client_3 import InfluxDBClient3, Point
 
 client = InfluxDBClient3(
     token="mGbL-OJ2kxYqvbIL9jQOOg2VJLhf16hh-xn-XJe3RUKrI5cewOAy80L5cVIzG0vh7dLLckZkpYfvExgoMBXLFA==",
@@ -10,15 +10,13 @@ client = InfluxDBClient3(
 
 now = datetime.datetime.now(datetime.timezone.utc)
 
-data = Point("caught").tag("trainer", "ash").tag("id", "0006").tag("num", "1")\
-                                             .field("caught", "charizard")\
-                                             .field("level", 10).field("attack", 30)\
-                                             .field("defense", 40).field("hp", 200)\
-                                             .field("speed", 10)\
-                                             .field("type1", "fire").field("type2", "flying")\
-                                             .time(now)
-
-
+data = Point("caught").tag("trainer", "ash").tag("id", "0006").tag("num", "1") \
+    .field("caught", "charizard") \
+    .field("level", 10).field("attack", 30) \
+    .field("defense", 40).field("hp", 200) \
+    .field("speed", 10) \
+    .field("type1", "fire").field("type2", "flying") \
+    .time(now)
 
 try:
     client.write(data)
@@ -77,10 +75,7 @@ data.append(
     .time(now)
 )
 
-
 try:
     client.write(data)
 except Exception as e:
     print(f"Error writing point: {e}")
-
-

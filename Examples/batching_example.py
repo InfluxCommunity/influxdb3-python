@@ -1,13 +1,10 @@
-import random
-import pymongo
-import pandas as pd
-from bson import ObjectId
-import influxdb_client_3 as InfluxDBClient3
-import pandas as pd
-import numpy as np
-from influxdb_client_3 import write_client_options, WritePrecision, WriteOptions, InfluxDBError
 import datetime
-import time
+import random
+
+from bson import ObjectId
+
+import influxdb_client_3 as InfluxDBClient3
+from influxdb_client_3 import write_client_options, WritePrecision, WriteOptions, InfluxDBError
 
 
 class BatchingCallback(object):
@@ -42,26 +39,24 @@ url = "eu-central-1-1.aws.cloud2.influxdata.com"
 callback = BatchingCallback()
 
 write_options = WriteOptions(batch_size=5_000,
-                                        flush_interval=10_000,
-                                        jitter_interval=2_000,
-                                        retry_interval=5_000,
-                                        max_retries=5,
-                                        max_retry_delay=30_000,
-                                        exponential_base=2)
+                             flush_interval=10_000,
+                             jitter_interval=2_000,
+                             retry_interval=5_000,
+                             max_retries=5,
+                             max_retry_delay=30_000,
+                             exponential_base=2)
 
 wco = write_client_options(success_callback=callback.success,
-                          error_callback=callback.error,
-                          retry_callback=callback.retry,
-                          WriteOptions=write_options 
-                        )
+                           error_callback=callback.error,
+                           retry_callback=callback.retry,
+                           WriteOptions=write_options
+                           )
 # Opening InfluxDB client with a batch size of 5k points or flush interval
 # of 10k ms and gzip compression
 with InfluxDBClient3.InfluxDBClient3(token=token,
                                      host=url,
                                      org=org,
                                      database=database, enable_gzip=True, write_client_options=wco) as _client:
- 
-
     # Creating iterator for one hour worth of data (6 sensor readings per
     # minute)
     for i in range(0, 525600):
@@ -93,25 +88,25 @@ with InfluxDBClient3.InfluxDBClient3(token=token,
                 bcWh).field(
                 "bdW",
                 bdW).field(
-                    "bdWh",
-                    bdWh).field(
-                        "cPvWh",
-                        cPvWh).field(
-                            "cW",
-                            cW).field(
-                                "cWh",
-                                cWh).field(
-                                    "eWh",
-                                    eWh).field(
-                                        "iWh",
-                                        iWh).field(
-                                            "pW",
-                                            pW).field(
-                                                "pWh",
-                                                pWh).field(
-                                                    "scWh",
-                                                    scWh).time(
-                                                        now.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                "bdWh",
+                bdWh).field(
+                "cPvWh",
+                cPvWh).field(
+                "cW",
+                cW).field(
+                "cWh",
+                cWh).field(
+                "eWh",
+                eWh).field(
+                "iWh",
+                iWh).field(
+                "pW",
+                pW).field(
+                "pWh",
+                pWh).field(
+                "scWh",
+                scWh).time(
+                now.strftime('%Y-%m-%dT%H:%M:%SZ'),
                 WritePrecision.S)
 
             # Writing point (InfluxDB automatically batches writes into sets of

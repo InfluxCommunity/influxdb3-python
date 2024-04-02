@@ -1,31 +1,23 @@
-from influxdb_client_3 import InfluxDBClient3, Point, SYNCHRONOUS, write_client_options, InfluxDBError
-import pandas as pd
-import numpy as np
 import datetime
 
-
+from influxdb_client_3 import InfluxDBClient3, Point, SYNCHRONOUS, write_client_options
 
 wco = write_client_options(write_options=SYNCHRONOUS)
 
-
 with InfluxDBClient3(
-    token="",
-    host="eu-central-1-1.aws.cloud2.influxdata.com",
-    org="6a841c0c08328fb1",
-    database="pokemon-codex", write_client_options=wco) as client:
-
+        token="",
+        host="eu-central-1-1.aws.cloud2.influxdata.com",
+        org="6a841c0c08328fb1",
+        database="pokemon-codex", write_client_options=wco) as client:
     now = datetime.datetime.now(datetime.timezone.utc)
 
-    data = Point("caught").tag("trainer", "ash").tag("id", "0006").tag("num", "1")\
-                                                .field("caught", "charizard")\
-                                                .field("level", 10).field("attack", 30)\
-                                                .field("defense", 40).field("hp", 200)\
-                                                .field("speed", 10)\
-                                                .field("type1", "fire").field("type2", "flying")\
-                                                .time(now)
-
-
-
+    data = Point("caught").tag("trainer", "ash").tag("id", "0006").tag("num", "1") \
+        .field("caught", "charizard") \
+        .field("level", 10).field("attack", 30) \
+        .field("defense", 40).field("hp", 200) \
+        .field("speed", 10) \
+        .field("type1", "fire").field("type2", "flying") \
+        .time(now)
 
     data = []
     # Adding first point
@@ -45,9 +37,7 @@ with InfluxDBClient3(
         .time(now)
     )
 
-
-
-        # Bad point
+    # Bad point
     data.append(
         Point("caught")
         .tag("trainer", "ash")
@@ -67,7 +57,7 @@ with InfluxDBClient3(
     try:
         client.write(data)
     except Exception as e:
-        print(f"Error writing point")
+        print(f"Error writing point: {e}")
 
     # Good Query
     try:
@@ -75,15 +65,10 @@ with InfluxDBClient3(
         print(table)
     except Exception as e:
         print(f"Error querying data: {e}")
-    
+
     # Bad Query - not a sql query
     try:
         table = client.query(query='''SELECT * FROM "caught" WHERE time > now() - 5m''', language='sql')
         print(table)
     except Exception as e:
         print(f"Error querying data: {e}")
-
-
-        
-
-
