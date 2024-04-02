@@ -5,16 +5,13 @@ import base64
 import configparser
 import logging
 import os
-from datetime import datetime, timedelta
-from typing import List, Generator, Any, Union, Iterable, AsyncGenerator
+from typing import Iterable
 
-from urllib3 import HTTPResponse
-
+from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer, \
+    PolarsDataframeSerializer
 from influxdb_client_3.write_client.configuration import Configuration
-from influxdb_client_3.write_client.service.write_service import WriteService
-
-from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer, PolarsDataframeSerializer
 from influxdb_client_3.write_client.rest import _UTF_8_encoding
+from influxdb_client_3.write_client.service.write_service import WriteService
 
 try:
     import dataclasses
@@ -208,7 +205,6 @@ class _BaseClient(object):
                    profilers=profilers, **kwargs)
 
 
-  
 class _BaseWriteApi(object):
     def __init__(self, influxdb_client, point_settings=None):
         self._influxdb_client = influxdb_client
@@ -260,7 +256,6 @@ class _BaseWriteApi(object):
             serializer = DataframeSerializer(record, self._point_settings, write_precision, **kwargs)
             self._serialize(serializer.serialize(), write_precision, payload, **kwargs)
 
-
         elif hasattr(record, "_asdict"):
             # noinspection PyProtectedMember
             self._serialize(record._asdict(), write_precision, payload, **kwargs)
@@ -269,7 +264,6 @@ class _BaseWriteApi(object):
         elif isinstance(record, Iterable):
             for item in record:
                 self._serialize(item, write_precision, payload, **kwargs)
-
 
 
 class _Configuration(Configuration):

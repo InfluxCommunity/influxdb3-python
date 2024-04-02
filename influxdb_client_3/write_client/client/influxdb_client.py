@@ -3,8 +3,6 @@
 from __future__ import absolute_import
 
 import logging
-import warnings
-
 
 from influxdb_client_3.write_client.client._base import _BaseClient
 from influxdb_client_3.write_client.client.write_api import WriteApi, WriteOptions, PointSettings
@@ -284,7 +282,6 @@ class InfluxDBClient(_BaseClient):
         """
         return WriteApi(influxdb_client=self, write_options=write_options, point_settings=point_settings, **kwargs)
 
-
     def close(self):
         """Shutdown the client."""
         self.__del__()
@@ -294,8 +291,3 @@ class InfluxDBClient(_BaseClient):
         if self.api_client:
             self.api_client.__del__()
             self.api_client = None
-
-
-
-
-

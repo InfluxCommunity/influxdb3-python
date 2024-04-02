@@ -12,6 +12,7 @@ class UploadFile:
     """
     Class for uploading and reading different types of files.
     """
+
     def __init__(self, file, file_parser_options=None):
         """
         Initialize an UploadFile instance.
@@ -44,7 +45,7 @@ class UploadFile:
         else:
             raise ValueError("Unsupported file type")
 
-    def load_feather(self, file ):
+    def load_feather(self, file):
         """
         Load a Feather file.
 
@@ -99,6 +100,7 @@ class UploadFile:
         try:
             import pandas as pd
         except ImportError:
-            raise ImportError("Pandas is required for write_file(). Please install it using 'pip install pandas' or 'pip install influxdb3-python[pandas]'")
-        
+            raise ImportError("Pandas is required for write_file(). Please install it using 'pip install pandas' or "
+                              "'pip install influxdb3-python[pandas]'")
+
         return pd.read_json(file, **self._kwargs)
