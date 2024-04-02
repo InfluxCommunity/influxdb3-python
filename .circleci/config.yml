@@ -68,6 +68,11 @@ jobs:
           command: |
             pip install flake8 --user
             flake8  influxdb_client_3/
+      - run:
+          name: Checks style consistency across tests.
+          command: |
+            pip install flake8 --user
+            flake8  influxdb_client_3/
   check-twine:
     docker:
       - image: *default-python
