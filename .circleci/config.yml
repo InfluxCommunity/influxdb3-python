@@ -102,7 +102,7 @@ workflows:
       not:
         equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
-#      - check-code-style
+      - check-code-style
 #      - check-docstyle
       - check-twine
       - tests-python:
