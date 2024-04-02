@@ -73,6 +73,11 @@ jobs:
           command: |
             pip install flake8 --user
             flake8  tests/
+      - run:
+          name: Checks style consistency across examples.
+          command: |
+            pip install flake8 --user
+            flake8  Examples/
   check-twine:
     docker:
       - image: *default-python
