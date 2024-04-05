@@ -68,6 +68,16 @@ jobs:
           command: |
             pip install flake8 --user
             flake8  influxdb_client_3/
+      - run:
+          name: Checks style consistency across tests.
+          command: |
+            pip install flake8 --user
+            flake8  tests/
+      - run:
+          name: Checks style consistency across examples.
+          command: |
+            pip install flake8 --user
+            flake8  Examples/
   check-twine:
     docker:
       - image: *default-python
@@ -102,7 +112,7 @@ workflows:
       not:
         equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
-#      - check-code-style
+      - check-code-style
 #      - check-docstyle
       - check-twine
       - tests-python:

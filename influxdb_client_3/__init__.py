@@ -1,18 +1,22 @@
-import urllib.parse, json
-import pyarrow as pa
-from influxdb_client_3.write_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
-from influxdb_client_3.write_client.client.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, PointSettings
-from influxdb_client_3.write_client.domain.write_precision import WritePrecision
-from influxdb_client_3.write_client.client.exceptions import InfluxDBError
-from pyarrow.flight import FlightClient, Ticket, FlightCallOptions
-from influxdb_client_3.read_file import UploadFile
+import json
 import urllib.parse
+
+import pyarrow as pa
+from pyarrow.flight import FlightClient, Ticket, FlightCallOptions
+
+from influxdb_client_3.read_file import UploadFile
+from influxdb_client_3.write_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
+from influxdb_client_3.write_client.client.exceptions import InfluxDBError
+from influxdb_client_3.write_client.client.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, \
+    PointSettings
+from influxdb_client_3.write_client.domain.write_precision import WritePrecision
+
 try:
     import polars as pl
+
     polars = True
 except ImportError:
     polars = False
-
 
 
 def write_client_options(**kwargs):
@@ -24,8 +28,10 @@ def write_client_options(**kwargs):
     """
     return kwargs
 
+
 def default_client_options(**kwargs):
     return kwargs
+
 
 def flight_client_options(**kwargs):
     """
@@ -36,6 +42,7 @@ def flight_client_options(**kwargs):
     """
     return kwargs
 
+
 def file_parser_options(**kwargs):
     """
     Function for providing additional arguments for the file parser.
@@ -43,7 +50,7 @@ def file_parser_options(**kwargs):
     :param kwargs: Additional arguments for the file parser.
     :return: dict with the arguments.
     """
-    return kwargs  
+    return kwargs
 
 
 def _deep_merge(target, source):
@@ -66,6 +73,7 @@ def _deep_merge(target, source):
         # For other types, simply replace the target with the source
         target = source
     return target
+
 
 class InfluxDBClient3:
     def __init__(
@@ -99,11 +107,12 @@ class InfluxDBClient3:
         self._org = org if org is not None else "default"
         self._database = database
         self._token = token
-        self._write_client_options = write_client_options if write_client_options is not None else default_client_options(write_options=SYNCHRONOUS)
-        
+        self._write_client_options = write_client_options if write_client_options is not None \
+            else default_client_options(write_options=SYNCHRONOUS)
+
         # Parse the host input
         parsed_url = urllib.parse.urlparse(host)
-        
+
         # Determine the protocol (scheme), hostname, and port
         scheme = parsed_url.scheme if parsed_url.scheme else "https"
         hostname = parsed_url.hostname if parsed_url.hostname else host
@@ -118,10 +127,10 @@ class InfluxDBClient3:
             token=self._token,
             org=self._org,
             **kwargs)
-        
+
         self._write_api = _WriteApi(influxdb_client=self._client, **self._write_client_options)
         self._flight_client_options = flight_client_options or {}
-        
+
         if query_port_overwrite is not None:
             port = query_port_overwrite
         self._flight_client = FlightClient(f"grpc+tls://{hostname}:{port}", **self._flight_client_options)
@@ -134,7 +143,7 @@ class InfluxDBClient3:
             return defaults
         return _deep_merge(defaults, {key: value for key, value in custom.items()})
 
-    def write(self, record=None, database=None ,**kwargs):
+    def write(self, record=None, database=None, **kwargs):
         """
         Write data to InfluxDB.
 
@@ -151,9 +160,9 @@ class InfluxDBClient3:
             self._write_api.write(bucket=database, record=record, **kwargs)
         except InfluxDBError as e:
             raise e
-          
 
-    def write_file(self, file, measurement_name=None, tag_columns=None, timestamp_column='time', database=None, file_parser_options=None ,**kwargs):
+    def write_file(self, file, measurement_name=None, tag_columns=None, timestamp_column='time', database=None,
+                   file_parser_options=None, **kwargs):
         """
         Write data from a file to InfluxDB.
 
@@ -177,10 +186,10 @@ class InfluxDBClient3:
         try:
             table = UploadFile(file, file_parser_options).load_file()
             df = table.to_pandas() if isinstance(table, pa.Table) else table
-            self._process_dataframe(df, measurement_name, tag_columns or [], timestamp_column, database=database, **kwargs)
+            self._process_dataframe(df, measurement_name, tag_columns or [], timestamp_column, database=database,
+                                    **kwargs)
         except Exception as e:
             raise e
-            
 
     def _process_dataframe(self, df, measurement_name, tag_columns, timestamp_column, database, **kwargs):
         # This function is factored out for clarity.
@@ -204,9 +213,8 @@ class InfluxDBClient3:
                                   data_frame_measurement_name=measurement_name,
                                   data_frame_tag_columns=tag_columns,
                                   data_frame_timestamp_column=timestamp_column, **kwargs)
-  
-    
-    def query(self, query, language="sql", mode="all", database=None,**kwargs ):
+
+    def query(self, query, language="sql", mode="all", database=None, **kwargs):
         """
         Query data from InfluxDB.
 
@@ -223,12 +231,10 @@ class InfluxDBClient3:
         """
         if mode == "polars" and polars is False:
             raise ImportError("Polars is not installed. Please install it with `pip install polars`.")
-        
-    
 
         if database is None:
             database = self._database
-        
+
         try:
             # Create an authorization header
             optargs = {
@@ -237,7 +243,7 @@ class InfluxDBClient3:
             }
             opts = self._merge_options(optargs, kwargs)
             _options = FlightCallOptions(**opts)
-            
+
             ticket_data = {"database": database, "sql_query": query, "query_type": language}
             ticket = Ticket(json.dumps(ticket_data).encode('utf-8'))
             flight_reader = self._flight_client.do_get(ticket, _options)
@@ -249,7 +255,7 @@ class InfluxDBClient3:
                 "chunk": lambda: flight_reader,
                 "reader": flight_reader.to_reader,
                 "schema": lambda: flight_reader.schema
-                
+
             }.get(mode, flight_reader.read_all)
 
             return mode_func() if callable(mode_func) else mode_func
@@ -267,7 +273,8 @@ class InfluxDBClient3:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
-        
+
+
 __all__ = [
     "InfluxDBClient3",
     "Point",

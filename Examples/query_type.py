@@ -1,7 +1,4 @@
 import influxdb_client_3 as InfluxDBClient3
-import pandas as pd
-import numpy as np
-
 
 client = InfluxDBClient3.InfluxDBClient3(
     token="",
@@ -56,5 +53,3 @@ reader = client.query(
 print("reader:")
 for batch in reader:
     print(batch.to_pandas())
-
-

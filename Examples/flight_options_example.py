@@ -1,6 +1,4 @@
 import influxdb_client_3 as InfluxDBClient3
-import pandas as pd
-import numpy as np
 from influxdb_client_3 import flight_client_options
 
 

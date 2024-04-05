@@ -267,7 +267,7 @@ class ApiClient(object):
         if data is None:
             return None
 
-        if type(klass) == str:
+        if klass is str:
             if klass.startswith('list['):
                 sub_kls = re.match(r'list\[(.*)\]', klass).group(1)
                 return [self.__deserialize(sub_data, sub_kls)
@@ -348,13 +348,13 @@ class ApiClient(object):
                                    _preload_content, _request_timeout, urlopen_kw)
         else:
             thread = self.pool.apply_async(self.__call_api, (resource_path,
-                                           method, path_params, query_params,
-                                           header_params, body,
-                                           post_params, files,
-                                           response_type, auth_settings,
-                                           _return_http_data_only,
-                                           collection_formats,
-                                           _preload_content, _request_timeout, urlopen_kw))
+                                                             method, path_params, query_params,
+                                                             header_params, body,
+                                                             post_params, files,
+                                                             response_type, auth_settings,
+                                                             _return_http_data_only,
+                                                             collection_formats,
+                                                             _preload_content, _request_timeout, urlopen_kw))
         return thread
 
     def request(self, method, url, query_params=None, headers=None,

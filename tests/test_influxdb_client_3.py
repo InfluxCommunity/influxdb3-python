@@ -1,6 +1,8 @@
 import unittest
-from unittest.mock import patch, Mock
+from unittest.mock import patch
+
 from influxdb_client_3 import InfluxDBClient3
+
 
 class TestInfluxDBClient3(unittest.TestCase):
 
@@ -24,6 +26,7 @@ class TestInfluxDBClient3(unittest.TestCase):
         self.assertEqual(self.client._client, self.mock_influx_db_client.return_value)
         self.assertEqual(self.client._write_api, self.mock_write_api.return_value)
         self.assertEqual(self.client._flight_client, self.mock_flight_client.return_value)
+
 
 if __name__ == '__main__':
     unittest.main()
