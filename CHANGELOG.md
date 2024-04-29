@@ -1,5 +1,9 @@
 ## 0.5.0 [unreleased]
 
+### Others
+
+- [#84](https://github.com/InfluxCommunity/influxdb3-python/pull/84): Enable packaging type information - `py.typed`
+
 ## 0.4.0 [2024-04-17]
 
 ### Bugfix
