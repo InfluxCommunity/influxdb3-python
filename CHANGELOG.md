@@ -1,8 +1,12 @@
 ## 0.5.0 [unreleased]
 
+### Bug Fixes
+
+1. [#86](https://github.com/InfluxCommunity/influxdb3-python/pull/86): Refactor to `timezone` specific `datetime` helpers to avoid use deprecated functions
+
 ### Others
 
-- [#84](https://github.com/InfluxCommunity/influxdb3-python/pull/84): Enable packaging type information - `py.typed`
+1. [#84](https://github.com/InfluxCommunity/influxdb3-python/pull/84): Enable packaging type information - `py.typed`
 
 ## 0.4.0 [2024-04-17]
 
