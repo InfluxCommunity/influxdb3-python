@@ -49,7 +49,7 @@ write_options = WriteOptions(batch_size=5_000,
 wco = write_client_options(success_callback=callback.success,
                            error_callback=callback.error,
                            retry_callback=callback.retry,
-                           WriteOptions=write_options
+                           write_options=write_options
                            )
 # Opening InfluxDB client with a batch size of 5k points or flush interval
 # of 10k ms and gzip compression
