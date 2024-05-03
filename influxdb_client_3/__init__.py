@@ -253,7 +253,19 @@ class InfluxDBClient3:
             opts = _merge_options(optargs, exclude_keys=['query_parameters'], custom=kwargs)
             _options = FlightCallOptions(**opts)
 
-            ticket_data = {"database": database, "sql_query": query, "query_type": language}
+            #
+            # Ticket data
+            #
+            ticket_data = {
+                "database": database,
+                "sql_query": query,
+                "query_type": language
+            }
+            # add query parameters
+            query_parameters = kwargs.get("query_parameters", None)
+            if query_parameters:
+                ticket_data["params"] = query_parameters
+
             ticket = Ticket(json.dumps(ticket_data).encode('utf-8'))
             flight_reader = self._flight_client.do_get(ticket, _options)
 
