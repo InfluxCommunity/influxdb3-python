@@ -1,4 +1,3 @@
-<!-- markdownlint-disable MD024 -->
 # Change Log
 
 ## 0.5.0 [unreleased]
