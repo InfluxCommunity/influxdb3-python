@@ -32,7 +32,7 @@
 
 - `pyarrow` (automatically installed)
 - `pandas` (optional)
-  
+
 
 ## Installation
 
@@ -113,7 +113,7 @@ write_options = WriteOptions(batch_size=500,
 wco = write_client_options(success_callback=callback.success,
                           error_callback=callback.error,
                           retry_callback=callback.retry,
-                          WriteOptions=write_options 
+                          write_options=write_options
                         )
 
 with  InfluxDBClient3.InfluxDBClient3(
@@ -126,11 +126,11 @@ with  InfluxDBClient3.InfluxDBClient3(
     client.write_file(
         file='./out.csv',
         timestamp_column='time', tag_columns=["provider", "machineID"])
-    
+
     client.write_file(
         file='./out.json',
         timestamp_column='time', tag_columns=["provider", "machineID"], date_unit='ns' )
-    
+
 
 ```
 
@@ -144,7 +144,7 @@ client._write_api.write(bucket="pokemon-codex", record=pd_df, data_frame_measure
 client._write_api.write(bucket="pokemon-codex", record=pl_df, data_frame_measurement_name='caught', data_frame_tag_columns=['trainer', 'id', 'num'], data_frame_timestamp_column='timestamp')
 ```
 
-## Querying 
+## Querying
 
 ### Querying with SQL
 ```python
@@ -196,4 +196,4 @@ table = client.query(
 
 print(table.to_pandas())
 ```
-You may also include your own root certificate via this manor aswell. 
+You may also include your own root certificate via this manor aswell.

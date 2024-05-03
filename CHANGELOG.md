@@ -1,4 +1,11 @@
+<!-- markdownlint-disable MD024 -->
+# Change Log
+
 ## 0.5.0 [unreleased]
+
+### Bugfix
+
+- [#87](https://github.com/InfluxCommunity/influxdb3-python/pull/87): Fix examples to use `write_options` instead of the object name `WriteOptions`
 
 ### Others
 

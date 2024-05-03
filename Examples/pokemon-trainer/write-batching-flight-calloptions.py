@@ -33,7 +33,7 @@ write_options = WriteOptions(batch_size=100,
 wco = write_client_options(success_callback=callback.success,
                            error_callback=callback.error,
                            retry_callback=callback.retry,
-                           WriteOptions=write_options
+                           write_options=write_options
                            )
 
 client = InfluxDBClient3(
