@@ -20,7 +20,7 @@ commands:
             pip install . --user
             pip install .\[dataframe\] --user
             pip install pytest pytest-cov --user
-            pytest tests --junitxml=test-reports/junit.xml --cov=./ --cov-report xml:coverage.xml
+            pytest -m "not integration" tests --junitxml=test-reports/junit.xml --cov=./ --cov-report xml:coverage.xml
       - save_cache:
           name: Saving Pip Cache
           key: *cache-key
