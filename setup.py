@@ -2,7 +2,6 @@ from setuptools import setup, find_packages
 import os
 import re
 
-
 requires = [
     'reactivex >= 4.0.4',
     'certifi >= 14.05.14',
@@ -15,6 +14,7 @@ requires = [
 with open("./README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+
 def get_version_from_github_ref():
     github_ref = os.environ.get("GITHUB_REF")
     if not github_ref:
@@ -26,6 +26,7 @@ def get_version_from_github_ref():
 
     return match.group(1)
 
+
 def get_version():
     # If running in GitHub Actions, get version from GITHUB_REF
     version = get_version_from_github_ref()
@@ -34,6 +35,7 @@ def get_version():
 
     # Fallback to a default version if not in GitHub Actions
     return "v0.0.0"
+
 
 setup(
     name='influxdb3-python',
@@ -45,7 +47,12 @@ setup(
     author_email='contact@influxdata.com',
     url='https://github.com/InfluxCommunity/influxdb3-python',
     packages=find_packages(exclude=['tests', 'tests.*', 'examples', 'examples.*']),
-    extras_require={'pandas': ['pandas'], 'polars': ['polars'], 'dataframe': ['pandas', 'polars']},
+    extras_require={
+        'pandas': ['pandas'],
+        'polars': ['polars'],
+        'dataframe': ['pandas', 'polars'],
+        'test': ['pytest', 'pytest-cov']
+    },
     install_requires=requires,
     python_requires='>=3.8',
     classifiers=[
