@@ -36,7 +36,7 @@ jobs:
     parameters:
       python-image:
         type: string
-        default: &default-python "cimg/python:3.7"
+        default: &default-python "cimg/python:3.8"
       pytest-marker:
         type: string
         default: "not integration"
