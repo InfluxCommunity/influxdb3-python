@@ -6,6 +6,8 @@ commands:
     parameters:
       python-image:
         type: string
+      pytest-marker:
+        type: string
     steps:
       - restore_cache:
           name: Restoring Pip Cache
@@ -19,8 +21,8 @@ commands:
             mkdir test-reports || true
             pip install . --user
             pip install .\[dataframe\] --user
-            pip install pytest pytest-cov --user
-            pytest tests --junitxml=test-reports/junit.xml --cov=./ --cov-report xml:coverage.xml
+            pip install .\[test\] --user
+            pytest -m "<< parameters.pytest-marker >>" tests --junitxml=test-reports/junit.xml --cov=./ --cov-report xml:coverage.xml
       - save_cache:
           name: Saving Pip Cache
           key: *cache-key
@@ -34,7 +36,10 @@ jobs:
     parameters:
       python-image:
         type: string
-        default: &default-python "cimg/python:3.7"
+        default: &default-python "cimg/python:3.8"
+      pytest-marker:
+        type: string
+        default: "not integration"
     docker:
       - image: << parameters.python-image >>
         environment:
@@ -43,6 +48,7 @@ jobs:
       - checkout
       - client-test:
           python-image: << parameters.python-image >>
+          pytest-marker: << parameters.pytest-marker >>
       - store_test_results:
           path: test-reports
       - run:
@@ -64,20 +70,25 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Checks style consistency of setup.py.
+          command: |
+            pip install flake8 --user
+            flake8 setup.py
+      - run:
           name: Checks style consistency across sources.
           command: |
             pip install flake8 --user
-            flake8  influxdb_client_3/
+            flake8 influxdb_client_3/
       - run:
           name: Checks style consistency across tests.
           command: |
             pip install flake8 --user
-            flake8  tests/
+            flake8 tests/
       - run:
           name: Checks style consistency across examples.
           command: |
             pip install flake8 --user
-            flake8  Examples/
+            flake8 Examples/
   check-twine:
     docker:
       - image: *default-python
@@ -130,6 +141,16 @@ workflows:
       - tests-python:
           name: test-3.12
           python-image: "cimg/python:3.12"
+      - tests-python:
+          requires:
+            - test-3.8
+            - test-3.9
+            - test-3.10
+            - test-3.11
+            - test-3.12
+          name: test-integration
+          python-image: *default-python
+          pytest-marker: "integration"
 
   nightly:
     when:
