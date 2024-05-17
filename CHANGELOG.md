@@ -1,6 +1,6 @@
 # Change Log
 
-## 0.5.0 [unreleased]
+## 0.5.0 [2024-05-17]
 
 ### Features
 
