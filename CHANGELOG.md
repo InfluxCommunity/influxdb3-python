@@ -2,6 +2,9 @@
 
 ## 0.6.0 [unreleased]
 
+### Features
+1. [#89](https://github.com/InfluxCommunity/influxdb3-python/pull/89): Use `datetime.fromisoformat` over `dateutil.parse` in Python 3.11+
+
 ## 0.5.0 [2024-05-17]
 
 ### Features
