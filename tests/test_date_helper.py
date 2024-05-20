@@ -6,7 +6,7 @@ from dateutil import tz
 from influxdb_client_3.write_client.client.util.date_utils import DateHelper, get_date_helper
 
 
-class DateHelperTest(unittest.TestCase):
+class TestDateHelper(unittest.TestCase):
 
     def test_to_utc(self):
         date = get_date_helper().to_utc(datetime(2021, 4, 29, 20, 30, 10, 0))

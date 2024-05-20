@@ -6,7 +6,7 @@ from pyarrow.flight import Ticket
 from influxdb_client_3 import InfluxDBClient3
 
 
-class QueryTests(unittest.TestCase):
+class TestQuery(unittest.TestCase):
 
     @patch('influxdb_client_3._InfluxDBClient')
     @patch('influxdb_client_3._WriteApi')

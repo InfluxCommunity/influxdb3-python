@@ -3,7 +3,7 @@ import unittest
 import influxdb_client_3
 
 
-class MergeOptionsTests(unittest.TestCase):
+class TestMergeOptions(unittest.TestCase):
 
     def test_merge_with_empty_custom(self):
         defaults = {"a": 1, "b": 2}
