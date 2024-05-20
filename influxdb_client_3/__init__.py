@@ -69,10 +69,24 @@ def _deep_merge(target, source):
     elif isinstance(target, list) and isinstance(source, list):
         # If both target and source are lists, concatenate them
         target.extend(source)
-    else:
+    elif source is not None:
         # For other types, simply replace the target with the source
         target = source
     return target
+
+
+def _merge_options(defaults, exclude_keys=None, custom=None):
+    """
+    Merge default option arguments with custom (user-provided) arguments,
+    excluding specific keys defined in exclude_keys.
+    """
+    if custom is None or len(custom) == 0:
+        return defaults
+
+    if exclude_keys is None:
+        exclude_keys = []
+
+    return _deep_merge(defaults, {key: value for key, value in custom.items() if key not in exclude_keys})
 
 
 class InfluxDBClient3:
@@ -134,14 +148,6 @@ class InfluxDBClient3:
         if query_port_overwrite is not None:
             port = query_port_overwrite
         self._flight_client = FlightClient(f"grpc+tls://{hostname}:{port}", **self._flight_client_options)
-
-    def _merge_options(self, defaults, custom={}):
-        """
-        Merge default option arguments with custom (user-provided) arguments.
-        """
-        if len(custom) == 0:
-            return defaults
-        return _deep_merge(defaults, {key: value for key, value in custom.items()})
 
     def write(self, record=None, database=None, **kwargs):
         """
@@ -214,20 +220,23 @@ class InfluxDBClient3:
                                   data_frame_tag_columns=tag_columns,
                                   data_frame_timestamp_column=timestamp_column, **kwargs)
 
-    def query(self, query, language="sql", mode="all", database=None, **kwargs):
-        """
-        Query data from InfluxDB.
+    def query(self, query: str, language: str = "sql", mode: str = "all", database: str = None, **kwargs):
+        """Query data from InfluxDB.
 
-        :param query: The query string.
-        :type query: str
-        :param language: The query language; "sql" or "influxql" (default is "sql").
-        :type language: str
-        :param mode: The mode of fetching data (all, pandas, chunk, reader, schema).
-        :type mode: str
+        If you want to use query parameters, you can pass them as kwargs:
+
+        >>> client.query("select * from cpu where host=$host", query_parameters={"host": "server01"})
+
+        :param query: The query to execute on the database.
+        :param language: The query language to use. It should be one of "influxql" or "sql". Defaults to "sql".
+        :param mode: The mode to use for the query. It should be one of "all", "pandas", "polars", "chunk",
+                     "reader" or "schema". Defaults to "all".
         :param database: The database to query from. If not provided, uses the database provided during initialization.
-        :type database: str
-        :param kwargs: FlightClientCallOptions for the query.
-        :return: The queried data.
+        :param kwargs: Additional arguments to pass to the ``FlightCallOptions headers``. For example, it can be used to
+                       set up per request headers.
+        :keyword query_parameters: The query parameters to use in the query.
+                                   It should be a ``dictionary`` of key-value pairs.
+        :return: The query result in the specified mode.
         """
         if mode == "polars" and polars is False:
             raise ImportError("Polars is not installed. Please install it with `pip install polars`.")
@@ -241,10 +250,22 @@ class InfluxDBClient3:
                 "headers": [(b"authorization", f"Bearer {self._token}".encode('utf-8'))],
                 "timeout": 300
             }
-            opts = self._merge_options(optargs, kwargs)
+            opts = _merge_options(optargs, exclude_keys=['query_parameters'], custom=kwargs)
             _options = FlightCallOptions(**opts)
 
-            ticket_data = {"database": database, "sql_query": query, "query_type": language}
+            #
+            # Ticket data
+            #
+            ticket_data = {
+                "database": database,
+                "sql_query": query,
+                "query_type": language
+            }
+            # add query parameters
+            query_parameters = kwargs.get("query_parameters", None)
+            if query_parameters:
+                ticket_data["params"] = query_parameters
+
             ticket = Ticket(json.dumps(ticket_data).encode('utf-8'))
             flight_reader = self._flight_client.do_get(ticket, _options)
 
