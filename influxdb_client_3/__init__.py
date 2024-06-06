@@ -10,7 +10,7 @@ from influxdb_client_3.write_client.client.exceptions import InfluxDBError
 from influxdb_client_3.write_client.client.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, \
     PointSettings
 from influxdb_client_3.write_client.domain.write_precision import WritePrecision
-from influxdb_client_3.version import USER_AGENT, VERSION
+from influxdb_client_3.version import USER_AGENT
 
 try:
     import polars as pl
@@ -150,7 +150,7 @@ class InfluxDBClient3:
             port = query_port_overwrite
 
         gen_opts = [
-            ("grpc.secondary_user_agent",USER_AGENT)
+            ("grpc.secondary_user_agent", USER_AGENT)
         ]
 
         self._flight_client_options["generic_options"] = gen_opts

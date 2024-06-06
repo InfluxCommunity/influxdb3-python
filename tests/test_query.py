@@ -8,8 +8,6 @@ from pyarrow import (
 )
 
 from pyarrow.flight import (
-    FlightCallOptions,
-    FlightClient,
     FlightServerBase,
     FlightUnauthenticatedError,
     GeneratorStream,
@@ -80,7 +78,7 @@ class HeaderCheckFlightServer(FlightServerBase):
     def do_get(self, context, ticket):
         """Return something to avoid needless errors"""
         data = [
-            array([b"Vltava", struct.pack('<i',105), b"FM"])
+            array([b"Vltava", struct.pack('<i', 105), b"FM"])
         ]
         table = Table.from_arrays(data, names=['a'])
         return GeneratorStream(
@@ -98,8 +96,7 @@ class HeaderCheckFlightServer(FlightServerBase):
 def test_influx_default_query_headers():
     with HeaderCheckFlightServer(
             auth_handler=NoopAuthHandler(),
-            middleware={"check": HeaderCheckServerMiddlewareFactory()}) as server, \
-            FlightClient(('localhost', server.port)) as fclient:
+            middleware={"check": HeaderCheckServerMiddlewareFactory()}) as server:
         global _req_headers
         _req_headers = {}
         client = InfluxDBClient3(
