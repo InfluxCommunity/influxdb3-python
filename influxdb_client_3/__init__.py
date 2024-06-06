@@ -156,9 +156,11 @@ class InfluxDBClient3:
         self._flight_client_options["generic_options"] = gen_opts
 
         if scheme == 'https':
-            self._flight_client = FlightClient(f"grpc+tls://{hostname}:{port}", **self._flight_client_options)
+            connection_string = f"grpc+tls://{hostname}:{port}"
         else:
-            self._flight_client = FlightClient(f"grpc+tcp://{hostname}:{port}", **self._flight_client_options)
+            connection_string = f"grpc+tcp://{hostname}:{port}"
+
+        self._flight_client = FlightClient(connection_string, **self._flight_client_options)
 
     def write(self, record=None, database=None, **kwargs):
         """
