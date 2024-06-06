@@ -2,6 +2,10 @@
 
 ## 0.6.0 [unreleased]
 
+### Features
+
+1. [#92](https://github.com/InfluxCommunity/influxdb3-python/pull/92): Update `user-agent` header value to `influxdb3-python/{VERSION}` and add it to queries as well. 
+
 ## 0.5.0 [2024-05-17]
 
 ### Features
