@@ -9,5 +9,7 @@ pyinflux3*.egg-info
 __pycache__
 .idea
 *.egg-info/
-.coverage
+temp/
+test-reports/
 coverage.xml
+.coverage

@@ -27,5 +27,5 @@ from influxdb_client_3.write_client.service.signout_service import SignoutServic
 from influxdb_client_3.write_client.domain.write_precision import WritePrecision
 
 from influxdb_client_3.write_client.configuration import Configuration
-from influxdb_client_3.write_client.version import VERSION
+from influxdb_client_3.version import VERSION
 __version__ = VERSION
