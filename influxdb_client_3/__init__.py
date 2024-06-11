@@ -10,6 +10,7 @@ from influxdb_client_3.write_client.client.exceptions import InfluxDBError
 from influxdb_client_3.write_client.client.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, \
     PointSettings
 from influxdb_client_3.write_client.domain.write_precision import WritePrecision
+from influxdb_client_3.version import USER_AGENT
 
 try:
     import polars as pl
@@ -147,7 +148,19 @@ class InfluxDBClient3:
 
         if query_port_overwrite is not None:
             port = query_port_overwrite
-        self._flight_client = FlightClient(f"grpc+tls://{hostname}:{port}", **self._flight_client_options)
+
+        gen_opts = [
+            ("grpc.secondary_user_agent", USER_AGENT)
+        ]
+
+        self._flight_client_options["generic_options"] = gen_opts
+
+        if scheme == 'https':
+            connection_string = f"grpc+tls://{hostname}:{port}"
+        else:
+            connection_string = f"grpc+tcp://{hostname}:{port}"
+
+        self._flight_client = FlightClient(connection_string, **self._flight_client_options)
 
     def write(self, record=None, database=None, **kwargs):
         """
