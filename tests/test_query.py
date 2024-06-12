@@ -112,7 +112,7 @@ def test_influx_default_query_headers():
         _req_headers = {}
 
 
-class QueryTests(unittest.TestCase):
+class TestQuery(unittest.TestCase):
 
     @patch('influxdb_client_3._InfluxDBClient')
     @patch('influxdb_client_3._WriteApi')
