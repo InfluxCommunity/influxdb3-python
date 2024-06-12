@@ -7,6 +7,10 @@
 1. [#89](https://github.com/InfluxCommunity/influxdb3-python/pull/89): Use `datetime.fromisoformat` over `dateutil.parse` in Python 3.11+
 1. [#92](https://github.com/InfluxCommunity/influxdb3-python/pull/92): Update `user-agent` header value to `influxdb3-python/{VERSION}` and add it to queries as well. 
 
+### Bug Fixes
+
+1. [#86](https://github.com/InfluxCommunity/influxdb3-python/pull/86): Refactor to `timezone` specific `datetime` helpers to avoid use deprecated functions
+
 ## 0.5.0 [2024-05-17]
 
 ### Features
@@ -25,7 +29,7 @@
 
     ```
 
-### Bugfix
+### Bug Fixes
 
 1. [#87](https://github.com/InfluxCommunity/influxdb3-python/pull/87): Fix examples to use `write_options` instead of the object name `WriteOptions`
 
