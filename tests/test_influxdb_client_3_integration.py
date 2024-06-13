@@ -39,6 +39,7 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
 
         df = self.client.query(sql, mode="pandas", query_parameters={'type': 'used', 'test_id': test_id})
 
+        self.assertIsNotNone(df)
         self.assertEqual(1, len(df))
         self.assertEqual(test_id, df['test_id'][0])
         self.assertEqual(123.0, df['value'][0])

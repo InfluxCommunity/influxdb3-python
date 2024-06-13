@@ -2,8 +2,8 @@ import json
 import urllib.parse
 
 import pyarrow as pa
-from pyarrow.flight import FlightClient, Ticket, FlightCallOptions
 
+from influxdb_client_3.query.query_api import QueryApi as _QueryApi
 from influxdb_client_3.read_file import UploadFile
 from influxdb_client_3.write_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
 from influxdb_client_3.write_client.client.exceptions import InfluxDBError
@@ -144,23 +144,15 @@ class InfluxDBClient3:
             **kwargs)
 
         self._write_api = _WriteApi(influxdb_client=self._client, **self._write_client_options)
-        self._flight_client_options = flight_client_options or {}
 
         if query_port_overwrite is not None:
             port = query_port_overwrite
-
-        gen_opts = [
-            ("grpc.secondary_user_agent", USER_AGENT)
-        ]
-
-        self._flight_client_options["generic_options"] = gen_opts
-
         if scheme == 'https':
             connection_string = f"grpc+tls://{hostname}:{port}"
         else:
             connection_string = f"grpc+tcp://{hostname}:{port}"
-
-        self._flight_client = FlightClient(connection_string, **self._flight_client_options)
+        self._query_api = _QueryApi(connection_string=connection_string, token=token,
+                                    flight_client_options=flight_client_options)
 
     def write(self, record=None, database=None, **kwargs):
         """
@@ -258,48 +250,14 @@ class InfluxDBClient3:
             database = self._database
 
         try:
-            # Create an authorization header
-            optargs = {
-                "headers": [(b"authorization", f"Bearer {self._token}".encode('utf-8'))],
-                "timeout": 300
-            }
-            opts = _merge_options(optargs, exclude_keys=['query_parameters'], custom=kwargs)
-            _options = FlightCallOptions(**opts)
-
-            #
-            # Ticket data
-            #
-            ticket_data = {
-                "database": database,
-                "sql_query": query,
-                "query_type": language
-            }
-            # add query parameters
-            query_parameters = kwargs.get("query_parameters", None)
-            if query_parameters:
-                ticket_data["params"] = query_parameters
-
-            ticket = Ticket(json.dumps(ticket_data).encode('utf-8'))
-            flight_reader = self._flight_client.do_get(ticket, _options)
-
-            mode_func = {
-                "all": flight_reader.read_all,
-                "pandas": flight_reader.read_pandas,
-                "polars": lambda: pl.from_arrow(flight_reader.read_all()),
-                "chunk": lambda: flight_reader,
-                "reader": flight_reader.to_reader,
-                "schema": lambda: flight_reader.schema
-
-            }.get(mode, flight_reader.read_all)
-
-            return mode_func() if callable(mode_func) else mode_func
-        except Exception as e:
+            return self._query_api.query(query=query, language=language, mode=mode, database=database, **kwargs)
+        except InfluxDBError as e:
             raise e
 
     def close(self):
         """Close the client and clean up resources."""
         self._write_api.close()
-        self._flight_client.close()
+        self._query_api.close()
         self._client.close()
 
     def __enter__(self):
