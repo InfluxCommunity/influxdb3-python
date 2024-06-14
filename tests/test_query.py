@@ -1,6 +1,6 @@
 import unittest
 import struct
-from unittest.mock import Mock, patch, ANY
+from unittest.mock import Mock, ANY
 
 from pyarrow import (
     array,
