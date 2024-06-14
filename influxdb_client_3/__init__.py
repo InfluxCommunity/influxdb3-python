@@ -1,7 +1,7 @@
-import json
 import urllib.parse
 
 import pyarrow as pa
+import importlib.util
 
 from influxdb_client_3.query.query_api import QueryApi as _QueryApi
 from influxdb_client_3.read_file import UploadFile
@@ -10,14 +10,8 @@ from influxdb_client_3.write_client.client.exceptions import InfluxDBError
 from influxdb_client_3.write_client.client.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, \
     PointSettings
 from influxdb_client_3.write_client.domain.write_precision import WritePrecision
-from influxdb_client_3.version import USER_AGENT
 
-try:
-    import polars as pl
-
-    polars = True
-except ImportError:
-    polars = False
+polars = importlib.util.find_spec("polars") is not None
 
 
 def write_client_options(**kwargs):
