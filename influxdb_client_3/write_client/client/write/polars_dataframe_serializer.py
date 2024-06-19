@@ -7,9 +7,7 @@ Much of the code here is inspired by that in the aioinflux packet found here: ht
 import logging
 import math
 
-from influxdb_client_3.write_client.domain import WritePrecision
-from influxdb_client_3.write_client.client.write.point import _ESCAPE_KEY, _ESCAPE_STRING, _ESCAPE_MEASUREMENT, \
-    DEFAULT_WRITE_PRECISION
+from influxdb_client_3.write_client.client.write.point import _ESCAPE_KEY, _ESCAPE_STRING, DEFAULT_WRITE_PRECISION
 
 logger = logging.getLogger('influxdb_client.client.write.polars_dataframe_serializer')
 
