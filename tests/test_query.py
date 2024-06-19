@@ -1,6 +1,6 @@
 import unittest
 import struct
-from unittest.mock import Mock, patch, ANY
+from unittest.mock import Mock, ANY
 
 from pyarrow import (
     array,
@@ -66,7 +66,8 @@ class HeaderCheckServerMiddleware(ServerMiddleware):
     Middleware needed to catch request headers via factory
     N.B. As found in pyarrow tests
     """
-    def __init__(self, token):
+    def __init__(self, token, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.token = token
 
     def sending_headers(self):
@@ -114,25 +115,17 @@ def test_influx_default_query_headers():
 
 class TestQuery(unittest.TestCase):
 
-    @patch('influxdb_client_3._InfluxDBClient')
-    @patch('influxdb_client_3._WriteApi')
-    @patch('influxdb_client_3.FlightClient')
-    def setUp(self, mock_flight_client, mock_write_api, mock_influx_db_client):
-        self.mock_influx_db_client = mock_influx_db_client
-        self.mock_write_api = mock_write_api
-        self.mock_flight_client = mock_flight_client
+    def setUp(self):
         self.client = InfluxDBClient3(
             host="localhost",
             org="my_org",
             database="my_db",
             token="my_token"
         )
-        self.client._flight_client = mock_flight_client
-        self.client._write_api = mock_write_api
 
     def test_query_without_parameters(self):
         mock_do_get = Mock()
-        self.client._flight_client.do_get = mock_do_get
+        self.client._query_api._do_get = mock_do_get
 
         self.client.query('SELECT * FROM measurement')
 
@@ -146,7 +139,7 @@ class TestQuery(unittest.TestCase):
 
     def test_query_with_parameters(self):
         mock_do_get = Mock()
-        self.client._flight_client.do_get = mock_do_get
+        self.client._query_api._do_get = mock_do_get
 
         self.client.query('SELECT * FROM measurement WHERE time > $time', query_parameters={"time": "2021-01-01"})
 
