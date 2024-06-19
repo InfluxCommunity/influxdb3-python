@@ -445,7 +445,6 @@ You can use native asynchronous version of the client:
     def _write_batching(self, bucket, org, data,
                         precision=DEFAULT_WRITE_PRECISION,
                         **kwargs):
-        from influxdb_client_3 import polars as has_polars
         if isinstance(data, bytes):
             _key = _BatchItemKey(bucket, org, precision)
             self._subject.on_next(_BatchItem(key=_key, data=data))
@@ -462,8 +461,6 @@ You can use native asynchronous version of the client:
                                  precision, **kwargs)
 
         elif 'polars' in str(type(data)):
-            if not has_polars:
-                raise ModuleNotFoundError('polars module required')
             from influxdb_client_3.write_client.client.write.dataframe_serializer import PolarsDataframeSerializer
             serializer = PolarsDataframeSerializer(data,
                                                    self._point_settings, precision,

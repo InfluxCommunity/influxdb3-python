@@ -233,7 +233,6 @@ class _BaseWriteApi(object):
 
     def _serialize(self, record, write_precision, payload, **kwargs):
         from influxdb_client_3.write_client.client.write.point import Point
-        from influxdb_client_3 import polars as has_polars
         if isinstance(record, bytes):
             payload[write_precision].append(record)
 
@@ -249,8 +248,6 @@ class _BaseWriteApi(object):
             self._serialize(Point.from_dict(record, write_precision=write_precision, **kwargs),
                             write_precision, payload, **kwargs)
         elif 'polars' in str(type(record)):
-            if not has_polars:
-                raise ModuleNotFoundError('polars module required')
             from influxdb_client_3.write_client.client.write.dataframe_serializer import PolarsDataframeSerializer
             serializer = PolarsDataframeSerializer(record, self._point_settings, write_precision, **kwargs)
             self._serialize(serializer.serialize(), write_precision, payload, **kwargs)
