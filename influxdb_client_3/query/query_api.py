@@ -25,8 +25,7 @@ class QueryApi(object):
     def __init__(self,
                  connection_string,
                  token,
-                 flight_client_options,
-                 **kwargs) -> None:
+                 flight_client_options) -> None:
         """
         Initialize defaults.
 
