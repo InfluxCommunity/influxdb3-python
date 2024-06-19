@@ -19,8 +19,7 @@ from reactivex.subject import Subject
 from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.client._base import _BaseWriteApi, _HAS_DATACLASS
 from influxdb_client_3.write_client.client.util.helpers import get_org_query_param
-from influxdb_client_3.write_client.client.write.dataframe_serializer import (DataframeSerializer,
-                                                                              PolarsDataframeSerializer)
+from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
 from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION
 from influxdb_client_3.write_client.client.write.retry import WritesRetry
 from influxdb_client_3.write_client.rest import _UTF_8_encoding
@@ -446,6 +445,7 @@ You can use native asynchronous version of the client:
     def _write_batching(self, bucket, org, data,
                         precision=DEFAULT_WRITE_PRECISION,
                         **kwargs):
+        from influxdb_client_3 import polars as has_polars
         if isinstance(data, bytes):
             _key = _BatchItemKey(bucket, org, precision)
             self._subject.on_next(_BatchItem(key=_key, data=data))
@@ -462,6 +462,9 @@ You can use native asynchronous version of the client:
                                  precision, **kwargs)
 
         elif 'polars' in str(type(data)):
+            if not has_polars:
+                raise ModuleNotFoundError('polars module required')
+            from influxdb_client_3.write_client.client.write.dataframe_serializer import PolarsDataframeSerializer
             serializer = PolarsDataframeSerializer(data,
                                                    self._point_settings, precision,
                                                    self._write_options.batch_size, **kwargs)

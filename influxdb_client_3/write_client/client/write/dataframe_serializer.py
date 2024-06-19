@@ -377,7 +377,7 @@ class PolarsDataframeSerializer:
         return line_protocol
 
     def serialize(self, chunk_idx: int = None):
-        from ...extras import pl
+        import polars as pl
 
         df = self.data_frame
 
