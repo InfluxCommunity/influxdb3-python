@@ -1,13 +1,15 @@
 import unittest
+import importlib.util
 
 from influxdb_client_3 import PointSettings
 from influxdb_client_3.write_client.client.write.polars_dataframe_serializer import polars_data_frame_to_list_of_points
-import polars as pl
 
 
+@unittest.skipIf(importlib.util.find_spec("polars") is None, 'Polars package not installed')
 class TestPolarsDataFrameSerializer(unittest.TestCase):
 
     def test_to_list_of_points(self):
+        import polars as pl
         ps = PointSettings()
         df = pl.DataFrame(data={
             "name": ['iot-devices', 'iot-devices', 'iot-devices'],
