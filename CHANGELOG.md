@@ -2,6 +2,10 @@
 
 ## 0.7.0 [unreleased]
 
+### Bug Fixes
+
+1. [#98](https://github.com/InfluxCommunity/influxdb3-python/pull/98): Missing declaration for `query` module
+
 ## 0.6.0 [2024-06-24]
 
 ### Features
