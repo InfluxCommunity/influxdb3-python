@@ -2,6 +2,10 @@
 
 ## 0.7.0 [unreleased]
 
+### Bug Fixes
+
+1. [#95](https://github.com/InfluxCommunity/influxdb3-python/pull/95): `Polars` is optional dependency
+
 ## 0.6.1 [2024-06-25]
 
 ### Bug Fixes
