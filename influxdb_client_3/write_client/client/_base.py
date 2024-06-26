@@ -7,8 +7,7 @@ import logging
 import os
 from typing import Iterable
 
-from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer, \
-    PolarsDataframeSerializer
+from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
 from influxdb_client_3.write_client.configuration import Configuration
 from influxdb_client_3.write_client.rest import _UTF_8_encoding
 from influxdb_client_3.write_client.service.write_service import WriteService
@@ -249,6 +248,7 @@ class _BaseWriteApi(object):
             self._serialize(Point.from_dict(record, write_precision=write_precision, **kwargs),
                             write_precision, payload, **kwargs)
         elif 'polars' in str(type(record)):
+            from influxdb_client_3.write_client.client.write.dataframe_serializer import PolarsDataframeSerializer
             serializer = PolarsDataframeSerializer(record, self._point_settings, write_precision, **kwargs)
             self._serialize(serializer.serialize(), write_precision, payload, **kwargs)
 

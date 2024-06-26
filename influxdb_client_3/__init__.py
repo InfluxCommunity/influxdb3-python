@@ -1,5 +1,4 @@
 import urllib.parse
-
 import pyarrow as pa
 import importlib.util
 

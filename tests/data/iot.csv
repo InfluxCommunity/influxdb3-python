@@ -1,0 +1,4 @@
+name,building,temperature,time
+iot-devices,5a,72.3,2022-10-01T12:01:00Z
+iot-devices,5a,72.1,2022-10-02T12:01:00Z
+iot-devices,5a,72.2,2022-10-03T12:01:00Z

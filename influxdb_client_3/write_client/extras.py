@@ -10,9 +10,4 @@ try:
 except ModuleNotFoundError as err:
     raise ImportError(f"`data_frame` requires numpy which couldn't be imported due: {err}")
 
-try:
-    import polars as pl
-except ModuleNotFoundError as err:
-    raise ImportError(f"`polars_frame` requires polars which couldn't be imported due: {err}")
-
-__all__ = ['pd', 'np', 'pl']
+__all__ = ['pd', 'np']
