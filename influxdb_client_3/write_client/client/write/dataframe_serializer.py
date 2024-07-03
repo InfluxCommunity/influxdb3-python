@@ -132,7 +132,7 @@ class DataframeSerializer:
         keys = []
         # tags holds a list of tag f-string segments ordered alphabetically by tag key.
         tags = []
-        # fields holds a list of field f-string segments  ordered alphebetically by field key
+        # fields holds a list of field f-string segments ordered alphabetically by field key
         fields = []
         # field_indexes holds the index into each row of all the fields.
         field_indexes = []
@@ -158,8 +158,13 @@ class DataframeSerializer:
         columns = sorted(enumerate(data_frame.dtypes.items()), key=lambda col: col[1][0])
 
         # null_columns has a bool value for each column holding
-        # whether that column contains any null (NaN or None) values.
+        # whether that column contains any null (NaN or None or) or Inf values.
         null_columns = data_frame.isnull().any()
+
+        # inf_columns has a bool value for each column holding
+        # whether that column contains any Inf values.
+        inf_columns = data_frame.isin([np.inf, -np.inf]).any()
+
         timestamp_index = 0
 
         # Iterate through the columns building up the expression for each column.
@@ -175,9 +180,9 @@ class DataframeSerializer:
 
             if key in data_frame_tag_columns:
                 # This column is a tag column.
-                if null_columns.iloc[index]:
+                if null_columns.iloc[index] or inf_columns.iloc[index]:
                     key_value = f"""{{
-                            '' if {val_format} == '' or pd.isna({val_format}) else
+                            '' if {val_format} == '' or pd.isna({val_format}) or ({inf_columns.iloc[index]} and np.isinf({val_format})) else
                             f',{key_format}={{str({val_format}).translate(_ESCAPE_STRING)}}'
                         }}"""
                 else:
@@ -199,16 +204,16 @@ class DataframeSerializer:
             if (issubclass(value.type, np.integer) or issubclass(value.type, np.floating) or
                     issubclass(value.type, np.bool_)):
                 suffix = 'i' if issubclass(value.type, np.integer) else ''
-                if null_columns.iloc[index]:
+                if null_columns.iloc[index] or inf_columns.iloc[index]:
                     field_value = (
-                        f"""{{"" if pd.isna({val_format}) else f"{sep}{key_format}={{{val_format}}}{suffix}"}}"""
+                        f"""{{"" if pd.isna({val_format}) or ({inf_columns.iloc[index]} and np.isinf({val_format})) else f"{sep}{key_format}={{{val_format}}}{suffix}"}}"""
                     )
                 else:
                     field_value = f'{sep}{key_format}={{{val_format}}}{suffix}'
             else:
-                if null_columns.iloc[index]:
+                if null_columns.iloc[index] or inf_columns.iloc[index]:
                     field_value = f"""{{
-                            '' if pd.isna({val_format}) else
+                            '' if pd.isna({val_format}) or ({inf_columns.iloc[index]} and np.isinf({val_format})) else
                             f'{sep}{key_format}="{{str({val_format}).translate(_ESCAPE_STRING)}}"'
                         }}"""
                 else:
@@ -234,6 +239,7 @@ class DataframeSerializer:
             '_ESCAPE_STRING': _ESCAPE_STRING,
             'keys': keys,
             'pd': pd,
+            'np': np,
         })
 
         for k, v in dict(data_frame.dtypes).items():
