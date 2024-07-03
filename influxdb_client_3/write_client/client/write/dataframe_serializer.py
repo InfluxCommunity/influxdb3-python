@@ -182,7 +182,8 @@ class DataframeSerializer:
                 # This column is a tag column.
                 if null_columns.iloc[index] or inf_columns.iloc[index]:
                     key_value = f"""{{
-                            '' if {val_format} == '' or pd.isna({val_format}) or ({inf_columns.iloc[index]} and np.isinf({val_format})) else
+                            '' if {val_format} == '' or pd.isna({val_format}) or 
+                            ({inf_columns.iloc[index]} and np.isinf({val_format})) else
                             f',{key_format}={{str({val_format}).translate(_ESCAPE_STRING)}}'
                         }}"""
                 else:
@@ -206,7 +207,8 @@ class DataframeSerializer:
                 suffix = 'i' if issubclass(value.type, np.integer) else ''
                 if null_columns.iloc[index] or inf_columns.iloc[index]:
                     field_value = (
-                        f"""{{"" if pd.isna({val_format}) or ({inf_columns.iloc[index]} and np.isinf({val_format})) else f"{sep}{key_format}={{{val_format}}}{suffix}"}}"""
+                        f"""{{"" if pd.isna({val_format}) or ({inf_columns.iloc[index]} and np.isinf({val_format})) else 
+                        f"{sep}{key_format}={{{val_format}}}{suffix}"}}"""
                     )
                 else:
                     field_value = f'{sep}{key_format}={{{val_format}}}{suffix}'
