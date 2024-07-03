@@ -136,7 +136,7 @@ class PolarsDataframeSerializer:
             chunk = df[chunk_idx * self.chunk_size:(chunk_idx + 1) * self.chunk_size]
 
         # Apply the UDF to each row
-        line_protocol_expr = chunk.apply(self.to_line_protocol, return_dtype=pl.Object)
+        line_protocol_expr = chunk.map_rows(self.to_line_protocol, return_dtype=pl.Object)
 
         lp = line_protocol_expr['map'].to_list()
 
