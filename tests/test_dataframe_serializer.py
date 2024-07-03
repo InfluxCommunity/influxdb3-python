@@ -4,6 +4,7 @@ from influxdb_client_3 import PointSettings
 from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer, \
     data_frame_to_list_of_points
 import pandas as pd
+import numpy as np
 
 
 class TestDataFrameSerializer(unittest.TestCase):
@@ -44,6 +45,27 @@ class TestDataFrameSerializer(unittest.TestCase):
         self.assertNotIn('<NA>', third_line)
         self.assertNotIn('str_nulls', third_line)
         self.assertNotIn('float_nulls', third_line)
+
+    def test_null_and_inf_values(self):
+        df = pd.DataFrame({
+            "name": ['iot-devices', 'iot-devices', 'iot-devices'],
+            "building": ['5a', '5a', '5a'],
+            "temperature": pd.Series([72.3, pd.NA, np.inf]).astype(pd.Float64Dtype()),
+            "time": pd.to_datetime(["2022-10-01T12:01:00Z", "2022-10-02T12:01:00Z", "2022-10-03T12:01:00Z"])
+            .astype('datetime64[s, UTC]'),
+        })
+        ps = PointSettings()
+        actual = data_frame_to_list_of_points(df, ps,
+                                              data_frame_measurement_name='iot-devices',
+                                              data_frame_tag_columns=['building'],
+                                              data_frame_timestamp_column='time')
+
+        expected = [
+            'iot-devices,building=5a name="iot-devices",temperature=72.3 1664625660000000000',
+            'iot-devices,building=5a name="iot-devices" 1664712060000000000',
+            'iot-devices,building=5a name="iot-devices" 1664798460000000000'
+        ]
+        self.assertEqual(expected, actual)
 
     def test_to_list_of_points(self):
         df = pd.DataFrame({
