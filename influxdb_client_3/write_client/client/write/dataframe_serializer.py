@@ -158,7 +158,7 @@ class DataframeSerializer:
         columns = sorted(enumerate(data_frame.dtypes.items()), key=lambda col: col[1][0])
 
         # null_columns has a bool value for each column holding
-        # whether that column contains any null (NaN or None or) or Inf values.
+        # whether that column contains any null (NaN or None) values.
         null_columns = data_frame.isnull().any()
 
         # inf_columns has a bool value for each column holding
