@@ -50,7 +50,7 @@ class TestDataFrameSerializer(unittest.TestCase):
         df = pd.DataFrame({
             "name": ['iot-devices', 'iot-devices', 'iot-devices'],
             "building": ['5a', '5a', '5a'],
-            "temperature": pd.Series([72.3, pd.NA, np.inf]).astype(pd.Float64Dtype()),
+            "temperature": pd.Series([72.3, -np.inf, np.inf]).astype(pd.Float64Dtype()),
             "time": pd.to_datetime(["2022-10-01T12:01:00Z", "2022-10-02T12:01:00Z", "2022-10-03T12:01:00Z"])
             .astype('datetime64[s, UTC]'),
         })
