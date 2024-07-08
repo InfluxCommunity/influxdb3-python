@@ -5,6 +5,7 @@
 ### Bug Fixes
 
 1. [#95](https://github.com/InfluxCommunity/influxdb3-python/pull/95): `Polars` is optional dependency
+1. [#99](https://github.com/InfluxCommunity/influxdb3-python/pull/99): Skip infinite values during serialization to line protocol
 
 ## 0.6.1 [2024-06-25]
 
