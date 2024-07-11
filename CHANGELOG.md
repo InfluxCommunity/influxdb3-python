@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.8.0 [unreleased]
+
 ## 0.7.0 [2024-07-11]
 
 ### Bug Fixes
