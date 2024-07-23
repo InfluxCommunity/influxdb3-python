@@ -37,7 +37,6 @@ class _BaseClient(object):
     def __init__(self, url, token, debug=None, timeout=10_000, enable_gzip=False, org: str = None,
                  default_tags: dict = None, http_client_logger: str = None, **kwargs) -> None:
         self.url = url
-        self.token = token
         self.org = org
 
         self.default_tags = default_tags
@@ -70,9 +69,10 @@ class _BaseClient(object):
         self.auth_header_name = None
         self.auth_header_value = None
         # by token
-        if self.token:
+        if token:
+            auth_scheme = kwargs.get('auth_scheme', "Token")
             self.auth_header_name = "Authorization"
-            self.auth_header_value = "Token " + self.token
+            self.auth_header_value = f"{auth_scheme} {token}"
         # by HTTP basic
         auth_basic = kwargs.get('auth_basic', False)
         if auth_basic:

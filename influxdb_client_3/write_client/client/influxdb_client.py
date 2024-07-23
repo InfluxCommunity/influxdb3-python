@@ -27,6 +27,7 @@ class InfluxDBClient(_BaseClient):
         :param enable_gzip: Enable Gzip compression for http requests. Currently, only the "Write" and "Query" endpoints
                             supports the Gzip compression.
         :param org: organization name (used as a default in Query, Write and Delete API)
+        :key auth_scheme: token authentication scheme. Set to "Bearer" for Edge.
         :key bool verify_ssl: Set this to false to skip verifying SSL certificate when calling API from https server.
         :key str ssl_ca_cert: Set this to customize the certificate file to verify the peer.
         :key str cert_file: Path to the certificate that will be used for mTLS authentication.
