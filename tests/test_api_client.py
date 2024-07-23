@@ -83,25 +83,19 @@ class ApiClientTests(unittest.TestCase):
 
     def test_api_error_cloud(self):
         response_body = '{"message": "parsing failed for write_lp endpoint"}'
-        try:
+        with self.assertRaises(InfluxDBError) as err:
             self._test_api_error(response_body)
-            self.fail("expected InfluxDBError")
-        except InfluxDBError as e:
-            self.assertEqual('parsing failed for write_lp endpoint', e.message)
+        self.assertEqual('parsing failed for write_lp endpoint', err.exception.message)
 
     def test_api_error_oss(self):
         response_body = ('{"error":"parsing failed for write_lp endpoint","data":{"error_message":"invalid field value '
                          'in line protocol for field \'val\' on line 1"}}')
-        try:
+        with self.assertRaises(InfluxDBError) as err:
             self._test_api_error(response_body)
-            self.fail("expected InfluxDBError")
-        except InfluxDBError as e:
-            self.assertEqual('invalid field value in line protocol for field \'val\' on line 1', e.message)
+        self.assertEqual('invalid field value in line protocol for field \'val\' on line 1', err.exception.message)
 
     def test_api_error_unknown(self):
         response_body = '{"detail":"no info"}'
-        try:
+        with self.assertRaises(InfluxDBError) as err:
             self._test_api_error(response_body)
-            self.fail("expected InfluxDBError")
-        except InfluxDBError as e:
-            self.assertEqual(response_body, e.message)
+        self.assertEqual(response_body, err.exception.message)
