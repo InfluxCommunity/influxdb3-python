@@ -110,7 +110,28 @@ class InfluxDBClient3:
         :type write_client_options: callable
         :param flight_client_options: Function for providing additional arguments for the FlightClient.
         :type flight_client_options: callable
-        :param kwargs: Additional arguments for the InfluxDB Client.
+        :key auth_scheme: token authentication scheme. Set to "Bearer" for Edge.
+        :key bool verify_ssl: Set this to false to skip verifying SSL certificate when calling API from https server.
+        :key str ssl_ca_cert: Set this to customize the certificate file to verify the peer.
+        :key str cert_file: Path to the certificate that will be used for mTLS authentication.
+        :key str cert_key_file: Path to the file contains private key for mTLS certificate.
+        :key str cert_key_password: String or function which returns password for decrypting the mTLS private key.
+        :key ssl.SSLContext ssl_context: Specify a custom Python SSL Context for the TLS/ mTLS handshake.
+                                         Be aware that only delivered certificate/ key files or an SSL Context are
+                                         possible.
+        :key str proxy: Set this to configure the http proxy to be used (ex. http://localhost:3128)
+        :key str proxy_headers: A dictionary containing headers that will be sent to the proxy. Could be used for proxy
+                                authentication.
+        :key int connection_pool_maxsize: Number of connections to save that can be reused by urllib3.
+                                          Defaults to "multiprocessing.cpu_count() * 5".
+        :key urllib3.util.retry.Retry retries: Set the default retry strategy that is used for all HTTP requests
+                                               except batching writes. As a default there is no one retry strategy.
+        :key bool auth_basic: Set this to true to enable basic authentication when talking to a InfluxDB 1.8.x that
+                              does not use auth-enabled but is protected by a reverse proxy with basic authentication.
+                              (defaults to false, don't set to true when talking to InfluxDB 2)
+        :key str username: ``username`` to authenticate via username and password credentials to the InfluxDB 2.x
+        :key str password: ``password`` to authenticate via username and password credentials to the InfluxDB 2.x
+        :key list[str] profilers: list of enabled Flux profilers
         """
         self._org = org if org is not None else "default"
         self._database = database
