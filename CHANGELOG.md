@@ -2,13 +2,16 @@
 
 ## 0.8.0 [unreleased]
 
+### Bug Fixes
+
+1. [#100](https://github.com/InfluxCommunity/influxdb3-python/pull/100): InfluxDB Edge (OSS) error handling
+
 ## 0.7.0 [2024-07-11]
 
 ### Bug Fixes
 
 1. [#95](https://github.com/InfluxCommunity/influxdb3-python/pull/95): `Polars` is optional dependency
 1. [#99](https://github.com/InfluxCommunity/influxdb3-python/pull/99): Skip infinite values during serialization to line protocol
-1. [#100](https://github.com/InfluxCommunity/influxdb3-python/pull/100): InfluxDB Edge (OSS) error handling
 
 ## 0.6.1 [2024-06-25]
 
