@@ -4,7 +4,7 @@ import unittest
 
 import pytest
 
-from influxdb_client_3 import InfluxDBClient3
+from influxdb_client_3 import InfluxDBClient3, InfluxDBError
 
 
 @pytest.mark.integration
@@ -21,11 +21,10 @@ from influxdb_client_3 import InfluxDBClient3
 class TestInfluxDBClient3Integration(unittest.TestCase):
 
     def setUp(self):
-        host = os.getenv('TESTING_INFLUXDB_URL')
-        token = os.getenv('TESTING_INFLUXDB_TOKEN')
-        database = os.getenv('TESTING_INFLUXDB_DATABASE')
-
-        self.client = InfluxDBClient3(host=host, database=database, token=token)
+        self.host = os.getenv('TESTING_INFLUXDB_URL')
+        self.token = os.getenv('TESTING_INFLUXDB_TOKEN')
+        self.database = os.getenv('TESTING_INFLUXDB_DATABASE')
+        self.client = InfluxDBClient3(host=self.host, database=self.database, token=self.token)
 
     def tearDown(self):
         if self.client:
@@ -43,3 +42,17 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         self.assertEqual(1, len(df))
         self.assertEqual(test_id, df['test_id'][0])
         self.assertEqual(123.0, df['value'][0])
+
+    def test_auth_error_token(self):
+        self.client = InfluxDBClient3(host=self.host, database=self.database, token='fake token')
+        test_id = time.time_ns()
+        with self.assertRaises(InfluxDBError) as err:
+            self.client.write(f"integration_test_python,type=used value=123.0,test_id={test_id}i")
+        self.assertEqual('unauthorized access', err.exception.message)  # Cloud
+
+    def test_auth_error_auth_scheme(self):
+        self.client = InfluxDBClient3(host=self.host, database=self.database, token=self.token, auth_scheme='Any')
+        test_id = time.time_ns()
+        with self.assertRaises(InfluxDBError) as err:
+            self.client.write(f"integration_test_python,type=used value=123.0,test_id={test_id}i")
+        self.assertEqual('unauthorized access', err.exception.message)  # Cloud
