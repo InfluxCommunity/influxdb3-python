@@ -58,7 +58,7 @@ from influxdb_client_3 import InfluxDBClient3, Point
 ## Initialization
 If you are using InfluxDB Cloud, then you should note that:
 1. You will need to supply your org id, this is not necessary for InfluxDB Dedicated.
-2. Use a bucketname for the database argument.
+2. Use bucket name for the `database` argument.
 
 ```python
 client = InfluxDBClient3(token="your-token",
