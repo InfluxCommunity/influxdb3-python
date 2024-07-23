@@ -2,6 +2,10 @@
 
 ## 0.8.0 [unreleased]
 
+### Bug Fixes
+
+1. [#101](https://github.com/InfluxCommunity/influxdb3-python/pull/101): Add support for InfluxDB Edge authentication
+
 ## 0.7.0 [2024-07-11]
 
 ### Bug Fixes
