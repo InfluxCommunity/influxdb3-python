@@ -87,7 +87,13 @@ class ApiClientTests(unittest.TestCase):
             self._test_api_error(response_body)
         self.assertEqual('parsing failed for write_lp endpoint', err.exception.message)
 
-    def test_api_error_oss(self):
+    def test_api_error_oss_without_detail(self):
+        response_body = '{"error": "parsing failed for write_lp endpoint"}'
+        with self.assertRaises(InfluxDBError) as err:
+            self._test_api_error(response_body)
+        self.assertEqual('parsing failed for write_lp endpoint', err.exception.message)
+
+    def test_api_error_oss_with_detail(self):
         response_body = ('{"error":"parsing failed for write_lp endpoint","data":{"error_message":"invalid field value '
                          'in line protocol for field \'val\' on line 1"}}')
         with self.assertRaises(InfluxDBError) as err:
