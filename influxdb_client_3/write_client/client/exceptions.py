@@ -26,8 +26,18 @@ class InfluxDBError(Exception):
         # Body
         if response.data:
             import json
+
+            def get(d, key):
+                if not key or d is None:
+                    return d
+                return get(d.get(key[0]), key[1:])
             try:
-                return json.loads(response.data)["message"]
+                node = json.loads(response.data)
+                for key in [['message'], ['data', 'error_message'], ['error']]:
+                    value = get(node, key)
+                    if value is not None:
+                        return value
+                return response.data
             except Exception as e:
                 logging.debug(f"Cannot parse error response to JSON: {response.data}, {e}")
                 return response.data
