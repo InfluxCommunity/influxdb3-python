@@ -5,6 +5,7 @@
 ### Bug Fixes
 
 1. [#100](https://github.com/InfluxCommunity/influxdb3-python/pull/100): InfluxDB Edge (OSS) error handling
+1. [#101](https://github.com/InfluxCommunity/influxdb3-python/pull/101): Add support for InfluxDB Edge authentication
 
 ## 0.7.0 [2024-07-11]
 
