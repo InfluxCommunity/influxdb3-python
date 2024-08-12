@@ -1,7 +1,9 @@
-import unittest
 import importlib.util
+import unittest
+from unittest.mock import Mock
 
-from influxdb_client_3 import PointSettings
+from influxdb_client_3 import PointSettings, InfluxDBClient3
+from influxdb_client_3.write_client import WriteService
 from influxdb_client_3.write_client.client.write.polars_dataframe_serializer import polars_data_frame_to_list_of_points
 
 
@@ -29,3 +31,33 @@ class TestPolarsDataFrameSerializer(unittest.TestCase):
             'iot-devices,building=5a name="iot-devices",temperature=72.2 1664798460000000000'
         ]
         self.assertEqual(expected, actual)
+
+
+@unittest.skipIf(importlib.util.find_spec("polars") is None, 'Polars package not installed')
+class TestWritePolars(unittest.TestCase):
+    def setUp(self):
+        self.client = InfluxDBClient3(
+            host="localhost",
+            org="my_org",
+            database="my_db",
+            token="my_token"
+        )
+
+    def test_write_polars(self):
+        import polars as pl
+        df = pl.DataFrame({
+            "time": pl.Series(["2024-08-01 00:00:00", "2024-08-01 01:00:00"]).str.to_datetime(time_unit='ns'),
+            "temperature": [22.4, 21.8],
+        })
+        self.client._write_api._write_service = Mock(spec=WriteService)
+
+        self.client.write(
+            database="database",
+            record=df,
+            data_frame_measurement_name="measurement",
+            data_frame_timestamp_column="time",
+        )
+
+        actual = self.client._write_api._write_service.post_write.call_args[1]['body']
+        self.assertEqual(b'measurement temperature=22.4 1722470400000000000\n'
+                         b'measurement temperature=21.8 1722474000000000000', actual)
