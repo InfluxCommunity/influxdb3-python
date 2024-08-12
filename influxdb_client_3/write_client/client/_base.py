@@ -248,7 +248,8 @@ class _BaseWriteApi(object):
             self._serialize(Point.from_dict(record, write_precision=write_precision, **kwargs),
                             write_precision, payload, **kwargs)
         elif 'polars' in str(type(record)):
-            from influxdb_client_3.write_client.client.write.polars_dataframe_serializer import PolarsDataframeSerializer
+            from influxdb_client_3.write_client.client.write.polars_dataframe_serializer import \
+                PolarsDataframeSerializer
             serializer = PolarsDataframeSerializer(record, self._point_settings, write_precision, **kwargs)
             self._serialize(serializer.serialize(), write_precision, payload, **kwargs)
 

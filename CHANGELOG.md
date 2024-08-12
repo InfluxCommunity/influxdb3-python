@@ -2,10 +2,14 @@
 
 ## 0.8.0 [unreleased]
 
+### Features
+
+1. [#101](https://github.com/InfluxCommunity/influxdb3-python/pull/101): Add support for InfluxDB Edge (OSS) authentication
+
 ### Bug Fixes
 
 1. [#100](https://github.com/InfluxCommunity/influxdb3-python/pull/100): InfluxDB Edge (OSS) error handling
-1. [#101](https://github.com/InfluxCommunity/influxdb3-python/pull/101): Add support for InfluxDB Edge authentication
+1. [#105](https://github.com/InfluxCommunity/influxdb3-python/pull/105): Importing Polars serialization module
 
 ## 0.7.0 [2024-07-11]
 
