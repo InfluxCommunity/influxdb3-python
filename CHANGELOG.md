@@ -2,6 +2,9 @@
 
 ## 0.9.0 [unreleased]
 
+### Bug Fixes
+1. [#107](https://github.com/InfluxCommunity/influxdb3-python/pull/107): Missing `py.typed` in distribution package
+
 ## 0.8.0 [2024-08-12]
 
 ### Features
