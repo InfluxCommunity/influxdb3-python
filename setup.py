@@ -47,6 +47,7 @@ setup(
     author_email='contact@influxdata.com',
     url='https://github.com/InfluxCommunity/influxdb3-python',
     packages=find_packages(exclude=['tests', 'tests.*', 'examples', 'examples.*']),
+    package_data={'influxdb_client_3': ['py.typed']},
     extras_require={
         'pandas': ['pandas'],
         'polars': ['polars'],
