@@ -138,5 +138,4 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(headers['Trace-Id'], traceid)
         self.assertEqual(headers['Trace-Sampled'], 'false')
         self.assertEqual(headers['X-Influxdb-Request-Id'], requestid)
-        self.assertEqual(headers['X-Influxdb-Build'],'Mock')
-
+        self.assertEqual(headers['X-Influxdb-Build'], 'Mock')
