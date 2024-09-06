@@ -50,3 +50,7 @@ class InfluxDBError(Exception):
 
         # Http Status
         return response.reason
+
+    def getheaders(self):
+        """Helper method to make response headers more accessible."""
+        return self.response.getheaders()
