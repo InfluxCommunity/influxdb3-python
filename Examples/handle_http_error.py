@@ -1,18 +1,25 @@
+"""
+Demonstrates handling response error headers on error.
+"""
 import logging
-import influxdb_client_3 as InfluxDBClient3
-
 from config import Config
+
+import influxdb_client_3 as InfluxDBClient3
 
 
 def main() -> None:
+    """
+    Main function
+    :return:
+    """
     config = Config()
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
     client = InfluxDBClient3.InfluxDBClient3(
-        host = config.host,
-        token = config.token,
-        org = config.org,
-        database = config.database
+        host=config.host,
+        token=config.token,
+        org=config.org,
+        database=config.database
     )
 
     # write with empty field results in HTTP 400 error
@@ -22,12 +29,14 @@ def main() -> None:
     try:
         client.write(lp)
     except InfluxDBClient3.InfluxDBError as idberr:
-        logging.log(logging.ERROR, f'WRITE ERROR: {idberr.response.status} ({idberr.message})')
-        headersString = 'Response Headers:\n'
+        logging.log(logging.ERROR, 'WRITE ERROR: %s (%s)',
+                    idberr.response.status,
+                    idberr.message)
+        headers_string = 'Response Headers:\n'
         headers = idberr.getheaders()
         for h in headers:
-            headersString += f'   {h}: {headers[h]}\n'
-        logging.log(logging.INFO, headersString)
+            headers_string += f'   {h}: {headers[h]}\n'
+        logging.log(logging.INFO, headers_string)
 
 
 if __name__ == "__main__":

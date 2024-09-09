@@ -20,7 +20,7 @@ client = InfluxDBClient3.InfluxDBClient3(
         max_retry_delay=30_000,
         max_close_wait=300_000,
         exponential_base=2,
-         write_type='batching'))
+        write_type='batching'))
 
 
 # Create a dataframe
