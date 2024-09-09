@@ -40,7 +40,7 @@ df = pd.DataFrame(
         'Column 1',
         'Column 2',
         'Column 3'])
-df['tagkey'] = 'GUTEN TAG WELT'
+df['tagkey'] = 'Hello World'
 
 print(df)
 
