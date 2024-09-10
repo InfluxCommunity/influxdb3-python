@@ -1,4 +1,6 @@
+import json
 import unittest
+import uuid
 from unittest import mock
 from urllib3 import response
 
@@ -105,3 +107,35 @@ class ApiClientTests(unittest.TestCase):
         with self.assertRaises(InfluxDBError) as err:
             self._test_api_error(response_body)
         self.assertEqual(response_body, err.exception.message)
+
+    def test_api_error_headers(self):
+        body = '{"error": "test error"}'
+        body_dic = json.loads(body)
+        conf = Configuration()
+        local_client = ApiClient(conf)
+        traceid = "123456789ABCDEF0"
+        requestid = uuid.uuid4().__str__()
+
+        local_client.rest_client.pool_manager.request = mock.Mock(
+            return_value=response.HTTPResponse(
+                status=400,
+                reason='Bad Request',
+                headers={
+                    'Trace-Id': traceid,
+                    'Trace-Sampled': 'false',
+                    'X-Influxdb-Request-Id': requestid,
+                    'X-Influxdb-Build': 'Mock'
+                },
+                body=body.encode()
+            )
+        )
+        with self.assertRaises(InfluxDBError) as err:
+            service = WriteService(local_client)
+            service.post_write("TEST_ORG", "TEST_BUCKET", "data,foo=bar val=3.14")
+        self.assertEqual(body_dic['error'], err.exception.message)
+        headers = err.exception.getheaders()
+        self.assertEqual(4, len(headers))
+        self.assertEqual(headers['Trace-Id'], traceid)
+        self.assertEqual(headers['Trace-Sampled'], 'false')
+        self.assertEqual(headers['X-Influxdb-Request-Id'], requestid)
+        self.assertEqual(headers['X-Influxdb-Build'], 'Mock')
