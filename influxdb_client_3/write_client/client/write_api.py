@@ -566,7 +566,7 @@ You can use native asynchronous version of the client:
 
     def _on_complete(self):
         self._disposable.dispose()
-        logger.info("the batching processor was disposed")
+        logger.debug("the batching processor was disposed")
 
     def __getstate__(self):
         """Return a dict of attributes that you want to pickle."""

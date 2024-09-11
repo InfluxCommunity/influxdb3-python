@@ -6,6 +6,10 @@
 
 1. [#108](https://github.com/InfluxCommunity/influxdb3-python/pull/108): Better expose access to response headers in `InfluxDBError`.  Example `handle_http_error` added.
 
+### Bug Fixes
+
+1. [#111](https://github.com/InfluxCommunity/influxdb3-python/pull/111): Reduce log level of disposal of batch processor to DEBUG
+
 ## 0.8.0 [2024-08-12]
 
 ### Features
