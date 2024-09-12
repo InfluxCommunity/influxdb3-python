@@ -1,5 +1,6 @@
 import datetime
 import random
+import time
 
 from bson import ObjectId
 
@@ -15,6 +16,7 @@ class BatchingCallback(object):
         self.write_status_msg = None
         self.write_count = 0
         self.retry_count = 0
+        self.start = time.time_ns()
 
     def success(self, conf, data: str):
         print(f"Written batch: {conf}, data: {data}")
@@ -29,6 +31,9 @@ class BatchingCallback(object):
         print(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
         self.retry_count += 1
 
+    def elapsed(self) -> int:
+        return time.time_ns() - self.start
+
 
 def main() -> None:
     conf = Config()
@@ -40,15 +45,10 @@ def main() -> None:
     precision = 2
 
     # Setting timestamp for first sensor reading
+    sample_window_days = 7
     now = datetime.datetime.now()
-    now = now - datetime.timedelta(days=30)
-    teststart = datetime.datetime.now()
-
-    # InfluxDB connection details
-    token = ""
-    org = ""
-    database = ""
-    url = "eu-central-1-1.aws.cloud2.influxdata.com"
+    now = now - datetime.timedelta(days=sample_window_days)
+    target_sample_count = sample_window_days * 24 * 60 * 6
 
     callback = BatchingCallback()
 
@@ -58,6 +58,7 @@ def main() -> None:
                                  retry_interval=5_000,
                                  max_retries=5,
                                  max_retry_delay=30_000,
+                                 max_close_wait=600_000,
                                  exponential_base=2)
 
     wco = write_client_options(success_callback=callback.success,
@@ -75,8 +76,8 @@ def main() -> None:
                                          write_client_options=wco) as _client:
         # Creating iterator for one hour worth of data (6 sensor readings per
         # minute)
-        # for i in range(0, 525600):
-        for i in range(0, 52600):
+        print(f"Writing {target_sample_count} data points.")
+        for i in range(0, target_sample_count):
             # Adding 10 seconds to timestamp of previous sensor reading
             now = now + datetime.timedelta(seconds=10)
             # Iterating over gateways
@@ -132,6 +133,8 @@ def main() -> None:
 
     print(callback.write_status_msg)
     print(f"Write retries: {callback.retry_count}")
+    print(f"Wrote {target_sample_count} data points.")
+    print(f"Elapsed time ms: {int(callback.elapsed() / 1_000_000)}")
 
 
 if __name__ == "__main__":
