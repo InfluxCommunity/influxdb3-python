@@ -56,3 +56,19 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         with self.assertRaises(InfluxDBError) as err:
             self.client.write(f"integration_test_python,type=used value=123.0,test_id={test_id}i")
         self.assertEqual('unauthorized access', err.exception.message)  # Cloud
+
+    def test_error_headers(self):
+        self.client = InfluxDBClient3(host=self.host, database=self.database, token=self.token)
+        with self.assertRaises(InfluxDBError) as err:
+            self.client.write("integration_test_python,type=used value=123.0,test_id=")
+        self.assertIn("Could not parse entire line. Found trailing content:", err.exception.message)
+        headers = err.exception.getheaders()
+        try:
+            self.assertIsNotNone(headers)
+            self.assertRegex(headers['trace-id'], '[0-9a-f]{16}')
+            self.assertEqual('false', headers['trace-sampled'])
+            self.assertIsNotNone(headers['Strict-Transport-Security'])
+            self.assertRegex(headers['X-Influxdb-Request-ID'], '[0-9a-f]+')
+            self.assertIsNotNone(headers['X-Influxdb-Build'])
+        except KeyError as ke:
+            self.fail(f'Header {ke} not found')
