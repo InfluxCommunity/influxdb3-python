@@ -48,13 +48,13 @@ def main() -> None:
        write_client_options: see above
        debug: allows low-level inspection of communications and context-manager termination
     """
-    with (InfluxDBClient3.InfluxDBClient3(
+    with InfluxDBClient3.InfluxDBClient3(
             token="INSERT_TOKEN",
             host="https://us-east-1-1.aws.cloud2.influxdata.com/",
             org="INSERT_ORG",
             database="example_data_forever",
             write_client_options=wco,
-            debug=True) as client):
+            debug=True) as client:
         client.write_file(
             file='./out.csv',
             timestamp_column='time', tag_columns=["provider", "machineID"])
