@@ -1,0 +1,163 @@
+iox::measurement,time,host,load,machineID,power,provider,temperature,topic,vibration
+machine_data_csv,2023-06-02 16:42:42.317550714,491cc20bbe13,120.0,machine3,301.0,Smith Group,80.0,machine/machine3,310
+machine_data_csv,2023-06-02 16:42:42.317757560,491cc20bbe13,23.0,machine1,183.0,"Morales, Robinson and Newman",31.0,machine/machine1,78
+machine_data_csv,2023-06-02 16:42:42.317787898,491cc20bbe13,13.0,machine2,198.0,Thomas and Sons,34.0,machine/machine2,73
+machine_data_csv,2023-06-02 16:42:43.318452979,491cc20bbe13,120.0,machine3,307.0,Smith Group,81.0,machine/machine3,332
+machine_data_csv,2023-06-02 16:42:43.318733897,491cc20bbe13,23.0,machine1,191.0,"Morales, Robinson and Newman",30.0,machine/machine1,53
+machine_data_csv,2023-06-02 16:42:43.318895072,491cc20bbe13,13.0,machine2,197.0,Thomas and Sons,31.0,machine/machine2,56
+machine_data_csv,2023-06-02 16:42:44.319014820,491cc20bbe13,120.0,machine3,302.0,Smith Group,87.0,machine/machine3,406
+machine_data_csv,2023-06-02 16:42:44.319289702,491cc20bbe13,23.0,machine1,194.0,"Morales, Robinson and Newman",31.0,machine/machine1,65
+machine_data_csv,2023-06-02 16:42:44.319743319,491cc20bbe13,13.0,machine2,192.0,Thomas and Sons,34.0,machine/machine2,64
+machine_data_csv,2023-06-02 16:42:45.319492285,491cc20bbe13,120.0,machine3,312.0,Smith Group,83.0,machine/machine3,460
+machine_data_csv,2023-06-02 16:42:45.319953921,491cc20bbe13,23.0,machine1,199.0,"Morales, Robinson and Newman",29.0,machine/machine1,69
+machine_data_csv,2023-06-02 16:42:45.319985284,491cc20bbe13,13.0,machine2,188.0,Thomas and Sons,29.0,machine/machine2,72
+machine_data_csv,2023-06-02 16:42:46.319917712,491cc20bbe13,120.0,machine3,317.0,Smith Group,90.0,machine/machine3,363
+machine_data_csv,2023-06-02 16:42:46.320373453,491cc20bbe13,23.0,machine1,183.0,"Morales, Robinson and Newman",34.0,machine/machine1,69
+machine_data_csv,2023-06-02 16:42:46.320760737,491cc20bbe13,13.0,machine2,184.0,Thomas and Sons,31.0,machine/machine2,78
+machine_data_csv,2023-06-02 16:42:47.320548979,491cc20bbe13,120.0,machine3,303.0,Smith Group,80.0,machine/machine3,419
+machine_data_csv,2023-06-02 16:42:47.320966397,491cc20bbe13,23.0,machine1,181.0,"Morales, Robinson and Newman",30.0,machine/machine1,71
+machine_data_csv,2023-06-02 16:42:47.321006298,491cc20bbe13,13.0,machine2,186.0,Thomas and Sons,31.0,machine/machine2,60
+machine_data_csv,2023-06-02 16:42:48.321265346,491cc20bbe13,120.0,machine3,305.0,Smith Group,89.0,machine/machine3,367
+machine_data_csv,2023-06-02 16:42:48.321382477,491cc20bbe13,23.0,machine1,197.0,"Morales, Robinson and Newman",33.0,machine/machine1,54
+machine_data_csv,2023-06-02 16:42:48.321535645,491cc20bbe13,13.0,machine2,195.0,Thomas and Sons,30.0,machine/machine2,68
+machine_data_csv,2023-06-02 16:42:49.321847629,491cc20bbe13,120.0,machine3,317.0,Smith Group,86.0,machine/machine3,334
+machine_data_csv,2023-06-02 16:42:49.322119417,491cc20bbe13,13.0,machine2,188.0,Thomas and Sons,29.0,machine/machine2,71
+machine_data_csv,2023-06-02 16:42:49.322147172,491cc20bbe13,23.0,machine1,184.0,"Morales, Robinson and Newman",34.0,machine/machine1,71
+machine_data_csv,2023-06-02 16:42:50.322698923,491cc20bbe13,120.0,machine3,302.0,Smith Group,87.0,machine/machine3,407
+machine_data_csv,2023-06-02 16:42:50.323173071,491cc20bbe13,23.0,machine1,193.0,"Morales, Robinson and Newman",32.0,machine/machine1,59
+machine_data_csv,2023-06-02 16:42:50.323237285,491cc20bbe13,13.0,machine2,182.0,Thomas and Sons,30.0,machine/machine2,72
+machine_data_csv,2023-06-02 16:42:51.323193568,491cc20bbe13,120.0,machine3,303.0,Smith Group,90.0,machine/machine3,343
+machine_data_csv,2023-06-02 16:42:51.323662012,491cc20bbe13,13.0,machine2,188.0,Thomas and Sons,31.0,machine/machine2,67
+machine_data_csv,2023-06-02 16:42:51.323725850,491cc20bbe13,23.0,machine1,187.0,"Morales, Robinson and Newman",30.0,machine/machine1,69
+machine_data_csv,2023-06-02 16:42:52.323837298,491cc20bbe13,120.0,machine3,319.0,Smith Group,89.0,machine/machine3,406
+machine_data_csv,2023-06-02 16:42:52.324179952,491cc20bbe13,23.0,machine1,192.0,"Morales, Robinson and Newman",31.0,machine/machine1,65
+machine_data_csv,2023-06-02 16:42:52.324204211,491cc20bbe13,13.0,machine2,193.0,Thomas and Sons,34.0,machine/machine2,61
+machine_data_csv,2023-06-02 16:42:53.324457761,491cc20bbe13,120.0,machine3,306.0,Smith Group,81.0,machine/machine3,432
+machine_data_csv,2023-06-02 16:42:53.324791324,491cc20bbe13,23.0,machine1,196.0,"Morales, Robinson and Newman",30.0,machine/machine1,59
+machine_data_csv,2023-06-02 16:42:53.324822237,491cc20bbe13,13.0,machine2,184.0,Thomas and Sons,30.0,machine/machine2,62
+machine_data_csv,2023-06-02 16:42:54.324940162,491cc20bbe13,120.0,machine3,319.0,Smith Group,87.0,machine/machine3,473
+machine_data_csv,2023-06-02 16:42:54.325470257,491cc20bbe13,23.0,machine1,183.0,"Morales, Robinson and Newman",29.0,machine/machine1,69
+machine_data_csv,2023-06-02 16:42:54.325535111,491cc20bbe13,13.0,machine2,184.0,Thomas and Sons,34.0,machine/machine2,72
+machine_data_csv,2023-06-02 16:42:55.325452588,491cc20bbe13,120.0,machine3,308.0,Smith Group,88.0,machine/machine3,478
+machine_data_csv,2023-06-02 16:42:55.326241988,491cc20bbe13,23.0,machine1,180.0,"Morales, Robinson and Newman",32.0,machine/machine1,67
+machine_data_csv,2023-06-02 16:42:55.326458954,491cc20bbe13,13.0,machine2,181.0,Thomas and Sons,34.0,machine/machine2,53
+machine_data_csv,2023-06-02 16:42:56.325962575,491cc20bbe13,120.0,machine3,301.0,Smith Group,89.0,machine/machine3,366
+machine_data_csv,2023-06-02 16:42:56.326547488,491cc20bbe13,23.0,machine1,194.0,"Morales, Robinson and Newman",33.0,machine/machine1,77
+machine_data_csv,2023-06-02 16:42:56.326817078,491cc20bbe13,13.0,machine2,182.0,Thomas and Sons,33.0,machine/machine2,54
+machine_data_csv,2023-06-02 16:42:57.326651847,491cc20bbe13,120.0,machine3,316.0,Smith Group,82.0,machine/machine3,446
+machine_data_csv,2023-06-02 16:42:57.326903277,491cc20bbe13,23.0,machine1,186.0,"Morales, Robinson and Newman",32.0,machine/machine1,57
+machine_data_csv,2023-06-02 16:42:57.327169455,491cc20bbe13,13.0,machine2,183.0,Thomas and Sons,33.0,machine/machine2,50
+machine_data_csv,2023-06-02 16:42:58.327381372,491cc20bbe13,120.0,machine3,303.0,Smith Group,83.0,machine/machine3,329
+machine_data_csv,2023-06-02 16:42:58.327785814,491cc20bbe13,13.0,machine2,189.0,Thomas and Sons,31.0,machine/machine2,54
+machine_data_csv,2023-06-02 16:42:58.328075202,491cc20bbe13,23.0,machine1,184.0,"Morales, Robinson and Newman",34.0,machine/machine1,67
+machine_data_csv,2023-06-02 16:42:59.328107312,491cc20bbe13,120.0,machine3,300.0,Smith Group,90.0,machine/machine3,446
+machine_data_csv,2023-06-02 16:42:59.328697178,491cc20bbe13,13.0,machine2,196.0,Thomas and Sons,32.0,machine/machine2,51
+machine_data_csv,2023-06-02 16:42:59.328842456,491cc20bbe13,23.0,machine1,183.0,"Morales, Robinson and Newman",30.0,machine/machine1,56
+machine_data_csv,2023-06-02 16:43:00.328689987,491cc20bbe13,120.0,machine3,300.0,Smith Group,81.0,machine/machine3,460
+machine_data_csv,2023-06-02 16:43:00.328730602,491cc20bbe13,13.0,machine2,180.0,Thomas and Sons,34.0,machine/machine2,57
+machine_data_csv,2023-06-02 16:43:00.329187607,491cc20bbe13,23.0,machine1,187.0,"Morales, Robinson and Newman",33.0,machine/machine1,70
+machine_data_csv,2023-06-02 16:43:01.329623051,491cc20bbe13,13.0,machine2,194.0,Thomas and Sons,33.0,machine/machine2,79
+machine_data_csv,2023-06-02 16:43:01.329737661,491cc20bbe13,120.0,machine3,314.0,Smith Group,85.0,machine/machine3,441
+machine_data_csv,2023-06-02 16:43:01.329994500,491cc20bbe13,23.0,machine1,196.0,"Morales, Robinson and Newman",34.0,machine/machine1,70
+machine_data_csv,2023-06-02 16:43:02.330561375,491cc20bbe13,13.0,machine2,182.0,Thomas and Sons,31.0,machine/machine2,66
+machine_data_csv,2023-06-02 16:43:02.330611344,491cc20bbe13,120.0,machine3,304.0,Smith Group,89.0,machine/machine3,455
+machine_data_csv,2023-06-02 16:43:02.330943808,491cc20bbe13,23.0,machine1,186.0,"Morales, Robinson and Newman",29.0,machine/machine1,77
+machine_data_csv,2023-06-02 16:43:03.331222016,491cc20bbe13,120.0,machine3,319.0,Smith Group,90.0,machine/machine3,459
+machine_data_csv,2023-06-02 16:43:03.331373671,491cc20bbe13,23.0,machine1,196.0,"Morales, Robinson and Newman",29.0,machine/machine1,60
+machine_data_csv,2023-06-02 16:43:03.331578703,491cc20bbe13,13.0,machine2,195.0,Thomas and Sons,34.0,machine/machine2,60
+machine_data_csv,2023-06-02 16:43:04.331723999,491cc20bbe13,120.0,machine3,311.0,Smith Group,80.0,machine/machine3,493
+machine_data_csv,2023-06-02 16:43:04.332158179,491cc20bbe13,23.0,machine1,198.0,"Morales, Robinson and Newman",31.0,machine/machine1,71
+machine_data_csv,2023-06-02 16:43:04.332222502,491cc20bbe13,13.0,machine2,188.0,Thomas and Sons,34.0,machine/machine2,72
+machine_data_csv,2023-06-02 16:43:05.332522723,491cc20bbe13,120.0,machine3,305.0,Smith Group,89.0,machine/machine3,442
+machine_data_csv,2023-06-02 16:43:05.332606103,491cc20bbe13,23.0,machine1,189.0,"Morales, Robinson and Newman",33.0,machine/machine1,71
+machine_data_csv,2023-06-02 16:43:05.332956871,491cc20bbe13,13.0,machine2,191.0,Thomas and Sons,34.0,machine/machine2,76
+machine_data_csv,2023-06-02 16:43:06.332934234,491cc20bbe13,120.0,machine3,313.0,Smith Group,87.0,machine/machine3,470
+machine_data_csv,2023-06-02 16:43:06.333179737,491cc20bbe13,13.0,machine2,193.0,Thomas and Sons,29.0,machine/machine2,74
+machine_data_csv,2023-06-02 16:43:06.333464546,491cc20bbe13,23.0,machine1,193.0,"Morales, Robinson and Newman",31.0,machine/machine1,61
+machine_data_csv,2023-06-02 16:43:07.333538813,491cc20bbe13,120.0,machine3,303.0,Smith Group,86.0,machine/machine3,443
+machine_data_csv,2023-06-02 16:43:07.333592979,491cc20bbe13,13.0,machine2,197.0,Thomas and Sons,33.0,machine/machine2,62
+machine_data_csv,2023-06-02 16:43:07.333964542,491cc20bbe13,23.0,machine1,197.0,"Morales, Robinson and Newman",29.0,machine/machine1,70
+machine_data_csv,2023-06-02 16:43:08.333966919,491cc20bbe13,120.0,machine3,308.0,Smith Group,84.0,machine/machine3,330
+machine_data_csv,2023-06-02 16:43:08.334168052,491cc20bbe13,13.0,machine2,195.0,Thomas and Sons,31.0,machine/machine2,73
+machine_data_csv,2023-06-02 16:43:08.334236775,491cc20bbe13,23.0,machine1,184.0,"Morales, Robinson and Newman",30.0,machine/machine1,73
+machine_data_csv,2023-06-02 16:43:09.334998961,491cc20bbe13,120.0,machine3,303.0,Smith Group,88.0,machine/machine3,395
+machine_data_csv,2023-06-02 16:43:09.335091622,491cc20bbe13,21.0,machine2,193.0,Thomas and Sons,34.0,machine/machine2,72
+machine_data_csv,2023-06-02 16:43:09.335117396,491cc20bbe13,51.0,machine1,201.0,"Morales, Robinson and Newman",37.0,machine/machine1,90
+machine_data_csv,2023-06-02 16:43:10.335359448,491cc20bbe13,53.0,machine3,209.0,Smith Group,36.0,machine/machine3,89
+machine_data_csv,2023-06-02 16:43:10.335917983,491cc20bbe13,21.0,machine2,189.0,Thomas and Sons,32.0,machine/machine2,58
+machine_data_csv,2023-06-02 16:43:10.335961039,491cc20bbe13,51.0,machine1,203.0,"Morales, Robinson and Newman",38.0,machine/machine1,85
+machine_data_csv,2023-06-02 16:43:11.335865097,491cc20bbe13,53.0,machine3,211.0,Smith Group,39.0,machine/machine3,83
+machine_data_csv,2023-06-02 16:43:11.336300844,491cc20bbe13,21.0,machine2,194.0,Thomas and Sons,29.0,machine/machine2,58
+machine_data_csv,2023-06-02 16:43:11.336354602,491cc20bbe13,51.0,machine1,205.0,"Morales, Robinson and Newman",38.0,machine/machine1,85
+machine_data_csv,2023-06-02 16:43:12.336856584,491cc20bbe13,53.0,machine3,213.0,Smith Group,37.0,machine/machine3,88
+machine_data_csv,2023-06-02 16:43:12.337596930,491cc20bbe13,21.0,machine2,193.0,Thomas and Sons,32.0,machine/machine2,55
+machine_data_csv,2023-06-02 16:43:12.337627620,491cc20bbe13,51.0,machine1,203.0,"Morales, Robinson and Newman",36.0,machine/machine1,81
+machine_data_csv,2023-06-02 16:43:13.337427240,491cc20bbe13,53.0,machine3,206.0,Smith Group,38.0,machine/machine3,80
+machine_data_csv,2023-06-02 16:43:13.337811242,491cc20bbe13,21.0,machine2,184.0,Thomas and Sons,32.0,machine/machine2,73
+machine_data_csv,2023-06-02 16:43:13.337874112,491cc20bbe13,51.0,machine1,201.0,"Morales, Robinson and Newman",40.0,machine/machine1,81
+machine_data_csv,2023-06-02 16:43:14.337992849,491cc20bbe13,53.0,machine3,217.0,Smith Group,39.0,machine/machine3,89
+machine_data_csv,2023-06-02 16:43:14.338326166,491cc20bbe13,21.0,machine2,198.0,Thomas and Sons,34.0,machine/machine2,63
+machine_data_csv,2023-06-02 16:43:14.338634931,491cc20bbe13,51.0,machine1,205.0,"Morales, Robinson and Newman",37.0,machine/machine1,81
+machine_data_csv,2023-06-02 16:43:15.339009274,491cc20bbe13,53.0,machine3,210.0,Smith Group,40.0,machine/machine3,80
+machine_data_csv,2023-06-02 16:43:15.339100441,491cc20bbe13,51.0,machine1,206.0,"Morales, Robinson and Newman",38.0,machine/machine1,90
+machine_data_csv,2023-06-02 16:43:15.339762188,491cc20bbe13,21.0,machine2,188.0,Thomas and Sons,30.0,machine/machine2,55
+machine_data_csv,2023-06-02 16:43:16.340230361,491cc20bbe13,51.0,machine1,201.0,"Morales, Robinson and Newman",38.0,machine/machine1,84
+machine_data_csv,2023-06-02 16:43:16.340650516,491cc20bbe13,21.0,machine2,184.0,Thomas and Sons,33.0,machine/machine2,64
+machine_data_csv,2023-06-02 16:43:16.340991256,491cc20bbe13,53.0,machine3,203.0,Smith Group,37.0,machine/machine3,84
+machine_data_csv,2023-06-02 16:43:17.341908770,491cc20bbe13,53.0,machine3,211.0,Smith Group,40.0,machine/machine3,84
+machine_data_csv,2023-06-02 16:43:17.342360815,491cc20bbe13,51.0,machine1,215.0,"Morales, Robinson and Newman",38.0,machine/machine1,86
+machine_data_csv,2023-06-02 16:43:17.342426363,491cc20bbe13,21.0,machine2,194.0,Thomas and Sons,33.0,machine/machine2,62
+machine_data_csv,2023-06-02 16:43:18.342445484,491cc20bbe13,53.0,machine3,201.0,Smith Group,36.0,machine/machine3,90
+machine_data_csv,2023-06-02 16:43:18.342768157,491cc20bbe13,21.0,machine2,197.0,Thomas and Sons,30.0,machine/machine2,53
+machine_data_csv,2023-06-02 16:43:18.342799655,491cc20bbe13,51.0,machine1,211.0,"Morales, Robinson and Newman",36.0,machine/machine1,87
+machine_data_csv,2023-06-02 16:43:19.342914561,491cc20bbe13,53.0,machine3,206.0,Smith Group,40.0,machine/machine3,80
+machine_data_csv,2023-06-02 16:43:19.343415645,491cc20bbe13,21.0,machine2,196.0,Thomas and Sons,33.0,machine/machine2,53
+machine_data_csv,2023-06-02 16:43:19.343478737,491cc20bbe13,51.0,machine1,220.0,"Morales, Robinson and Newman",36.0,machine/machine1,89
+machine_data_csv,2023-06-02 16:43:20.343479811,491cc20bbe13,53.0,machine3,216.0,Smith Group,36.0,machine/machine3,84
+machine_data_csv,2023-06-02 16:43:20.344124763,491cc20bbe13,21.0,machine2,193.0,Thomas and Sons,32.0,machine/machine2,77
+machine_data_csv,2023-06-02 16:43:20.344153596,491cc20bbe13,51.0,machine1,200.0,"Morales, Robinson and Newman",35.0,machine/machine1,89
+machine_data_csv,2023-06-02 16:43:21.343964197,491cc20bbe13,53.0,machine3,212.0,Smith Group,35.0,machine/machine3,86
+machine_data_csv,2023-06-02 16:43:21.344617756,491cc20bbe13,21.0,machine2,183.0,Thomas and Sons,33.0,machine/machine2,64
+machine_data_csv,2023-06-02 16:43:21.344685120,491cc20bbe13,51.0,machine1,209.0,"Morales, Robinson and Newman",35.0,machine/machine1,86
+machine_data_csv,2023-06-02 16:43:22.344825564,491cc20bbe13,53.0,machine3,205.0,Smith Group,39.0,machine/machine3,87
+machine_data_csv,2023-06-02 16:43:22.345135145,491cc20bbe13,21.0,machine2,184.0,Thomas and Sons,31.0,machine/machine2,60
+machine_data_csv,2023-06-02 16:43:22.345167055,491cc20bbe13,51.0,machine1,220.0,"Morales, Robinson and Newman",38.0,machine/machine1,81
+machine_data_csv,2023-06-02 16:43:23.345437181,491cc20bbe13,53.0,machine3,200.0,Smith Group,37.0,machine/machine3,86
+machine_data_csv,2023-06-02 16:43:23.345506574,491cc20bbe13,51.0,machine1,214.0,"Morales, Robinson and Newman",37.0,machine/machine1,86
+machine_data_csv,2023-06-02 16:43:23.345564703,491cc20bbe13,21.0,machine2,193.0,Thomas and Sons,33.0,machine/machine2,62
+machine_data_csv,2023-06-02 16:43:24.346349521,491cc20bbe13,53.0,machine3,210.0,Smith Group,37.0,machine/machine3,85
+machine_data_csv,2023-06-02 16:43:24.346383833,491cc20bbe13,51.0,machine1,211.0,"Morales, Robinson and Newman",37.0,machine/machine1,87
+machine_data_csv,2023-06-02 16:43:24.346401291,491cc20bbe13,21.0,machine2,193.0,Thomas and Sons,32.0,machine/machine2,54
+machine_data_csv,2023-06-02 16:43:25.346821289,491cc20bbe13,53.0,machine3,220.0,Smith Group,37.0,machine/machine3,89
+machine_data_csv,2023-06-02 16:43:25.346921797,491cc20bbe13,21.0,machine2,190.0,Thomas and Sons,34.0,machine/machine2,75
+machine_data_csv,2023-06-02 16:43:25.347491870,491cc20bbe13,51.0,machine1,214.0,"Morales, Robinson and Newman",39.0,machine/machine1,83
+machine_data_csv,2023-06-02 16:43:26.347838431,491cc20bbe13,21.0,machine2,186.0,Thomas and Sons,29.0,machine/machine2,79
+machine_data_csv,2023-06-02 16:43:26.348427616,491cc20bbe13,51.0,machine1,200.0,"Morales, Robinson and Newman",40.0,machine/machine1,85
+machine_data_csv,2023-06-02 16:43:26.348455741,491cc20bbe13,53.0,machine3,205.0,Smith Group,40.0,machine/machine3,80
+machine_data_csv,2023-06-02 16:43:27.348535696,491cc20bbe13,21.0,machine2,189.0,Thomas and Sons,34.0,machine/machine2,79
+machine_data_csv,2023-06-02 16:43:27.349173287,491cc20bbe13,51.0,machine1,215.0,"Morales, Robinson and Newman",36.0,machine/machine1,86
+machine_data_csv,2023-06-02 16:43:27.349217288,491cc20bbe13,53.0,machine3,213.0,Smith Group,39.0,machine/machine3,83
+machine_data_csv,2023-06-02 16:43:28.348964054,491cc20bbe13,21.0,machine2,191.0,Thomas and Sons,31.0,machine/machine2,63
+machine_data_csv,2023-06-02 16:43:28.349958403,491cc20bbe13,51.0,machine1,211.0,"Morales, Robinson and Newman",35.0,machine/machine1,84
+machine_data_csv,2023-06-02 16:43:28.350213700,491cc20bbe13,53.0,machine3,201.0,Smith Group,38.0,machine/machine3,81
+machine_data_csv,2023-06-02 16:43:29.349501656,491cc20bbe13,21.0,machine2,190.0,Thomas and Sons,30.0,machine/machine2,70
+machine_data_csv,2023-06-02 16:43:29.350320992,491cc20bbe13,51.0,machine1,209.0,"Morales, Robinson and Newman",35.0,machine/machine1,88
+machine_data_csv,2023-06-02 16:43:29.350858026,491cc20bbe13,53.0,machine3,204.0,Smith Group,36.0,machine/machine3,82
+machine_data_csv,2023-06-02 16:43:30.350640276,491cc20bbe13,21.0,machine2,197.0,Thomas and Sons,30.0,machine/machine2,55
+machine_data_csv,2023-06-02 16:43:30.351158057,491cc20bbe13,51.0,machine1,214.0,"Morales, Robinson and Newman",36.0,machine/machine1,90
+machine_data_csv,2023-06-02 16:43:30.351331667,491cc20bbe13,53.0,machine3,210.0,Smith Group,39.0,machine/machine3,85
+machine_data_csv,2023-06-02 16:43:31.351859842,491cc20bbe13,21.0,machine2,188.0,Thomas and Sons,29.0,machine/machine2,65
+machine_data_csv,2023-06-02 16:43:31.352098083,491cc20bbe13,51.0,machine1,214.0,"Morales, Robinson and Newman",35.0,machine/machine1,86
+machine_data_csv,2023-06-02 16:43:31.352141060,491cc20bbe13,53.0,machine3,213.0,Smith Group,37.0,machine/machine3,84
+machine_data_csv,2023-06-02 16:43:32.352201239,491cc20bbe13,21.0,machine2,195.0,Thomas and Sons,32.0,machine/machine2,56
+machine_data_csv,2023-06-02 16:43:32.352517261,491cc20bbe13,51.0,machine1,205.0,"Morales, Robinson and Newman",37.0,machine/machine1,84
+machine_data_csv,2023-06-02 16:43:32.352589820,491cc20bbe13,53.0,machine3,215.0,Smith Group,36.0,machine/machine3,85
+machine_data_csv,2023-06-02 16:43:33.352642145,491cc20bbe13,21.0,machine2,187.0,Thomas and Sons,34.0,machine/machine2,68
+machine_data_csv,2023-06-02 16:43:33.353162708,491cc20bbe13,51.0,machine1,218.0,"Morales, Robinson and Newman",35.0,machine/machine1,82
+machine_data_csv,2023-06-02 16:43:33.353192522,491cc20bbe13,53.0,machine3,205.0,Smith Group,36.0,machine/machine3,89
+machine_data_csv,2023-06-02 16:43:34.353255548,491cc20bbe13,21.0,machine2,197.0,Thomas and Sons,31.0,machine/machine2,50
+machine_data_csv,2023-06-02 16:43:34.353521359,491cc20bbe13,51.0,machine1,205.0,"Morales, Robinson and Newman",38.0,machine/machine1,80
+machine_data_csv,2023-06-02 16:43:34.353592745,491cc20bbe13,53.0,machine3,202.0,Smith Group,38.0,machine/machine3,83
+machine_data_csv,2023-06-02 16:43:35.353829588,491cc20bbe13,21.0,machine2,186.0,Thomas and Sons,30.0,machine/machine2,68
+machine_data_csv,2023-06-02 16:43:35.354477346,491cc20bbe13,53.0,machine3,215.0,Smith Group,36.0,machine/machine3,84
+machine_data_csv,2023-06-02 16:43:35.354644118,491cc20bbe13,51.0,machine1,206.0,"Morales, Robinson and Newman",38.0,machine/machine1,85
