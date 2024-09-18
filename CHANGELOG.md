@@ -5,6 +5,7 @@
 ### Features
 
 1. [#108](https://github.com/InfluxCommunity/influxdb3-python/pull/108): Better expose access to response headers in `InfluxDBError`.  Example `handle_http_error` added.
+2. [#112](https://github.com/InfluxCommunity/influxdb3-python/pull/112): Update batching examples, add integration tests of batching.
 
 ### Bug Fixes
 
