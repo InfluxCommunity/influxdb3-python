@@ -92,7 +92,11 @@ from influxdb_client_3 import write_client_options, WritePrecision, WriteOptions
 
 class BatchingCallback(object):
 
+    def __init__(self):
+        self.write_count = 0
+
     def success(self, conf, data: str):
+        self.write_count += 1
         print(f"Written batch: {conf}, data: {data}")
 
     def error(self, conf, data: str, exception: InfluxDBError):
@@ -103,7 +107,7 @@ class BatchingCallback(object):
 
 callback = BatchingCallback()
 
-write_options = WriteOptions(batch_size=500,
+write_options = WriteOptions(batch_size=100,
                                         flush_interval=10_000,
                                         jitter_interval=2_000,
                                         retry_interval=5_000,
@@ -128,10 +132,7 @@ with  InfluxDBClient3.InfluxDBClient3(
         file='./out.csv',
         timestamp_column='time', tag_columns=["provider", "machineID"])
 
-    client.write_file(
-        file='./out.json',
-        timestamp_column='time', tag_columns=["provider", "machineID"], date_unit='ns' )
-
+print(f'DONE writing from csv in {callback.write_count} batch(es)')
 
 ```
 
