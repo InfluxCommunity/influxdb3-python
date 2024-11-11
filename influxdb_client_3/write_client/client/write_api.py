@@ -461,7 +461,7 @@ You can use native asynchronous version of the client:
                                  precision, **kwargs)
 
         elif 'polars' in str(type(data)):
-            from influxdb_client_3.write_client.client.write.dataframe_serializer import PolarsDataframeSerializer
+            from influxdb_client_3.write_client.client.write.polars_dataframe_serializer import PolarsDataframeSerializer
             serializer = PolarsDataframeSerializer(data,
                                                    self._point_settings, precision,
                                                    self._write_options.batch_size, **kwargs)
