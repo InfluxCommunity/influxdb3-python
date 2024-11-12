@@ -142,12 +142,16 @@ workflows:
           name: test-3.12
           python-image: "cimg/python:3.12"
       - tests-python:
+          name: test-3.13
+          python-image: "cimg/python:3.13"
+      - tests-python:
           requires:
             - test-3.8
             - test-3.9
             - test-3.10
             - test-3.11
             - test-3.12
+            - test-3.13
           name: test-integration
           python-image: *default-python
           pytest-marker: "integration"
