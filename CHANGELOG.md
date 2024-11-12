@@ -2,6 +2,10 @@
 
 ## 0.10.0 [unreleased]
 
+### Bug Fixes
+
+1. [#113](https://github.com/InfluxCommunity/influxdb3-python/pull/113): Fix import error of `PolarsDataframeSerializer` in batching mode
+
 ## 0.9.0 [2024-09-13]
 
 ### Features
