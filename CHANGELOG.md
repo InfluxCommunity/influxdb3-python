@@ -1,5 +1,7 @@
 # Change Log
 
+## 1.11.0 [unreleased]
+
 ## 0.10.0 [2024-11-27]
 
 ### Bug Fixes
