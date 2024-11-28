@@ -23,8 +23,6 @@ then
   fi
 fi
 
-START_DIR=$(pwd)
-
 if ! [ -d "${INFLUXDB3_PRJ_HOME}" ]
 then
   printf "Directory for INFLUXDB3_PRJ_HOME %s not found.\n" "${INFLUXDB3_PRJ_HOME}"
