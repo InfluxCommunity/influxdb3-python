@@ -44,6 +44,7 @@ then
   printf "build skipped\n"
   printf "\nto force rebuild run '$ cargo clean' in directory %s, then run this script again\n\n" "${INFLUXDB3_PRJ_HOME}"
 else
+  command -v cargo >/dev/null 2>&1 || { printf "Build requires cargo, but it could not be found.\nABORTING."; exit 1; }
   START_DIR=$(pwd)
   echo DEBUG START_DIR "${START_DIR}"
   cd "${INFLUXDB3_PRJ_HOME}" || exit
