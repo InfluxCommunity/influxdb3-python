@@ -80,11 +80,11 @@ then
 fi
 
 printf "Preparing to deploy\n"
-DEPLOY_ARGS="--host-id ${HOST_ID} --object-store ${OBJECT_STORE} --data-dir ${DATA_DIR} --log-filter DEBUG"
+DEPLOY_ARGS="--object-store ${OBJECT_STORE} --data-dir ${DATA_DIR} --log-filter DEBUG"
 
 if [ "${SECURE_DEPLOY}" == "TRUE" ]
 then
-  TOKEN_RESULT=$(${INFLUXDB3_EXE} token create | head -n 2 | sed ':a;N;$!ba;s/\n/#/g')
+  TOKEN_RESULT=$(${INFLUXDB3_EXE} create token | head -n 2 | sed ':a;N;$!ba;s/\n/#/g')
   TOKEN="$(echo "$TOKEN_RESULT" | sed s/\#.*$//g | sed s/^Token:\ //)"
   HASHED_TOKEN="$(echo "$TOKEN_RESULT" | sed s/^.*\#//g | sed s/Hashed\ Token:\ //)"
   DEPLOY_ARGS="${DEPLOY_ARGS} --bearer-token ${HASHED_TOKEN}"
@@ -113,5 +113,5 @@ then
 fi
 
 #${INFLUXDB3_EXE} serve --host-id kk-local --object-store file --data-dir /home/karl/temp/store/db --log-filter DEBUG > influxdb3.log 2>&1 &
-${INFLUXDB3_EXE} serve ${DEPLOY_ARGS} > influxdb3.log 2>&1 &
+${INFLUXDB3_EXE} serve ${DEPLOY_ARGS} --writer-id TEST > influxdb3.log 2>&1 &
 echo $! | tee influxdb3.pid
