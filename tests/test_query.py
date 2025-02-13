@@ -150,3 +150,19 @@ class TestQuery(unittest.TestCase):
         )
 
         mock_do_get.assert_called_once_with(expected_ticket, ANY)
+
+    def test_query_proxy_base_client(self):
+        test_proxy = "http://testproxy:5432"
+        client = InfluxDBClient3(
+            host="http://localhost:8443",
+            token="my-token",
+            org="my-org",
+            database="my-database",
+            proxy=test_proxy
+        )
+
+        assert client._query_api._proxy == test_proxy
+        assert ('grpc.http_proxy', test_proxy) in\
+               client._query_api._flight_client_options.get('generic_options')
+
+

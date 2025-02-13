@@ -121,7 +121,7 @@ class InfluxDBClient3:
                                          possible.
         :key str proxy: Set this to configure the http proxy to be used (ex. http://localhost:3128)
         :key str proxy_headers: A dictionary containing headers that will be sent to the proxy. Could be used for proxy
-                                authentication.
+                                authentication. (Applies to Write API only)
         :key int connection_pool_maxsize: Number of connections to save that can be reused by urllib3.
                                           Defaults to "multiprocessing.cpu_count() * 5".
         :key urllib3.util.retry.Retry retries: Set the default retry strategy that is used for all HTTP requests
