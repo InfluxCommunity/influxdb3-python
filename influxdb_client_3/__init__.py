@@ -167,7 +167,7 @@ class InfluxDBClient3:
             connection_string = f"grpc+tcp://{hostname}:{port}"
         self._query_api = _QueryApi(connection_string=connection_string, token=token,
                                     flight_client_options=flight_client_options,
-                                    proxy=kwargs.get("proxy",None))
+                                    proxy=kwargs.get("proxy", None))
 
     def write(self, record=None, database=None, **kwargs):
         """

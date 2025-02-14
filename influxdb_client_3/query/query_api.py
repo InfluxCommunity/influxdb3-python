@@ -26,7 +26,7 @@ class QueryApi(object):
                  connection_string,
                  token,
                  flight_client_options,
-                 proxy = None) -> None:
+                 proxy=None) -> None:
         """
         Initialize defaults.
 
