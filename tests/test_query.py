@@ -164,5 +164,3 @@ class TestQuery(unittest.TestCase):
         assert client._query_api._proxy == test_proxy
         assert ('grpc.http_proxy', test_proxy) in\
                client._query_api._flight_client_options.get('generic_options')
-
-
