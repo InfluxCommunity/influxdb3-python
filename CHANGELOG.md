@@ -2,6 +2,10 @@
 
 ## 1.11.0 [unreleased]
 
+### Bug Fixes
+
+1. [#119](https://github.com/InfluxCommunity/influxdb3-python/pull/119): Fix use of `proxy` argument in client and query_api to use in channel solution for GRPC proxy.
+
 ## 0.10.0 [2024-11-27]
 
 ### Bug Fixes
