@@ -25,7 +25,8 @@ class QueryApi(object):
     def __init__(self,
                  connection_string,
                  token,
-                 flight_client_options) -> None:
+                 flight_client_options,
+                 proxy=None) -> None:
         """
         Initialize defaults.
 
@@ -35,9 +36,12 @@ class QueryApi(object):
         """
         self._token = token
         self._flight_client_options = flight_client_options or {}
+        self._proxy = proxy
         self._flight_client_options["generic_options"] = [
             ("grpc.secondary_user_agent", USER_AGENT)
         ]
+        if self._proxy:
+            self._flight_client_options["generic_options"].append(("grpc.http_proxy", self._proxy))
         self._flight_client = FlightClient(connection_string, **self._flight_client_options)
 
     def query(self, query: str, language: str, mode: str, database: str, **kwargs):

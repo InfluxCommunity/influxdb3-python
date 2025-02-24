@@ -100,7 +100,7 @@ jobs:
           name: Checks that the description will render correctly on PyPI.
           command: |
             pip install --upgrade pip
-            pip install twine --user
+            pip install 'twine>=5.1,<6.1' --user
             python setup.py sdist bdist_wheel
             twine check dist/*
   check-docstyle:
