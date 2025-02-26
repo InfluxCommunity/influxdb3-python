@@ -208,9 +208,9 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
 
         print(f"\nDEBUG options {vars(options)}")
         try:
-            assert(options.tls_root_certs.decode('utf-8') == self.sample_cert)
-            assert(options.tls_verify == False)
-            assert(options.proxy == proxy_name)
+            assert options.tls_root_certs.decode('utf-8') == self.sample_cert
+            assert not options.tls_verify
+            assert options.proxy == proxy_name
         finally:
             self.remove_cert_file(cert_file)
 
@@ -235,12 +235,12 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
 
         print(f"\nDEBUG client {vars(client)}")
         try:
-            assert(client._token == token)
-            assert(client._flight_client_options['tls_root_certs'].decode('utf-8') == self.sample_cert)
-            assert(client._proxy == proxy_name)
-            # print(f"DEBUG client._flight_client_options['generic_options'] {dict(client._flight_client_options['generic_options'])['grpc.secondary_user_agent']}")
-            assert(dict(client._flight_client_options['generic_options'])['grpc.secondary_user_agent'].startswith('influxdb3-python/'))
-            assert(dict(client._flight_client_options['generic_options'])['grpc.http_proxy'] == proxy_name)
+            assert client._token == token
+            assert client._flight_client_options['tls_root_certs'].decode('utf-8') == self.sample_cert
+            assert client._proxy == proxy_name
+            fc_opts = client._flight_client_options
+            assert dict(fc_opts['generic_options'])['grpc.secondary_user_agent'].startswith('influxdb3-python/')
+            assert dict(fc_opts['generic_options'])['grpc.http_proxy'] == proxy_name
         finally:
             self.remove_cert_file(cert_file)
 
@@ -254,17 +254,17 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
             database="my_db",
             token="my_token",
             proxy=proxy,
-            ssl_ca_cert = cert_name,
-            verify_ssl = False
+            ssl_ca_cert=cert_name,
+            verify_ssl=False
         )
 
         try:
             qapi = local_client._query_api
             fc_opts = qapi._flight_client_options
-            assert(qapi._proxy == proxy)
-            assert(fc_opts['tls_root_certs'].decode('utf-8') == self.sample_cert)
-            assert(fc_opts['disable_server_verification'] == True)
-            assert(dict(fc_opts['generic_options'])['grpc.secondary_user_agent'].startswith('influxdb3-python/'))
-            assert(dict(fc_opts['generic_options'])['grpc.http_proxy'] == proxy)
+            assert qapi._proxy == proxy
+            assert fc_opts['tls_root_certs'].decode('utf-8') == self.sample_cert
+            assert fc_opts['disable_server_verification']
+            assert dict(fc_opts['generic_options'])['grpc.secondary_user_agent'].startswith('influxdb3-python/')
+            assert dict(fc_opts['generic_options'])['grpc.http_proxy'] == proxy
         finally:
             self.remove_cert_file(cert_name)
