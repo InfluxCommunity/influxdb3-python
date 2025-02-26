@@ -6,6 +6,7 @@ import json
 from pyarrow.flight import FlightClient, Ticket, FlightCallOptions, FlightStreamReader
 from influxdb_client_3.version import USER_AGENT
 
+
 class QueryApiOptions(object):
     tls_root_certs = None
     tls_verify = True
