@@ -2,7 +2,7 @@ import urllib.parse
 import pyarrow as pa
 import importlib.util
 
-from influxdb_client_3.query.query_api import QueryApi as _QueryApi
+from influxdb_client_3.query.query_api import QueryApi as _QueryApi, QueryApiOptionsBuilder
 from influxdb_client_3.read_file import UploadFile
 from influxdb_client_3.write_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
 from influxdb_client_3.write_client.client.exceptions import InfluxDBError
@@ -165,9 +165,18 @@ class InfluxDBClient3:
             connection_string = f"grpc+tls://{hostname}:{port}"
         else:
             connection_string = f"grpc+tcp://{hostname}:{port}"
+
+        print(f"\nDEBUG kwargs.keys {kwargs.keys()}")
+        q_opts_builder = QueryApiOptionsBuilder()
+        if kwargs.keys().__contains__('ssl_ca_cert'):
+            q_opts_builder.root_certs(kwargs.get('ssl_ca_cert', None))
+        if kwargs.keys().__contains__('verify_ssl'):
+            q_opts_builder.tls_verify(kwargs.get('verify_ssl', True))
+        if kwargs.keys().__contains__('proxy'):
+            q_opts_builder.proxy(kwargs.get('proxy', None))
         self._query_api = _QueryApi(connection_string=connection_string, token=token,
                                     flight_client_options=flight_client_options,
-                                    proxy=kwargs.get("proxy", None))
+                                    proxy=kwargs.get("proxy", None), options=q_opts_builder.build())
 
     def write(self, record=None, database=None, **kwargs):
         """

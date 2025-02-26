@@ -6,6 +6,55 @@ import json
 from pyarrow.flight import FlightClient, Ticket, FlightCallOptions, FlightStreamReader
 from influxdb_client_3.version import USER_AGENT
 
+class QueryApiOptions(object):
+    tls_root_certs = None
+    tls_verify = True
+    proxy = None
+    flight_client_options = None
+
+    def __init__(self, root_certs_path, verify, proxy, flight_client_options):
+        if root_certs_path:
+            self.tls_root_certs = self._read_certs(root_certs_path)
+        self.tls_verify = verify
+        self.proxy = proxy
+        self.flight_client_options = flight_client_options
+
+    def _read_certs(self, path):
+        with open(path, "rb") as certs_file:
+            return certs_file.read()
+
+
+class QueryApiOptionsBuilder(object):
+
+    _root_certs_path = None
+    _tls_verify = True
+    _proxy = None
+    _flight_client_options = None
+
+    def root_certs(self, path):
+        self._root_certs_path = path
+        return self
+
+    def tls_verify(self, verify):
+        self._tls_verify = verify
+        return self
+
+    def proxy(self, proxy):
+        self._proxy = proxy
+        return self
+
+    def flight_client_options(self, flight_client_options):
+        self._flight_client_options = flight_client_options
+        return self
+
+    def build(self):
+        return QueryApiOptions(
+            root_certs_path=self._root_certs_path,
+            verify=self._tls_verify,
+            proxy=self._proxy,
+            flight_client_options=self._flight_client_options
+        )
+
 
 class QueryApi(object):
     """
@@ -26,7 +75,7 @@ class QueryApi(object):
                  connection_string,
                  token,
                  flight_client_options,
-                 proxy=None) -> None:
+                 proxy=None, options=None) -> None:
         """
         Initialize defaults.
 
@@ -37,6 +86,15 @@ class QueryApi(object):
         self._token = token
         self._flight_client_options = flight_client_options or {}
         self._proxy = proxy
+        print(f"\nDEBUG options {options}")
+        if options:
+            if options.flight_client_options:
+                self._flight_client_options = options.flight_client_options
+            if options.tls_root_certs:
+                self._flight_client_options["tls_root_certs"] = options.tls_root_certs
+            if options.proxy:
+                self._proxy = options.proxy
+            self._flight_client_options["disable_server_verification"] = not options.tls_verify
         self._flight_client_options["generic_options"] = [
             ("grpc.secondary_user_agent", USER_AGENT)
         ]
