@@ -7,6 +7,7 @@ import unittest
 
 import pyarrow
 import pytest
+from pyarrow._flight import FlightError
 
 from influxdb_client_3 import InfluxDBClient3, InfluxDBError, write_client_options, WriteOptions
 
@@ -122,7 +123,6 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
                              database=self.database,
                              token=self.token,
                              write_client_options=wc_opts) as w_client:
-
             for i in range(0, data_set_size):
                 w_client.write(f'{measurement},location=harfa val={i}i {now - (i * 1_000_000_000)}')
 
@@ -134,7 +134,6 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
                              database=self.database,
                              token=self.token,
                              write_client_options=wc_opts) as r_client:
-
             query = f"SELECT * FROM \"{measurement}\" WHERE time >= now() - interval '3 minute'"
             reader: pyarrow.Table = r_client.query(query)
             list_results = reader.to_pylist()
@@ -165,7 +164,6 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
                              token=self.token,
                              write_client_options=wc_opts,
                              debug=True) as w_client:
-
             for i in range(0, data_size):
                 w_client.write(f'{measurement},location=harfa val={i}i {now - (i * 1_000_000_000)}')
 
@@ -177,10 +175,77 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
                              database=self.database,
                              token=self.token,
                              write_client_options=wc_opts) as r_client:
-
             logging.info("PREPARING QUERY")
 
             query = f"SELECT * FROM \"{measurement}\" WHERE time >= now() - interval '3 hours'"
             reader: pyarrow.Table = r_client.query(query, mode="")
             list_results = reader.to_pylist()
             self.assertEqual(data_size, len(list_results))
+
+    test_cert = """-----BEGIN CERTIFICATE-----
+MIIDUzCCAjugAwIBAgIUZB55ULutbc9gy6xLp1BkTQU7siowDQYJKoZIhvcNAQEL
+BQAwNjE0MDIGA1UEAwwraW5mbHV4ZGIzLWNsdXN0ZXJlZC1zd2FuLmJyYW1ib3Jh
+LnpvbmEtYi5ldTAeFw0yNTAyMTgxNTIyMTJaFw0yNjAyMTgxNTIyMTJaMDYxNDAy
+BgNVBAMMK2luZmx1eGRiMy1jbHVzdGVyZWQtc3dhbi5icmFtYm9yYS56b25hLWIu
+ZXUwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCugeNrx0ZfyyP8H4e0
+zDSkKWnEXlVdjMi+ZSHhMbjvvqMkUQGLc/W59AEmMJ0Uiljka9d+F7jdu+oqDq9p
+4kGPhO3Oh7zIG0IGbncj8AwIXMGDNkNyL8s7C1+LoYotlSWDpWwkEKXUeAzdqS63
+CSJFqSJM2dss8qe9BpM6zHWJAKS1I30QT3SXQFEsF5m2F62dXCEEI6pO7jlik8/w
+aI47dTM20QyimVzea48SC/ELO/T4AjbmMeBGlTyCm39KOElOKRTJvB4KESEWaL3r
+EvPZbTh+72PUyrjxiDa56+RmtDPo7EN3uxuRVFX/HWiNnFk7orQLKZg5Kr8wE46R
+KmVvAgMBAAGjWTBXMDYGA1UdEQQvMC2CK2luZmx1eGRiMy1jbHVzdGVyZWQtc3dh
+bi5icmFtYm9yYS56b25hLWIuZXUwHQYDVR0OBBYEFH8et6JCzGD7Ny84aNRtq5Nj
+hvS/MA0GCSqGSIb3DQEBCwUAA4IBAQCuDwARea/Xr3+hmte9A0H+XB8wMPAJ64e8
+QA0qi0oy0gGdLfQHhsBWWmKSYLv7HygTNzb+7uFOTtq1UPLt18F+POPeLIj74QZV
+z89Pbo1TwUMzQ2pgbu0yRvraXIpqXGrPm5GWYp5mopX0rBWKdimbmEMkhZA0sVeH
+IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
+//MIodzUIqT8Tja5cHXE51bLdUkO1rtNKdM7TUdjzkZ+bAOpqKl+c0FlYZI+F7Ly
++MdCcNgKFc8o8jGiyP6uyAJeg+tSICpFDw00LyuKmU62c7VKuyo7
+-----END CERTIFICATE-----"""
+
+    def create_test_cert(self, cert_file):
+        f = open(cert_file, "w")
+        f.write(self.test_cert)
+        f.close()
+
+    def remove_test_cert(self, cert_file):
+        os.remove(cert_file)
+
+    def test_queries_w_bad_cert(self):
+        cert_file = "test_cert.pem"
+        self.create_test_cert(cert_file)
+        with InfluxDBClient3(host=self.host,
+                             database=self.database,
+                             token=self.token,
+                             verify_ssl=True,
+                             ssl_ca_cert=cert_file,
+                             debug=True) as client:
+            try:
+                query = "SELECT table_name FROM information_schema.tables"
+                client.query(query, mode="")
+                assert False, "query should throw SSL_ERROR"
+            except FlightError as fe:
+                assert str(fe).__contains__('SSL_ERROR_SSL')
+            finally:
+                self.remove_test_cert(cert_file)
+
+    def test_verify_ssl_false(self):
+        cert_file = "test_cert.pem"
+        self.create_test_cert(cert_file)
+        measurement = f'test{random_hex(6)}'
+
+        with InfluxDBClient3(host=self.host,
+                             database=self.database,
+                             token=self.token,
+                             verify_ssl=False,
+                             ssl_ca_cert=cert_file,
+                             debug=True) as client:
+            try:
+                now = time.time_ns()
+                client.write(f'{measurement},location=harfa val=42i {now - 1_000_000_000}')
+                query = f"SELECT * FROM \"{measurement}\""
+                reader: pyarrow.Table = client.query(query, mode="")
+                list_results = reader.to_pylist()
+                assert len(list_results) > 0
+            finally:
+                self.remove_test_cert(cert_file)
