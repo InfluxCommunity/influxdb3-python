@@ -1,5 +1,4 @@
 import os
-import ssl
 import time
 
 import pyarrow
