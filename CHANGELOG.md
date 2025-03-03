@@ -2,6 +2,10 @@
 
 ## 0.12.0 [unreleased] 
 
+### Bug Fixes
+
+1. [#121](https://github.com/InfluxCommunity/influxdb3-python/pull/121): Fix use of arguments `verify_ssl` and `ssl_ca_cert` in `QueryApi`.
+
 ## 0.11.0 [2025-02-27]
 
 ### Bug Fixes
