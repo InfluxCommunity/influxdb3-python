@@ -167,11 +167,12 @@ class InfluxDBClient3:
             connection_string = f"grpc+tcp://{hostname}:{port}"
 
         q_opts_builder = QueryApiOptionsBuilder()
-        if kwargs.keys().__contains__('ssl_ca_cert'):
+        kw_keys = kwargs.keys()
+        if kw_keys.__contains__('ssl_ca_cert'):
             q_opts_builder.root_certs(kwargs.get('ssl_ca_cert', None))
-        if kwargs.keys().__contains__('verify_ssl'):
+        if kw_keys.__contains__('verify_ssl'):
             q_opts_builder.tls_verify(kwargs.get('verify_ssl', True))
-        if kwargs.keys().__contains__('proxy'):
+        if kw_keys.__contains__('proxy'):
             q_opts_builder.proxy(kwargs.get('proxy', None))
         self._query_api = _QueryApi(connection_string=connection_string, token=token,
                                     flight_client_options=flight_client_options,

@@ -78,7 +78,7 @@ def write_and_query_with_explicit_sys_cert(conf):
         lp = f"escooter,id=zx80 speed=3.14,ticks=42i {now - (10 * 1_000_000_000)}"
         _client.write(lp)
 
-        query = "SELECT * FROM \"escooter\""
+        query = "SELECT * FROM \"escooter\" ORDER BY time DESC"
         reader: pyarrow.Table = _client.query(query, mode="")
         print_results(reader.to_pylist())
 
@@ -95,7 +95,7 @@ def query_with_verify_ssl_off(conf, cert):
                          ssl_ca_cert=cert,
                          verify_ssl=False) as _client:
 
-        query = "SELECT * FROM \"escooter\""
+        query = "SELECT * FROM \"escooter\"  ORDER BY time DESC"
         reader: pyarrow.Table = _client.query(query, mode="")
         print_results(reader.to_pylist())
 

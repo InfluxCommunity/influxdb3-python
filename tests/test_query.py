@@ -216,7 +216,6 @@ Aw==
             .tls_verify(False)\
             .build()
 
-        print(f"\nDEBUG options {vars(options)}")
         try:
             assert options.tls_root_certs.decode('utf-8') == self.sample_cert
             assert not options.tls_verify
@@ -243,7 +242,6 @@ Aw==
                           options
                           )
 
-        print(f"\nDEBUG client {vars(client)}")
         try:
             assert client._token == token
             assert client._flight_client_options['tls_root_certs'].decode('utf-8') == self.sample_cert

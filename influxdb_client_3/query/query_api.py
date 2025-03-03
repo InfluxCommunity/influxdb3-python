@@ -9,7 +9,7 @@ from influxdb_client_3.version import USER_AGENT
 
 class QueryApiOptions(object):
     tls_root_certs = None
-    tls_verify = True
+    tls_verify = None
     proxy = None
     flight_client_options = None
 
@@ -94,7 +94,8 @@ class QueryApi(object):
                 self._flight_client_options["tls_root_certs"] = options.tls_root_certs
             if options.proxy:
                 self._proxy = options.proxy
-            self._flight_client_options["disable_server_verification"] = not options.tls_verify
+            if options.tls_verify is not None:
+                self._flight_client_options["disable_server_verification"] = not options.tls_verify
         self._flight_client_options["generic_options"] = [
             ("grpc.secondary_user_agent", USER_AGENT)
         ]
