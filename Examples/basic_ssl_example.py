@@ -80,7 +80,6 @@ def write_and_query_with_explicit_sys_cert(conf):
 
         query = "SELECT * FROM \"escooter\""
         reader: pyarrow.Table = _client.query(query, mode="")
-        list_results = reader.to_pylist()
         print_results(reader.to_pylist())
 
 
