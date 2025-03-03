@@ -228,11 +228,15 @@ Aw==
         token = "my_token"
         proxy_name = "http://my.proxy.org"
         cert_file = "cert_test.pem"
+        private_key = 'our_key'
+        cert_chain = 'mTLS_explicit_chain'
         self.create_cert_file(cert_file)
+        test_flight_client_options = {'private_key': private_key, 'cert_chain': cert_chain}
         options = QueryApiOptionsBuilder()\
             .proxy(proxy_name) \
             .root_certs(cert_file) \
             .tls_verify(False) \
+            .flight_client_options(test_flight_client_options) \
             .build()
 
         client = QueryApi(connection,
@@ -245,6 +249,8 @@ Aw==
         try:
             assert client._token == token
             assert client._flight_client_options['tls_root_certs'].decode('utf-8') == self.sample_cert
+            assert client._flight_client_options['private_key'] == private_key
+            assert client._flight_client_options['cert_chain'] == cert_chain
             assert client._proxy == proxy_name
             fc_opts = client._flight_client_options
             assert dict(fc_opts['generic_options'])['grpc.secondary_user_agent'].startswith('influxdb3-python/')

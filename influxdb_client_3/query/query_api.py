@@ -8,12 +8,31 @@ from influxdb_client_3.version import USER_AGENT
 
 
 class QueryApiOptions(object):
-    tls_root_certs = None
-    tls_verify = None
-    proxy = None
-    flight_client_options = None
+    """
+    Structure for encapsulating options for the QueryApi
+
+    Attributes
+    ----------
+    tls_root_certs (bytes):  contents of an SSL root certificate or chain read as bytes
+    tls_verify (bool): whether to verify SSL certificates or not
+    proxy (str): URL to a proxy server
+    flight_client_options (dict): base set of flight client options passed to internal pyarrow.flight.FlightClient
+    """
+    tls_root_certs: bytes = None
+    tls_verify: bool = None
+    proxy: str = None
+    flight_client_options: dict = None
 
     def __init__(self, root_certs_path, verify, proxy, flight_client_options):
+        """
+        Initialize a set of QueryApiOptions
+
+        :param root_certs_path: path to a certificate .pem file.
+        :param verify: whether to verify SSL certificates or not.
+        :param proxy: URL of a proxy server, if required.
+        :param flight_client_options: set of flight_client_options
+               to be passed to internal pyarrow.flight.FlightClient.
+        """
         if root_certs_path:
             self.tls_root_certs = self._read_certs(root_certs_path)
         self.tls_verify = verify
@@ -26,7 +45,21 @@ class QueryApiOptions(object):
 
 
 class QueryApiOptionsBuilder(object):
+    """
+    Helper class to make adding QueryApiOptions more dynamic.
 
+    Example:
+
+    .. code-block:: python
+
+        options = QueryApiOptionsBuilder()\
+            .proxy("http://internal.tunnel.proxy:8080") \
+            .root_certs("/home/fred/.etc/ssl/alt_certs.pem") \
+            .tls_verify(True) \
+            .build()
+
+        client = QueryApi(connection, token, None, None, options)
+    """
     _root_certs_path = None
     _tls_verify = True
     _proxy = None
@@ -49,6 +82,7 @@ class QueryApiOptionsBuilder(object):
         return self
 
     def build(self):
+        """Build a QueryApiOptions object with previously set values"""
         return QueryApiOptions(
             root_certs_path=self._root_certs_path,
             verify=self._tls_verify,
@@ -62,6 +96,7 @@ class QueryApi(object):
     Implementation for '/api/v2/query' endpoint.
 
     Example:
+
         .. code-block:: python
 
             from influxdb_client import InfluxDBClient
