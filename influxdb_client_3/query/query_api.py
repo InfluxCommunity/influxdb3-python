@@ -87,7 +87,6 @@ class QueryApi(object):
         self._token = token
         self._flight_client_options = flight_client_options or {}
         self._proxy = proxy
-        print(f"\nDEBUG options {options}")
         if options:
             if options.flight_client_options:
                 self._flight_client_options = options.flight_client_options

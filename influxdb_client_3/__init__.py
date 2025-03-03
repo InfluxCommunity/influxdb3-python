@@ -166,7 +166,6 @@ class InfluxDBClient3:
         else:
             connection_string = f"grpc+tcp://{hostname}:{port}"
 
-        print(f"\nDEBUG kwargs.keys {kwargs.keys()}")
         q_opts_builder = QueryApiOptionsBuilder()
         if kwargs.keys().__contains__('ssl_ca_cert'):
             q_opts_builder.root_certs(kwargs.get('ssl_ca_cert', None))

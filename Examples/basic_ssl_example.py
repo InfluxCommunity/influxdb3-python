@@ -48,6 +48,12 @@ def remove_cert(file_name):
     os.remove(file_name)
 
 
+def print_results(results: list):
+    print("%-6s%-6s%-6s%-24s" % ("id", "speed", "ticks", "time"))
+    for result in results:
+        print("%-6s%-6.2f%-6i%-24s" % (result['id'], result['speed'], result['ticks'], result['time']))
+
+
 def main() -> None:
     print("Main")
     temp_cert_file = "temp_cert.pem"
@@ -61,7 +67,7 @@ def main() -> None:
 
 
 def write_and_query_with_explicit_sys_cert(conf):
-    print("write and query with typical linux system cert")
+    print("\nwrite and query with typical linux system cert\n")
     with InfluxDBClient3(token=conf.token,
                          host=conf.host,
                          org=conf.org,
@@ -75,11 +81,11 @@ def write_and_query_with_explicit_sys_cert(conf):
         query = "SELECT * FROM \"escooter\""
         reader: pyarrow.Table = _client.query(query, mode="")
         list_results = reader.to_pylist()
-        print(list_results)
+        print_results(reader.to_pylist())
 
 
 def query_with_verify_ssl_off(conf, cert):
-    print("querying with verify_ssl off")
+    print("\nquerying with verify_ssl off\n")
 
     # Note that the passed root cert above is bad
     # Switch verify_ssl to True to throw SSL_ERROR_SSL
@@ -92,8 +98,7 @@ def query_with_verify_ssl_off(conf, cert):
 
         query = "SELECT * FROM \"escooter\""
         reader: pyarrow.Table = _client.query(query, mode="")
-        list_results = reader.to_pylist()
-        print(list_results)
+        print_results(reader.to_pylist())
 
 
 if __name__ == "__main__":
