@@ -1,6 +1,7 @@
 import unittest
 import struct
 import os
+import json
 from unittest.mock import Mock, ANY
 
 from pyarrow import (
@@ -9,6 +10,7 @@ from pyarrow import (
 )
 
 from pyarrow.flight import (
+    FlightClient,
     FlightServerBase,
     FlightUnauthenticatedError,
     GeneratorStream,
@@ -282,3 +284,87 @@ Aw==
             assert dict(fc_opts['generic_options'])['grpc.http_proxy'] == proxy
         finally:
             self.remove_cert_file(cert_name)
+
+    def test_multiple_flight_client_options(self):
+
+        q_opts = QueryApiOptionsBuilder().flight_client_options({
+            'generic_options': [('optA', 'A in options')]
+        }).build()
+
+        q_api = QueryApi(
+            connection_string="grpc+tls://my-server.org",
+            token='my_token',
+            flight_client_options={"generic_options": [('opt1', 'opt1 in args')]},
+            proxy=None,
+            options=q_opts
+        )
+
+        assert ('opt1', 'opt1 in args') in q_api._flight_client_options['generic_options']
+        assert ('optA', 'A in options') in q_api._flight_client_options['generic_options']
+        assert (('grpc.secondary_user_agent', 'influxdb3-python/0.12.0dev0') in
+                q_api._flight_client_options['generic_options'])
+
+    def test_override_secondary_user_agent_args(self):
+        q_api = QueryApi(
+            connection_string="grpc+tls://my-server.org",
+            token='my_token',
+            flight_client_options={"generic_options": [('grpc.secondary_user_agent', 'my_custom_user_agent')]},
+            proxy=None,
+            options=None
+        )
+
+        assert ('grpc.secondary_user_agent', 'my_custom_user_agent') in q_api._flight_client_options['generic_options']
+        assert not (('grpc.secondary_user_agent', 'influxdb3-python/0.12.0dev0') in
+                    q_api._flight_client_options['generic_options'])
+
+    def test_secondary_user_agent_in_options(self):
+        q_opts = QueryApiOptionsBuilder().flight_client_options({
+            'generic_options': [
+                ('optA', 'A in options'),
+                ('grpc.secondary_user_agent', 'my_custom_user_agent')
+            ]
+        }).build()
+
+        q_api = QueryApi(
+            connection_string="grpc+tls://my-server.org",
+            token='my_token',
+            flight_client_options=None,
+            proxy=None,
+            options=q_opts
+        )
+
+        assert ('optA', 'A in options') in q_api._flight_client_options['generic_options']
+        assert ('grpc.secondary_user_agent', 'my_custom_user_agent') in q_api._flight_client_options['generic_options']
+        assert (('grpc.secondary_user_agent', 'influxdb3-python/0.12.0dev0') not in
+                q_api._flight_client_options['generic_options'])
+
+    def test_prepare_query(self):
+        global _req_headers
+        token = 'my_token'
+        q_api = QueryApi(
+            connection_string="grpc+tls://my-server.org",
+            token=token,
+            flight_client_options={"generic_options": [('Foo', 'Bar')]},
+            proxy=None,
+            options=None
+        )
+
+        query = "SELECT * FROM sensors"
+        language = "sql"
+        database = "my_database"
+
+        ticket, options = q_api._prepare_query(query=query,
+                                               language=language,
+                                               database=database)
+        tkt = json.loads(ticket.ticket.decode('utf-8'))
+        assert tkt['database'] == database
+        assert tkt['sql_query'] == query
+        assert tkt['query_type'] == language
+
+        with HeaderCheckFlightServer(
+                auth_handler=NoopAuthHandler(),
+                middleware={"check": HeaderCheckServerMiddlewareFactory()}) as server:
+            with FlightClient(('localhost', server.port)) as client:
+                client.do_get(ticket, options)
+                assert _req_headers['authorization'] == [f"Bearer {token}"]
+                _req_headers = {}

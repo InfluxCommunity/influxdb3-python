@@ -1,9 +1,11 @@
 """Query data in InfluxDB 3."""
-
+import asyncio
+import concurrent.futures
 # coding: utf-8
 import json
 
 from pyarrow.flight import FlightClient, Ticket, FlightCallOptions, FlightStreamReader
+
 from influxdb_client_3.version import USER_AGENT
 
 
@@ -121,19 +123,28 @@ class QueryApi(object):
         """
         self._token = token
         self._flight_client_options = flight_client_options or {}
+        default_user_agent = ("grpc.secondary_user_agent", USER_AGENT)
+        if "generic_options" in self._flight_client_options:
+            if "grpc.secondary_user_agent" not in dict(self._flight_client_options["generic_options"]).keys():
+                self._flight_client_options["generic_options"].append(default_user_agent)
+        else:
+            self._flight_client_options["generic_options"] = [default_user_agent]
         self._proxy = proxy
+        from influxdb_client_3 import _merge_options as merge_options
         if options:
             if options.flight_client_options:
-                self._flight_client_options = options.flight_client_options
+                self._flight_client_options = merge_options(self._flight_client_options,
+                                                            None,
+                                                            options.flight_client_options)
+                if ('generic_options' in options.flight_client_options and
+                        'grpc.secondary_user_agent' in dict(options.flight_client_options["generic_options"]).keys()):
+                    self._flight_client_options['generic_options'].remove(default_user_agent)
             if options.tls_root_certs:
                 self._flight_client_options["tls_root_certs"] = options.tls_root_certs
             if options.proxy:
                 self._proxy = options.proxy
             if options.tls_verify is not None:
                 self._flight_client_options["disable_server_verification"] = not options.tls_verify
-        self._flight_client_options["generic_options"] = [
-            ("grpc.secondary_user_agent", USER_AGENT)
-        ]
         if self._proxy:
             self._flight_client_options["generic_options"].append(("grpc.http_proxy", self._proxy))
         self._flight_client = FlightClient(connection_string, **self._flight_client_options)
@@ -152,30 +163,10 @@ class QueryApi(object):
                                    It should be a ``dictionary`` of key-value pairs.
         :return: The query result in the specified mode.
         """
-        from influxdb_client_3 import polars as has_polars, _merge_options as merge_options
+        from influxdb_client_3 import polars as has_polars
         try:
-            # Create an authorization header
-            optargs = {
-                "headers": [(b"authorization", f"Bearer {self._token}".encode('utf-8'))],
-                "timeout": 300
-            }
-            opts = merge_options(optargs, exclude_keys=['query_parameters'], custom=kwargs)
-            _options = FlightCallOptions(**opts)
+            ticket, _options = self._prepare_query(query, language, database, **kwargs)
 
-            #
-            # Ticket data
-            #
-            ticket_data = {
-                "database": database,
-                "sql_query": query,
-                "query_type": language
-            }
-            # add query parameters
-            query_parameters = kwargs.get("query_parameters", None)
-            if query_parameters:
-                ticket_data["params"] = query_parameters
-
-            ticket = Ticket(json.dumps(ticket_data).encode('utf-8'))
             flight_reader = self._do_get(ticket, _options)
 
             mode_funcs = {
@@ -194,8 +185,40 @@ class QueryApi(object):
         except Exception as e:
             raise e
 
+    def _prepare_query(self, query: str, language: str, database: str, **kwargs):
+        from influxdb_client_3 import _merge_options as merge_options
+        # Create an authorization header
+        optargs = {
+            "headers": [(b"authorization", f"Bearer {self._token}".encode('utf-8'))],
+            "timeout": 300
+        }
+        opts = merge_options(optargs, exclude_keys=['query_parameters'], custom=kwargs)
+        _options = FlightCallOptions(**opts)
+
+        #
+        # Ticket data
+        #
+        ticket_data = {
+            "database": database,
+            "sql_query": query,
+            "query_type": language
+        }
+        # add query parameters
+        query_parameters = kwargs.get("query_parameters", None)
+        if query_parameters:
+            ticket_data["params"] = query_parameters
+
+        ticket = Ticket(json.dumps(ticket_data).encode('utf-8'))
+
+        return ticket, _options
+
     def _do_get(self, ticket: Ticket, options: FlightCallOptions = None) -> FlightStreamReader:
         return self._flight_client.do_get(ticket, options)
+
+    async def _do_get_async(self, ticket: Ticket, options: FlightCallOptions = None):
+        loop = asyncio.get_running_loop()
+        return loop.run_in_executor(concurrent.futures.ThreadPoolExecutor,
+                                    self._flight_client.do_get, ticket, options)
 
     def close(self):
         """Close the Flight client."""
