@@ -1,6 +1,5 @@
 """Query data in InfluxDB 3."""
 import asyncio
-import concurrent.futures
 # coding: utf-8
 import json
 
@@ -163,7 +162,6 @@ class QueryApi(object):
                                    It should be a ``dictionary`` of key-value pairs.
         :return: The query result in the specified mode.
         """
-        from influxdb_client_3 import polars as has_polars
         try:
             ticket, _options = self._prepare_query(query, language, database, **kwargs)
 
@@ -178,12 +176,11 @@ class QueryApi(object):
             ticket, options = self._prepare_query(query, language, database, **kwargs)
             loop = asyncio.get_running_loop()
             _flight_reader = await loop.run_in_executor(None,
-                               self._flight_client.do_get, ticket, options)
+                                                        self._flight_client.do_get, ticket, options)
             return await loop.run_in_executor(None, self._translate_stream_reader,
                                               _flight_reader,
                                               mode)
         except Exception as e:
-            print(f"\DEBUG caught exception e {e}")
             raise e
 
     def _translate_stream_reader(self, reader: FlightStreamReader, mode: str):
