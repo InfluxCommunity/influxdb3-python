@@ -169,17 +169,37 @@ class QueryApi(object):
 
             flight_reader = self._do_get(ticket, _options)
 
+            return self._translate_stream_reader(flight_reader, mode)
+        except Exception as e:
+            raise e
+
+    async def query_async(self, query: str, language: str, mode: str, database: str, **kwargs):
+        try:
+            ticket, options = self._prepare_query(query, language, database, **kwargs)
+            loop = asyncio.get_running_loop()
+            _flight_reader = await loop.run_in_executor(None,
+                               self._flight_client.do_get, ticket, options)
+            return await loop.run_in_executor(None, self._translate_stream_reader,
+                                              _flight_reader,
+                                              mode)
+        except Exception as e:
+            print(f"\DEBUG caught exception e {e}")
+            raise e
+
+    def _translate_stream_reader(self, reader: FlightStreamReader, mode: str):
+        from influxdb_client_3 import polars as has_polars
+        try:
             mode_funcs = {
-                "all": flight_reader.read_all,
-                "pandas": flight_reader.read_pandas,
-                "chunk": lambda: flight_reader,
-                "reader": flight_reader.to_reader,
-                "schema": lambda: flight_reader.schema
+                "all": reader.read_all,
+                "pandas": reader.read_pandas,
+                "chunk": lambda: reader,
+                "reader": reader.to_reader,
+                "schema": lambda: reader.schema
             }
             if has_polars:
                 import polars as pl
-                mode_funcs["polars"] = lambda: pl.from_arrow(flight_reader.read_all())
-            mode_func = mode_funcs.get(mode, flight_reader.read_all)
+                mode_funcs["polars"] = lambda: pl.from_arrow(reader.read_all())
+            mode_func = mode_funcs.get(mode, reader.read_all)
 
             return mode_func() if callable(mode_func) else mode_func
         except Exception as e:
@@ -214,11 +234,6 @@ class QueryApi(object):
 
     def _do_get(self, ticket: Ticket, options: FlightCallOptions = None) -> FlightStreamReader:
         return self._flight_client.do_get(ticket, options)
-
-    async def _do_get_async(self, ticket: Ticket, options: FlightCallOptions = None):
-        loop = asyncio.get_running_loop()
-        return loop.run_in_executor(concurrent.futures.ThreadPoolExecutor,
-                                    self._flight_client.do_get, ticket, options)
 
     def close(self):
         """Close the Flight client."""
