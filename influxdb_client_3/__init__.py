@@ -278,6 +278,22 @@ class InfluxDBClient3:
         except InfluxDBError as e:
             raise e
 
+    async def query_async(self, query: str, language: str = "sql", mode: str = "all", database: str = None, **kwargs):
+        if mode == "polars" and polars is False:
+            raise ImportError("Polars is not installed. Please install it with `pip install polars`.")
+
+        if database is None:
+            database = self._database
+
+        try:
+            return await self._query_api.query_async(query=query,
+                                                     language=language,
+                                                     mode=mode,
+                                                     database=database,
+                                                     **kwargs)
+        except InfluxDBError as e:
+            raise e
+
     def close(self):
         """Close the client and clean up resources."""
         self._write_api.close()

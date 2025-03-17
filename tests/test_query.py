@@ -1,3 +1,5 @@
+import asyncio
+import inspect
 import unittest
 import struct
 import os
@@ -6,6 +8,7 @@ from unittest.mock import Mock, ANY
 
 from pyarrow import (
     array,
+    concat_tables,
     Table
 )
 
@@ -14,6 +17,7 @@ from pyarrow.flight import (
     FlightServerBase,
     FlightUnauthenticatedError,
     GeneratorStream,
+    RecordBatchStream,
     ServerMiddleware,
     ServerMiddlewareFactory,
     ServerAuthHandler,
@@ -23,6 +27,14 @@ from pyarrow.flight import (
 from influxdb_client_3 import InfluxDBClient3
 from influxdb_client_3.query.query_api import QueryApiOptionsBuilder, QueryApi
 from influxdb_client_3.version import USER_AGENT
+
+
+def asyncio_run(async_func):
+    def wrapper(*args, **kwargs):
+        return asyncio.run(async_func(*args, **kwargs))
+
+    wrapper.__signature__ = inspect.signature(async_func)
+    return wrapper
 
 
 def case_insensitive_header_lookup(headers, lkey):
@@ -368,3 +380,106 @@ Aw==
                 client.do_get(ticket, options)
                 assert _req_headers['authorization'] == [f"Bearer {token}"]
                 _req_headers = {}
+
+    @asyncio_run
+    async def test_query_async_pandas(self):
+        with ConstantFlightServer() as server:
+            connection_string = f"grpc://localhost:{server.port}"
+            token = "my_token"
+            database = "my_database"
+            q_api = QueryApi(
+                connection_string=connection_string,
+                token=token,
+                flight_client_options={"generic_options": [('Foo', 'Bar')]},
+                proxy=None,
+                options=None
+            )
+
+            query = "SELECT * FROM data"
+            pndf = await q_api.query_async(query, "sql", "pandas", database)
+
+            cd = ConstantData()
+            numpy_array = pndf.T.to_numpy()
+            tuples = []
+            for n in range(len(numpy_array[0])):
+                tuples.append((numpy_array[0][n], numpy_array[1][n], numpy_array[2][n]))
+
+            for constant in cd.to_tuples():
+                assert constant in tuples
+
+            assert ('sql_query', query, -1.0) in tuples
+            assert ('database', database, -1.0) in tuples
+            assert ('query_type', 'sql', -1.0) in tuples
+
+    @asyncio_run
+    async def test_query_async_table(self):
+        with ConstantFlightServer() as server:
+            connection_string = f"grpc://localhost:{server.port}"
+            token = "my_token"
+            database = "my_database"
+            q_api = QueryApi(
+                connection_string=connection_string,
+                token=token,
+                flight_client_options={"generic_options": [('Foo', 'Bar')]},
+                proxy=None,
+                options=None
+            )
+            query = "SELECT * FROM data"
+            table = await q_api.query_async(query, "sql", "", database)
+
+            cd = ConstantData()
+
+            result_list = table.to_pylist()
+            for item in cd.to_list():
+                assert item in result_list
+
+            assert {'data': 'database', 'reference': 'my_database', 'value': -1.0} in result_list
+            assert {'data': 'sql_query', 'reference': 'SELECT * FROM data', 'value': -1.0} in result_list
+            assert {'data': 'query_type', 'reference': 'sql', 'value': -1.0} in result_list
+
+
+class ConstantData:
+
+    def __init__(self):
+        self.data = [
+            array(['temp', 'temp', 'temp']),
+            array(['kitchen', 'common', 'foyer']),
+            array([36.9, 25.7, 9.8])
+        ]
+        self.names = ['data', 'reference', 'value']
+
+    def to_tuples(self):
+        response = []
+        for n in range(3):
+            response.append((self.data[0][n].as_py(), self.data[1][n].as_py(), self.data[2][n].as_py()))
+        return response
+
+    def to_list(self):
+        response = []
+        for it in range(len(self.data[0])):
+            item = {}
+            for o in range(len(self.names)):
+                item[self.names[o]] = self.data[o][it].as_py()
+            response.append(item)
+        return response
+
+
+class ConstantFlightServer(FlightServerBase):
+
+    def __init__(self, location=None, options=None, **kwargs):
+        super().__init__(location, **kwargs)
+        self.cd = ConstantData()
+        self.options = options
+
+    # respond with Constant Data plus fields from ticket
+    def do_get(self, context, ticket):
+        result_table = Table.from_arrays(self.cd.data, names=self.cd.names)
+        tkt = json.loads(ticket.ticket.decode('utf-8'))
+        for key in tkt.keys():
+            tkt_data = [
+                array([key]),
+                array([tkt[key]]),
+                array([-1.0])
+            ]
+            result_table = concat_tables([result_table, Table.from_arrays(tkt_data, names=self.cd.names)])
+        return RecordBatchStream(result_table, options=self.options)
