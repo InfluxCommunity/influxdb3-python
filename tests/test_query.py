@@ -1,5 +1,8 @@
 import asyncio
 import inspect
+import sys
+import time
+import traceback
 import unittest
 import os
 import json
@@ -17,6 +20,7 @@ from influxdb_client_3.version import USER_AGENT
 from tests.util.mocks import (
     ConstantData,
     ConstantFlightServer,
+    ConstantFlightServerDelayed,
     HeaderCheckFlightServer,
     HeaderCheckServerMiddlewareFactory,
     NoopAuthHandler,
@@ -27,7 +31,11 @@ from tests.util.mocks import (
 
 def asyncio_run(async_func):
     def wrapper(*args, **kwargs):
-        return asyncio.run(async_func(*args, **kwargs))
+        try:
+            return asyncio.run(async_func(*args, **kwargs))
+        except Exception as e:
+            print(traceback.format_exc(), file=sys.stderr)
+            raise e
 
     wrapper.__signature__ = inspect.signature(async_func)
     return wrapper
@@ -370,3 +378,65 @@ Aw==
             assert {'data': 'database', 'reference': 'my_database', 'value': -1.0} in result_list
             assert {'data': 'sql_query', 'reference': 'SELECT * FROM data', 'value': -1.0} in result_list
             assert {'data': 'query_type', 'reference': 'sql', 'value': -1.0} in result_list
+
+    @asyncio_run
+    async def test_query_async_delayed(self):
+        events = dict()
+        with ConstantFlightServerDelayed(delay=1) as server:
+            connection_string = f"grpc://localhost:{server.port}"
+            token = "my_token"
+            database = "my_database"
+            q_api = QueryApi(
+                connection_string=connection_string,
+                token=token,
+                flight_client_options={"generic_options": [('Foo', 'Bar')]},
+                proxy=None,
+                options=None
+            )
+            query = "SELECT * FROM data"
+
+            # coroutine to handle query_async
+            async def local_query(query_api):
+                events['query_start'] = time.time_ns()
+                t_result = await query_api.query_async(query, "sql", "", database)
+                # t_result = query_api.query(query, "sql", "", database)
+                events['query_result'] = time.time_ns()
+                return t_result
+
+            # second coroutine to run in "parallel"
+            async def fibo(iters):
+                events['fibo_start'] = time.time_ns()
+                await asyncio.sleep(0.5)
+                n0 = 1
+                n1 = 1
+                result = n1 + n0
+                for _ in range(iters):
+                    n0 = n1
+                    n1 = result
+                    result = n1 + n0
+                events['fibo_end'] = time.time_ns()
+                return result
+
+            results = await asyncio.gather(local_query(q_api), fibo(50))
+
+            table = results[0]
+            fibo_num = results[1]
+
+            # verify fibo calculation
+            assert fibo_num == 53316291173
+
+            # verify constant data
+            cd = ConstantData()
+
+            result_list = table.to_pylist()
+            for item in cd.to_list():
+                assert item in result_list
+
+            # verify that fibo coroutine was processed while query_async was processing
+            # i.e. query call does not block event_loop
+            # fibo started after query_async
+            assert events['query_start'] < events['fibo_start'], (f"query_start: {events['query_start']} should start "
+                                                                  f"before fibo_start: {events['fibo_start']}")
+            # fibo ended before query_async
+            assert events['query_result'] > events['fibo_end'], (f"query_result: {events['query_result']} should occur "
+                                                                 f"after fibo_end: {events['fibo_end']}")

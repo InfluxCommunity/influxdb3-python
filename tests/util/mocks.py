@@ -1,5 +1,6 @@
 import json
 import struct
+import time
 
 from pyarrow import (
     array,
@@ -101,6 +102,17 @@ class ConstantFlightServer(FlightServerBase):
             ]
             result_table = concat_tables([result_table, Table.from_arrays(tkt_data, names=self.cd.names)])
         return RecordBatchStream(result_table, options=self.options)
+
+
+class ConstantFlightServerDelayed(ConstantFlightServer):
+
+    def __init__(self, location=None, options=None, delay=0.5, **kwargs):
+        super().__init__(location, **kwargs)
+        self.delay = delay
+
+    def do_get(self, context, ticket):
+        time.sleep(self.delay)
+        return super().do_get(context, ticket)
 
 
 class HeaderCheckServerMiddlewareFactory(ServerMiddlewareFactory):
