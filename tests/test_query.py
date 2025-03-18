@@ -1,8 +1,5 @@
 import asyncio
-import inspect
-import sys
 import time
-import traceback
 import unittest
 import os
 import json
@@ -16,6 +13,7 @@ from pyarrow.flight import (
 from influxdb_client_3 import InfluxDBClient3
 from influxdb_client_3.query.query_api import QueryApiOptionsBuilder, QueryApi
 from influxdb_client_3.version import USER_AGENT
+from tests.util import asyncio_run
 
 from tests.util.mocks import (
     ConstantData,
@@ -27,18 +25,6 @@ from tests.util.mocks import (
     get_req_headers,
     set_req_headers
 )
-
-
-def asyncio_run(async_func):
-    def wrapper(*args, **kwargs):
-        try:
-            return asyncio.run(async_func(*args, **kwargs))
-        except Exception as e:
-            print(traceback.format_exc(), file=sys.stderr)
-            raise e
-
-    wrapper.__signature__ = inspect.signature(async_func)
-    return wrapper
 
 
 def case_insensitive_header_lookup(headers, lkey):
