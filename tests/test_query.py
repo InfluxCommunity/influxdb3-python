@@ -437,6 +437,10 @@ Aw==
             # fibo started after query_async
             assert events['query_start'] < events['fibo_start'], (f"query_start: {events['query_start']} should start "
                                                                   f"before fibo_start: {events['fibo_start']}")
+            # fibo started before query_async ends - i.e. query_async did not block it
+            assert events['query_result'] > events['fibo_start'], (f"query_result: {events['query_result']} should "
+                                                                   f"occur after fibo_start: {events['fibo_start']}")
+
             # fibo ended before query_async
             assert events['query_result'] > events['fibo_end'], (f"query_result: {events['query_result']} should occur "
                                                                  f"after fibo_end: {events['fibo_end']}")
