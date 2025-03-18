@@ -1,32 +1,28 @@
 import asyncio
 import inspect
 import unittest
-import struct
 import os
 import json
 from unittest.mock import Mock, ANY
 
-from pyarrow import (
-    array,
-    concat_tables,
-    Table
-)
-
 from pyarrow.flight import (
     FlightClient,
-    FlightServerBase,
-    FlightUnauthenticatedError,
-    GeneratorStream,
-    RecordBatchStream,
-    ServerMiddleware,
-    ServerMiddlewareFactory,
-    ServerAuthHandler,
     Ticket
 )
 
 from influxdb_client_3 import InfluxDBClient3
 from influxdb_client_3.query.query_api import QueryApiOptionsBuilder, QueryApi
 from influxdb_client_3.version import USER_AGENT
+
+from tests.util.mocks import (
+    ConstantData,
+    ConstantFlightServer,
+    HeaderCheckFlightServer,
+    HeaderCheckServerMiddlewareFactory,
+    NoopAuthHandler,
+    get_req_headers,
+    set_req_headers
+)
 
 
 def asyncio_run(async_func):
@@ -46,76 +42,12 @@ def case_insensitive_header_lookup(headers, lkey):
             return headers.get(key)
 
 
-class NoopAuthHandler(ServerAuthHandler):
-    """A no-op auth handler - as seen in pyarrow tests"""
-
-    def authenticate(self, outgoing, incoming):
-        """Do nothing"""
-
-    def is_valid(self, token):
-        """
-        Return an empty string
-        N.B. Returning None causes Type error
-        :param token:
-        :return:
-        """
-        return ""
-
-
-_req_headers = {}
-
-
-class HeaderCheckServerMiddlewareFactory(ServerMiddlewareFactory):
-    """Factory to create HeaderCheckServerMiddleware and check header values"""
-    def start_call(self, info, headers):
-        auth_header = case_insensitive_header_lookup(headers, "Authorization")
-        values = auth_header[0].split(' ')
-        if values[0] != 'Bearer':
-            raise FlightUnauthenticatedError("Token required")
-        global _req_headers
-        _req_headers = headers
-        return HeaderCheckServerMiddleware(values[1])
-
-
-class HeaderCheckServerMiddleware(ServerMiddleware):
-    """
-    Middleware needed to catch request headers via factory
-    N.B. As found in pyarrow tests
-    """
-    def __init__(self, token, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.token = token
-
-    def sending_headers(self):
-        return {'authorization': 'Bearer ' + self.token}
-
-
-class HeaderCheckFlightServer(FlightServerBase):
-    """Mock server handle gRPC do_get calls"""
-    def do_get(self, context, ticket):
-        """Return something to avoid needless errors"""
-        data = [
-            array([b"Vltava", struct.pack('<i', 105), b"FM"])
-        ]
-        table = Table.from_arrays(data, names=['a'])
-        return GeneratorStream(
-            table.schema,
-            self.number_batches(table),
-            options={})
-
-    @staticmethod
-    def number_batches(table):
-        for idx, batch in enumerate(table.to_batches()):
-            buf = struct.pack('<i', idx)
-            yield batch, buf
-
-
 def test_influx_default_query_headers():
     with HeaderCheckFlightServer(
             auth_handler=NoopAuthHandler(),
             middleware={"check": HeaderCheckServerMiddlewareFactory()}) as server:
         global _req_headers
-        _req_headers = {}
+        set_req_headers({})
         client = InfluxDBClient3(
             host=f'http://localhost:{server.port}',
             org='test_org',
@@ -123,10 +55,11 @@ def test_influx_default_query_headers():
             token='TEST_TOKEN'
         )
         client.query('SELECT * FROM test')
+        _req_headers = get_req_headers()
         assert len(_req_headers) > 0
         assert _req_headers['authorization'][0] == "Bearer TEST_TOKEN"
         assert _req_headers['user-agent'][0].find(USER_AGENT) > -1
-        _req_headers = {}
+        set_req_headers({})
 
 
 class TestQuery(unittest.TestCase):
@@ -351,7 +284,7 @@ Aw==
                 q_api._flight_client_options['generic_options'])
 
     def test_prepare_query(self):
-        global _req_headers
+        set_req_headers({})
         token = 'my_token'
         q_api = QueryApi(
             connection_string="grpc+tls://my-server.org",
@@ -378,8 +311,9 @@ Aw==
                 middleware={"check": HeaderCheckServerMiddlewareFactory()}) as server:
             with FlightClient(('localhost', server.port)) as client:
                 client.do_get(ticket, options)
+                _req_headers = get_req_headers()
                 assert _req_headers['authorization'] == [f"Bearer {token}"]
-                _req_headers = {}
+                set_req_headers({})
 
     @asyncio_run
     async def test_query_async_pandas(self):
@@ -436,50 +370,3 @@ Aw==
             assert {'data': 'database', 'reference': 'my_database', 'value': -1.0} in result_list
             assert {'data': 'sql_query', 'reference': 'SELECT * FROM data', 'value': -1.0} in result_list
             assert {'data': 'query_type', 'reference': 'sql', 'value': -1.0} in result_list
-
-
-class ConstantData:
-
-    def __init__(self):
-        self.data = [
-            array(['temp', 'temp', 'temp']),
-            array(['kitchen', 'common', 'foyer']),
-            array([36.9, 25.7, 9.8])
-        ]
-        self.names = ['data', 'reference', 'value']
-
-    def to_tuples(self):
-        response = []
-        for n in range(3):
-            response.append((self.data[0][n].as_py(), self.data[1][n].as_py(), self.data[2][n].as_py()))
-        return response
-
-    def to_list(self):
-        response = []
-        for it in range(len(self.data[0])):
-            item = {}
-            for o in range(len(self.names)):
-                item[self.names[o]] = self.data[o][it].as_py()
-            response.append(item)
-        return response
-
-
-class ConstantFlightServer(FlightServerBase):
-
-    def __init__(self, location=None, options=None, **kwargs):
-        super().__init__(location, **kwargs)
-        self.cd = ConstantData()
-        self.options = options
-
-    # respond with Constant Data plus fields from ticket
-    def do_get(self, context, ticket):
-        result_table = Table.from_arrays(self.cd.data, names=self.cd.names)
-        tkt = json.loads(ticket.ticket.decode('utf-8'))
-        for key in tkt.keys():
-            tkt_data = [
-                array([key]),
-                array([tkt[key]]),
-                array([-1.0])
-            ]
-            result_table = concat_tables([result_table, Table.from_arrays(tkt_data, names=self.cd.names)])
-        return RecordBatchStream(result_table, options=self.options)
