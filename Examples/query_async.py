@@ -78,7 +78,7 @@ async def main():
     write_data(client, measurement)
 
     # run both coroutines simultaneously
-    result = await asyncio.gather(fibio(10, 0.2),query_data(client, measurement))
+    result = await asyncio.gather(fibio(10, 0.2), query_data(client, measurement))
     print(f"fibio sequence = {result[0]}")
     print(f"data set =\n{result[1]}")
 

@@ -2,6 +2,10 @@
 
 ## 0.12.0 [unreleased] 
 
+### Features
+
+1. [123](https://github.com/InfluxCommunity/influxdb3-python/pull/123): Introduces `query_async` method.
+
 ### Bug Fixes
 
 1. [#121](https://github.com/InfluxCommunity/influxdb3-python/pull/121): Fix use of arguments `verify_ssl` and `ssl_ca_cert` in `QueryApi`.
