@@ -38,23 +38,34 @@ def lp_to_py_object(lp: str):
         result[t_set[0]] = t_set[1]
 
     fields = groups[1].split(',')
+
+    def check_bool(token):
+        if token.lower()[0] == 't':
+            return True
+        return False
+
+    parse_field_val = {
+        'i': lambda s: int(s.replace('i', '')),
+        'u': lambda s: int(s.replace('u', '')),
+        '\"': lambda s: s.replace('"', ''),
+        'e': lambda s: check_bool(s),
+        'E': lambda s: check_bool(s),
+        't': lambda s: check_bool(s),
+        'T': lambda s: check_bool(s),
+        'f': lambda s: check_bool(s),
+        'F': lambda s: check_bool(s),
+        'd': lambda s: float(s)
+    }
+
     for field in fields:
         f_set = field.split('=')
-        lastchar = f_set[1][len(f_set[1]) - 1]
-        match lastchar:
-            case 'i': # integer
-                result[f_set[0]] = int(f_set[1].replace('i',''))
-            case 'u': # unsigned integer
-                result[f_set[0]] = int(f_set[1].replace('u',''))
-            case '"': # string
-                result[f_set[0]] = f_set[1].replace('"',"")
-            case 'e' | 'E' | 't' | 'T' | 'f' | 'F':
-                if f_set[1][0].lower() == 't':
-                    result[f_set[0]] = True
-                else:
-                    result[f_set[0]] = False
-            case _: # assume float
-                result[f_set[0]] = float(f_set[1])
+        last_char = f_set[1][len(f_set[1]) - 1]
+        if last_char in '0123456789':
+            last_char = 'd'
+        if last_char in parse_field_val.keys():
+            result[f_set[0]] = parse_field_val[last_char](f_set[1])
+        else:
+            result[f_set[0]] = None
 
     result['time'] = pandas.Timestamp(int(groups[2]))
     return result
