@@ -8,6 +8,22 @@ import pandas
 
 
 def asyncio_run(async_func):
+    """
+    Fixture for running tests asynchronously
+
+    Example
+
+    .. sourcecode:: python
+
+    @asyncio_run
+    async def test_my_feature(self):
+        asyncio.sleep(1)
+        print("waking...")
+        ...
+
+    :param async_func:
+    :return:
+    """
     def wrapper(*args, **kwargs):
         try:
             return asyncio.run(async_func(*args, **kwargs))

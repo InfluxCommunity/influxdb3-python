@@ -172,6 +172,21 @@ class QueryApi(object):
             raise e
 
     async def query_async(self, query: str, language: str, mode: str, database: str, **kwargs):
+        """Query data from InfluxDB asynchronously.
+
+        Wraps internal FlightClient.doGet call in its own executor, so that the event_loop will not be blocked.
+
+        :param query: The query to execute on the database.
+        :param language: The query language.
+        :param mode: The mode to use for the query.
+             It should be one of "all", "pandas", "polars", "chunk", "reader" or "schema".
+        :param database: The database to query from.
+        :param kwargs: Additional arguments to pass to the ``FlightCallOptions headers``.
+               For example, it can be used to set up per request headers.
+        :keyword query_parameters: The query parameters to use in the query.
+                           It should be a ``dictionary`` of key-value pairs.
+        :return: The query result in the specified mode.
+        """
         try:
             ticket, options = self._prepare_query(query, language, database, **kwargs)
             loop = asyncio.get_running_loop()
