@@ -240,7 +240,7 @@ Aw==
 
         assert ('opt1', 'opt1 in args') in q_api._flight_client_options['generic_options']
         assert ('optA', 'A in options') in q_api._flight_client_options['generic_options']
-        assert (('grpc.secondary_user_agent', 'influxdb3-python/0.12.0dev0') in
+        assert (('grpc.secondary_user_agent', USER_AGENT) in
                 q_api._flight_client_options['generic_options'])
 
     def test_override_secondary_user_agent_args(self):
@@ -253,7 +253,7 @@ Aw==
         )
 
         assert ('grpc.secondary_user_agent', 'my_custom_user_agent') in q_api._flight_client_options['generic_options']
-        assert not (('grpc.secondary_user_agent', 'influxdb3-python/0.12.0dev0') in
+        assert not (('grpc.secondary_user_agent', USER_AGENT) in
                     q_api._flight_client_options['generic_options'])
 
     def test_secondary_user_agent_in_options(self):
@@ -274,7 +274,7 @@ Aw==
 
         assert ('optA', 'A in options') in q_api._flight_client_options['generic_options']
         assert ('grpc.secondary_user_agent', 'my_custom_user_agent') in q_api._flight_client_options['generic_options']
-        assert (('grpc.secondary_user_agent', 'influxdb3-python/0.12.0dev0') not in
+        assert (('grpc.secondary_user_agent', USER_AGENT) not in
                 q_api._flight_client_options['generic_options'])
 
     def test_prepare_query(self):
