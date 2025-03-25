@@ -4,7 +4,12 @@
 
 ### Features
 
-1. [123](https://github.com/InfluxCommunity/influxdb3-python/pull/123): Introduces `query_async` method.
+1. [#123](https://github.com/InfluxCommunity/influxdb3-python/pull/123): Introduces `query_async()` method. From this release the client now has a `query_async()` method that takes advantage of asyncio's event loop to run query calls in their own executor.
+
+For example:
+```python
+    table = await client.query_async(query)
+```
 
 ### Bug Fixes
 
