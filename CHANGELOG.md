@@ -1,6 +1,6 @@
 # Change Log
 
-## 0.12.0 [unreleased] 
+## 0.12.0 [2025-03-26] 
 
 ### Features
 
