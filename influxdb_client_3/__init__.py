@@ -278,6 +278,39 @@ class InfluxDBClient3:
         except InfluxDBError as e:
             raise e
 
+    async def query_async(self, query: str, language: str = "sql", mode: str = "all", database: str = None, **kwargs):
+        """Query data from InfluxDB asynchronously.
+
+        If you want to use query parameters, you can pass them as kwargs:
+
+        >>> await client.query_async("select * from cpu where host=$host", query_parameters={"host": "server01"})
+
+        :param query: The query to execute on the database.
+        :param language: The query language to use. It should be one of "influxql" or "sql". Defaults to "sql".
+        :param mode: The mode to use for the query. It should be one of "all", "pandas", "polars", "chunk",
+                     "reader" or "schema". Defaults to "all".
+        :param database: The database to query from. If not provided, uses the database provided during initialization.
+        :param kwargs: Additional arguments to pass to the ``FlightCallOptions headers``. For example, it can be used to
+                       set up per request headers.
+        :keyword query_parameters: The query parameters to use in the query.
+                                   It should be a ``dictionary`` of key-value pairs.
+        :return: The query result in the specified mode.
+        """
+        if mode == "polars" and polars is False:
+            raise ImportError("Polars is not installed. Please install it with `pip install polars`.")
+
+        if database is None:
+            database = self._database
+
+        try:
+            return await self._query_api.query_async(query=query,
+                                                     language=language,
+                                                     mode=mode,
+                                                     database=database,
+                                                     **kwargs)
+        except InfluxDBError as e:
+            raise e
+
     def close(self):
         """Close the client and clean up resources."""
         self._write_api.close()

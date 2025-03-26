@@ -1,26 +1,30 @@
+import asyncio
+import time
 import unittest
-import struct
 import os
+import json
 from unittest.mock import Mock, ANY
 
-from pyarrow import (
-    array,
-    Table
-)
-
 from pyarrow.flight import (
-    FlightServerBase,
-    FlightUnauthenticatedError,
-    GeneratorStream,
-    ServerMiddleware,
-    ServerMiddlewareFactory,
-    ServerAuthHandler,
+    FlightClient,
     Ticket
 )
 
 from influxdb_client_3 import InfluxDBClient3
 from influxdb_client_3.query.query_api import QueryApiOptionsBuilder, QueryApi
 from influxdb_client_3.version import USER_AGENT
+from tests.util import asyncio_run
+
+from tests.util.mocks import (
+    ConstantData,
+    ConstantFlightServer,
+    ConstantFlightServerDelayed,
+    HeaderCheckFlightServer,
+    HeaderCheckServerMiddlewareFactory,
+    NoopAuthHandler,
+    get_req_headers,
+    set_req_headers
+)
 
 
 def case_insensitive_header_lookup(headers, lkey):
@@ -32,76 +36,12 @@ def case_insensitive_header_lookup(headers, lkey):
             return headers.get(key)
 
 
-class NoopAuthHandler(ServerAuthHandler):
-    """A no-op auth handler - as seen in pyarrow tests"""
-
-    def authenticate(self, outgoing, incoming):
-        """Do nothing"""
-
-    def is_valid(self, token):
-        """
-        Return an empty string
-        N.B. Returning None causes Type error
-        :param token:
-        :return:
-        """
-        return ""
-
-
-_req_headers = {}
-
-
-class HeaderCheckServerMiddlewareFactory(ServerMiddlewareFactory):
-    """Factory to create HeaderCheckServerMiddleware and check header values"""
-    def start_call(self, info, headers):
-        auth_header = case_insensitive_header_lookup(headers, "Authorization")
-        values = auth_header[0].split(' ')
-        if values[0] != 'Bearer':
-            raise FlightUnauthenticatedError("Token required")
-        global _req_headers
-        _req_headers = headers
-        return HeaderCheckServerMiddleware(values[1])
-
-
-class HeaderCheckServerMiddleware(ServerMiddleware):
-    """
-    Middleware needed to catch request headers via factory
-    N.B. As found in pyarrow tests
-    """
-    def __init__(self, token, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.token = token
-
-    def sending_headers(self):
-        return {'authorization': 'Bearer ' + self.token}
-
-
-class HeaderCheckFlightServer(FlightServerBase):
-    """Mock server handle gRPC do_get calls"""
-    def do_get(self, context, ticket):
-        """Return something to avoid needless errors"""
-        data = [
-            array([b"Vltava", struct.pack('<i', 105), b"FM"])
-        ]
-        table = Table.from_arrays(data, names=['a'])
-        return GeneratorStream(
-            table.schema,
-            self.number_batches(table),
-            options={})
-
-    @staticmethod
-    def number_batches(table):
-        for idx, batch in enumerate(table.to_batches()):
-            buf = struct.pack('<i', idx)
-            yield batch, buf
-
-
 def test_influx_default_query_headers():
     with HeaderCheckFlightServer(
             auth_handler=NoopAuthHandler(),
             middleware={"check": HeaderCheckServerMiddlewareFactory()}) as server:
         global _req_headers
-        _req_headers = {}
+        set_req_headers({})
         client = InfluxDBClient3(
             host=f'http://localhost:{server.port}',
             org='test_org',
@@ -109,10 +49,11 @@ def test_influx_default_query_headers():
             token='TEST_TOKEN'
         )
         client.query('SELECT * FROM test')
+        _req_headers = get_req_headers()
         assert len(_req_headers) > 0
         assert _req_headers['authorization'][0] == "Bearer TEST_TOKEN"
         assert _req_headers['user-agent'][0].find(USER_AGENT) > -1
-        _req_headers = {}
+        set_req_headers({})
 
 
 class TestQuery(unittest.TestCase):
@@ -282,3 +223,210 @@ Aw==
             assert dict(fc_opts['generic_options'])['grpc.http_proxy'] == proxy
         finally:
             self.remove_cert_file(cert_name)
+
+    def test_multiple_flight_client_options(self):
+
+        q_opts = QueryApiOptionsBuilder().flight_client_options({
+            'generic_options': [('optA', 'A in options')]
+        }).build()
+
+        q_api = QueryApi(
+            connection_string="grpc+tls://my-server.org",
+            token='my_token',
+            flight_client_options={"generic_options": [('opt1', 'opt1 in args')]},
+            proxy=None,
+            options=q_opts
+        )
+
+        assert ('opt1', 'opt1 in args') in q_api._flight_client_options['generic_options']
+        assert ('optA', 'A in options') in q_api._flight_client_options['generic_options']
+        assert (('grpc.secondary_user_agent', USER_AGENT) in
+                q_api._flight_client_options['generic_options'])
+
+    def test_override_secondary_user_agent_args(self):
+        q_api = QueryApi(
+            connection_string="grpc+tls://my-server.org",
+            token='my_token',
+            flight_client_options={"generic_options": [('grpc.secondary_user_agent', 'my_custom_user_agent')]},
+            proxy=None,
+            options=None
+        )
+
+        assert ('grpc.secondary_user_agent', 'my_custom_user_agent') in q_api._flight_client_options['generic_options']
+        assert not (('grpc.secondary_user_agent', USER_AGENT) in
+                    q_api._flight_client_options['generic_options'])
+
+    def test_secondary_user_agent_in_options(self):
+        q_opts = QueryApiOptionsBuilder().flight_client_options({
+            'generic_options': [
+                ('optA', 'A in options'),
+                ('grpc.secondary_user_agent', 'my_custom_user_agent')
+            ]
+        }).build()
+
+        q_api = QueryApi(
+            connection_string="grpc+tls://my-server.org",
+            token='my_token',
+            flight_client_options=None,
+            proxy=None,
+            options=q_opts
+        )
+
+        assert ('optA', 'A in options') in q_api._flight_client_options['generic_options']
+        assert ('grpc.secondary_user_agent', 'my_custom_user_agent') in q_api._flight_client_options['generic_options']
+        assert (('grpc.secondary_user_agent', USER_AGENT) not in
+                q_api._flight_client_options['generic_options'])
+
+    def test_prepare_query(self):
+        set_req_headers({})
+        token = 'my_token'
+        q_api = QueryApi(
+            connection_string="grpc+tls://my-server.org",
+            token=token,
+            flight_client_options={"generic_options": [('Foo', 'Bar')]},
+            proxy=None,
+            options=None
+        )
+
+        query = "SELECT * FROM sensors"
+        language = "sql"
+        database = "my_database"
+
+        ticket, options = q_api._prepare_query(query=query,
+                                               language=language,
+                                               database=database)
+        tkt = json.loads(ticket.ticket.decode('utf-8'))
+        assert tkt['database'] == database
+        assert tkt['sql_query'] == query
+        assert tkt['query_type'] == language
+
+        with HeaderCheckFlightServer(
+                auth_handler=NoopAuthHandler(),
+                middleware={"check": HeaderCheckServerMiddlewareFactory()}) as server:
+            with FlightClient(('localhost', server.port)) as client:
+                client.do_get(ticket, options)
+                _req_headers = get_req_headers()
+                assert _req_headers['authorization'] == [f"Bearer {token}"]
+                set_req_headers({})
+
+    @asyncio_run
+    async def test_query_async_pandas(self):
+        with ConstantFlightServer() as server:
+            connection_string = f"grpc://localhost:{server.port}"
+            token = "my_token"
+            database = "my_database"
+            q_api = QueryApi(
+                connection_string=connection_string,
+                token=token,
+                flight_client_options={"generic_options": [('Foo', 'Bar')]},
+                proxy=None,
+                options=None
+            )
+
+            query = "SELECT * FROM data"
+            pndf = await q_api.query_async(query, "sql", "pandas", database)
+
+            cd = ConstantData()
+            numpy_array = pndf.T.to_numpy()
+            tuples = []
+            for n in range(len(numpy_array[0])):
+                tuples.append((numpy_array[0][n], numpy_array[1][n], numpy_array[2][n]))
+
+            for constant in cd.to_tuples():
+                assert constant in tuples
+
+            assert ('sql_query', query, -1.0) in tuples
+            assert ('database', database, -1.0) in tuples
+            assert ('query_type', 'sql', -1.0) in tuples
+
+    @asyncio_run
+    async def test_query_async_table(self):
+        with ConstantFlightServer() as server:
+            connection_string = f"grpc://localhost:{server.port}"
+            token = "my_token"
+            database = "my_database"
+            q_api = QueryApi(
+                connection_string=connection_string,
+                token=token,
+                flight_client_options={"generic_options": [('Foo', 'Bar')]},
+                proxy=None,
+                options=None
+            )
+            query = "SELECT * FROM data"
+            table = await q_api.query_async(query, "sql", "", database)
+
+            cd = ConstantData()
+
+            result_list = table.to_pylist()
+            for item in cd.to_list():
+                assert item in result_list
+
+            assert {'data': 'database', 'reference': 'my_database', 'value': -1.0} in result_list
+            assert {'data': 'sql_query', 'reference': 'SELECT * FROM data', 'value': -1.0} in result_list
+            assert {'data': 'query_type', 'reference': 'sql', 'value': -1.0} in result_list
+
+    @asyncio_run
+    async def test_query_async_delayed(self):
+        events = dict()
+        with ConstantFlightServerDelayed(delay=1) as server:
+            connection_string = f"grpc://localhost:{server.port}"
+            token = "my_token"
+            database = "my_database"
+            q_api = QueryApi(
+                connection_string=connection_string,
+                token=token,
+                flight_client_options={"generic_options": [('Foo', 'Bar')]},
+                proxy=None,
+                options=None
+            )
+            query = "SELECT * FROM data"
+
+            # coroutine to handle query_async
+            async def local_query(query_api):
+                events['query_start'] = time.time_ns()
+                t_result = await query_api.query_async(query, "sql", "", database)
+                # t_result = query_api.query(query, "sql", "", database)
+                events['query_result'] = time.time_ns()
+                return t_result
+
+            # second coroutine to run in "parallel"
+            async def fibo(iters):
+                events['fibo_start'] = time.time_ns()
+                await asyncio.sleep(0.5)
+                n0 = 1
+                n1 = 1
+                result = n1 + n0
+                for _ in range(iters):
+                    n0 = n1
+                    n1 = result
+                    result = n1 + n0
+                events['fibo_end'] = time.time_ns()
+                return result
+
+            results = await asyncio.gather(local_query(q_api), fibo(50))
+
+            table = results[0]
+            fibo_num = results[1]
+
+            # verify fibo calculation
+            assert fibo_num == 53316291173
+
+            # verify constant data
+            cd = ConstantData()
+
+            result_list = table.to_pylist()
+            for item in cd.to_list():
+                assert item in result_list
+
+            # verify that fibo coroutine was processed while query_async was processing
+            # i.e. query call does not block event_loop
+            # fibo started after query_async
+            assert events['query_start'] < events['fibo_start'], (f"query_start: {events['query_start']} should start "
+                                                                  f"before fibo_start: {events['fibo_start']}")
+            # fibo started before query_async ends - i.e. query_async did not block it
+            assert events['query_result'] > events['fibo_start'], (f"query_result: {events['query_result']} should "
+                                                                   f"occur after fibo_start: {events['fibo_start']}")
+
+            # fibo ended before query_async
+            assert events['query_result'] > events['fibo_end'], (f"query_result: {events['query_result']} should occur "
+                                                                 f"after fibo_end: {events['fibo_end']}")

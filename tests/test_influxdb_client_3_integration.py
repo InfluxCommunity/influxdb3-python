@@ -10,6 +10,7 @@ import pytest
 from pyarrow._flight import FlightError
 
 from influxdb_client_3 import InfluxDBClient3, InfluxDBError, write_client_options, WriteOptions
+from tests.util import asyncio_run, lp_to_py_object
 
 
 def random_hex(len=6):
@@ -249,3 +250,27 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
                 assert len(list_results) > 0
             finally:
                 self.remove_test_cert(cert_file)
+
+    @asyncio_run
+    async def test_verify_query_async(self):
+        measurement = f'test{random_hex(6)}'
+        data = []
+        lp_template = "%s,location=%s val=%f,ival=%di,index=%di %d"
+        data_size = 10
+        interval = 1_000_000_000 * 10
+        ts = time.time_ns() - interval * data_size
+        locations = ['springfield', 'gotham', 'balbec', 'yonville']
+        for i in range(data_size):
+            data.append(lp_template % (measurement, locations[random.randint(0, len(locations) - 1)],
+                                       random.random() * 10,
+                                       random.randint(0, 6), i, ts))
+            ts = ts + interval
+
+        self.client.write(data)
+        query = f"SELECT * FROM \"{measurement}\" ORDER BY time DESC"
+
+        result = await self.client.query_async(query)
+
+        result_list = result.to_pylist()
+        for item in data:
+            assert lp_to_py_object(item) in result_list, f"original lp data \"{item}\" should be in result list"
