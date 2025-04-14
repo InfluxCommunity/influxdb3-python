@@ -1,6 +1,7 @@
 import importlib.util
+import time
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, ANY
 
 from influxdb_client_3 import PointSettings, InfluxDBClient3, write_client_options, WriteOptions
 from influxdb_client_3.write_client import WriteService
@@ -86,6 +87,12 @@ class TestWritePolars(unittest.TestCase):
             data_frame_timestamp_column="time",
         )
 
-        actual = self.client._write_api._write_service.post_write.call_args[1]['body']
-        self.assertEqual(b'measurement temperature=22.4 1722470400000000000\n'
-                         b'measurement temperature=21.8 1722474000000000000', actual)
+        time.sleep(0.5)
+        self.client._write_api._write_service.post_write.assert_called_once_with(
+            org=ANY,
+            bucket=ANY,
+            precision=ANY,
+            async_req=ANY,
+            content_type=ANY,
+            urlopen_kw=ANY,
+            body=b'measurement temperature=22.4 1722470400000000000\nmeasurement temperature=21.8 1722474000000000000')
