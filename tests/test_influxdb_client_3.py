@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from influxdb_client_3 import InfluxDBClient3
+from influxdb_client_3 import InfluxDBClient3, from_env
 from tests.util import asyncio_run
 from tests.util.mocks import ConstantFlightServer, ConstantData
 
@@ -74,6 +74,40 @@ class TestInfluxDBClient3(unittest.TestCase):
             assert {'data': 'sql_query', 'reference': query, 'value': -1.0} in result_list
             assert {'data': 'query_type', 'reference': 'sql', 'value': -1.0} in result_list
 
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_ORG': 'test_org'})
+    def test_from_env_all_env_vars_set(self):
+        client = from_env()
+        self.assertIsInstance(client, InfluxDBClient3)
+        self.assertEqual(client._client.url, "https://localhost:443")
+        self.assertEqual(client._database, "test_db")
+        self.assertEqual(client._org, "test_org")
+        self.assertEqual(client._token, "test_token")
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_DATABASE': 'test_db'})
+    def test_from_env_partial_env_vars_set(self):
+        client = from_env()
+        self.assertIsInstance(client, InfluxDBClient3)
+        self.assertEqual(client._client.url, "https://localhost:443")
+        self.assertEqual(client._database, "test_db")
+        self.assertEqual(client._org, "default")
+        self.assertIsNone(client._token)
+
+    @patch.dict('os.environ', {}, clear=True)
+    def test_from_env_no_env_vars_set(self):
+        client = from_env()
+        self.assertIsInstance(client, InfluxDBClient3)
+        self.assertIsNotNone(client._client.url)
+        self.assertIsNone(client._database)
+        self.assertIsNone(client._token)
+        self.assertEqual(client._org, "default")
+
+    def test_from_env_with_kargs(self):
+        client = from_env(
+            write_client_options = write_client_options(batch_size=10000),
+        )
+        self.assertIsInstance(client, InfluxDBClient3)
+        self.assertEqual(client._write_client_options['batch_size'], 10000)
 
 if __name__ == '__main__':
     unittest.main()

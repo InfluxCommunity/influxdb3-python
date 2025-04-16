@@ -4,12 +4,13 @@ import random
 import string
 import time
 import unittest
+from unittest.mock import patch
 
 import pyarrow
 import pytest
 from pyarrow._flight import FlightError
 
-from influxdb_client_3 import InfluxDBClient3, InfluxDBError, write_client_options, WriteOptions
+from influxdb_client_3 import InfluxDBClient3, InfluxDBError, write_client_options, WriteOptions, from_env
 from tests.util import asyncio_run, lp_to_py_object
 
 
@@ -274,3 +275,20 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         result_list = result.to_pylist()
         for item in data:
             assert lp_to_py_object(item) in result_list, f"original lp data \"{item}\" should be in result list"
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'https://us-east-1-1.aws.cloud2.influxdata.com',
+                               'INFLUX_TOKEN': 'lDAtMRmhnLp5GjWNVBsieufUb66XZAPxvX3etlmi9wmeq7ispWoL06mwnxmY_BtHKoBhG4lR-c7WfrFgUXy15w==',
+                               'INFLUX_DATABASE': 'bucket0'})
+    def test_from_env(self):
+        c = from_env()
+        with c:
+            id_test = time.time_ns()
+            c.write(f"integration_test_python,type=used value=123.0,id_test={id_test}i")
+
+            sql = 'SELECT * FROM integration_test_python where type=$type and id_test=$id_test'
+            data = c.query(sql, mode="pandas", query_parameters={'type': 'used', 'id_test': id_test})
+
+            self.assertIsNotNone(data)
+            self.assertEqual(1, len(data))
+            self.assertEqual(id_test, data['id_test'][0])
+            self.assertEqual(123.0, data['value'][0])

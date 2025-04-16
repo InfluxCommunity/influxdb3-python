@@ -1,3 +1,4 @@
+import os
 import urllib.parse
 import pyarrow as pa
 import importlib.util
@@ -45,6 +46,32 @@ def file_parser_options(**kwargs):
     :return: dict with the arguments.
     """
     return kwargs
+
+
+def from_env(**kwargs):
+    """
+    Create an instance of `InfluxDBClient3` using environment variables for configuration.
+
+    This function retrieves the following environment variables:
+      - `INFLUX_HOST`: The hostname or IP address of the InfluxDB server.
+      - `INFLUX_TOKEN`: The authentication token used for accessing the server.
+      - `INFLUX_DATABASE`: The default database for the client operations.
+      - `INFLUX_ORG`: The organization associated with InfluxDB operations.
+
+    If any of these variables are not set, their respective parameters will
+    default to `None`.
+
+    :param kwargs: Additional keyword arguments that will be passed to the
+                   `InfluxDBClient3` constructor for customization.
+    :return: An initialized `InfluxDBClient3` instance.
+    """
+    
+    host = os.getenv("INFLUX_HOST")
+    token = os.getenv("INFLUX_TOKEN")
+    database = os.getenv("INFLUX_DATABASE")
+    org = os.getenv("INFLUX_ORG")
+
+    return InfluxDBClient3(host=host, token=token, database=database, org=org, **kwargs)
 
 
 def _deep_merge(target, source):
