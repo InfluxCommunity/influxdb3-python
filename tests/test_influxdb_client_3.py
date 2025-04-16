@@ -104,10 +104,11 @@ class TestInfluxDBClient3(unittest.TestCase):
 
     def test_from_env_with_kargs(self):
         client = from_env(
-            write_client_options = write_client_options(batch_size=10000),
+            write_client_options=write_client_options(batch_size=10000),
         )
         self.assertIsInstance(client, InfluxDBClient3)
         self.assertEqual(client._write_client_options['batch_size'], 10000)
+
 
 if __name__ == '__main__':
     unittest.main()
