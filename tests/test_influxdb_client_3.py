@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from influxdb_client_3 import InfluxDBClient3, from_env
+from influxdb_client_3 import InfluxDBClient3, from_env, write_client_options
 from tests.util import asyncio_run
 from tests.util.mocks import ConstantFlightServer, ConstantData
 

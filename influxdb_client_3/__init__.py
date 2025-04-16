@@ -65,7 +65,6 @@ def from_env(**kwargs):
                    `InfluxDBClient3` constructor for customization.
     :return: An initialized `InfluxDBClient3` instance.
     """
-    
     host = os.getenv("INFLUX_HOST")
     token = os.getenv("INFLUX_TOKEN")
     database = os.getenv("INFLUX_DATABASE")
