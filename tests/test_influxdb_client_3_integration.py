@@ -4,7 +4,6 @@ import random
 import string
 import time
 import unittest
-from unittest.mock import patch
 
 import pyarrow
 import pytest

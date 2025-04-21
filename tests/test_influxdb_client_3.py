@@ -98,5 +98,6 @@ class TestInfluxDBClient3(unittest.TestCase):
             from_env()
         self.assertIn("Missing required environment variables", str(context.exception))
 
+
 if __name__ == '__main__':
     unittest.main()
