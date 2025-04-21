@@ -276,9 +276,6 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         for item in data:
             assert lp_to_py_object(item) in result_list, f"original lp data \"{item}\" should be in result list"
 
-    @patch.dict('os.environ', {'INFLUX_HOST': 'https://us-east-1-1.aws.cloud2.influxdata.com',
-                               'INFLUX_TOKEN': 'lDAtMRmhnLp5GjWNVBsieufUb66XZAPxvX3etlmi9wmeq7ispWoL06mwnxmY_BtHKoBhG4lR-c7WfrFgUXy15w==',
-                               'INFLUX_DATABASE': 'bucket0'})
     def test_from_env(self):
         c = from_env()
         with c:

@@ -1,6 +1,7 @@
 import importlib.util
 import os
 import urllib.parse
+from typing import Any
 
 import pyarrow as pa
 
@@ -48,8 +49,12 @@ def file_parser_options(**kwargs):
     """
     return kwargs
 
-
-def from_env(**kwargs):
+# Constants for environment variable names
+INFLUX_HOST = "INFLUX_HOST"
+INFLUX_TOKEN = "INFLUX_TOKEN"
+INFLUX_DATABASE = "INFLUX_DATABASE"
+INFLUX_ORG = "INFLUX_ORG"
+def from_env(**kwargs: Any) -> 'InfluxDBClient3':
     """
     Create an instance of `InfluxDBClient3` using environment variables for configuration.
 
@@ -57,7 +62,6 @@ def from_env(**kwargs):
       - `INFLUX_HOST`: The hostname or IP address of the InfluxDB server.
       - `INFLUX_TOKEN`: The authentication token used for accessing the server.
       - `INFLUX_DATABASE`: The default database for the client operations.
-    
     And optional environment variable:
       - `INFLUX_ORG`: The organization associated with InfluxDB operations.
                       Defaults to "default" if not set.
@@ -72,26 +76,26 @@ def from_env(**kwargs):
     :return: An initialized `InfluxDBClient3` instance.
     :raises ValueError: If any required environment variables are not set.
     """
-    
-    invalid_env_vars = []
-    host = os.getenv("INFLUX_HOST")
-    if host is None:
-        invalid_env_vars.append("INFLUX_HOST")
-    
-    token = os.getenv("INFLUX_TOKEN")
-    if token is None:
-        invalid_env_vars.append("INFLUX_TOKEN")
+    required_vars = {
+        INFLUX_HOST: os.getenv(INFLUX_HOST),
+        INFLUX_TOKEN: os.getenv(INFLUX_TOKEN),
+        INFLUX_DATABASE: os.getenv(INFLUX_DATABASE)
+    }
 
-    database = os.getenv("INFLUX_DATABASE")
-    if database is None:
-        invalid_env_vars.append("INFLUX_DATABASE")
+    missing_vars = [var for var, value in required_vars.items() if value is None or value == ""]
+    if missing_vars:
+        raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
 
-    org = os.getenv("INFLUX_ORG")
+    org = os.getenv(INFLUX_ORG, "default")
 
-    if len(invalid_env_vars) > 0:
-        raise ValueError(f"The following environment variables are None or empty: {', '.join(invalid_env_vars)}")
+    return InfluxDBClient3(
+        host=required_vars[INFLUX_HOST],
+        token=required_vars[INFLUX_TOKEN],
+        database=required_vars[INFLUX_DATABASE],
+        org=org,
+        **kwargs
+    )
 
-    return InfluxDBClient3(host=host, token=token, database=database, org=org, **kwargs)
 
 
 def _deep_merge(target, source):

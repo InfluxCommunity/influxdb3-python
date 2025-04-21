@@ -84,24 +84,6 @@ class TestInfluxDBClient3(unittest.TestCase):
         self.assertEqual(client._org, "test_org")
         self.assertEqual(client._token, "test_token")
 
-    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_DATABASE': 'test_db'})
-    def test_from_env_partial_env_vars_set(self):
-        client = from_env()
-        self.assertIsInstance(client, InfluxDBClient3)
-        self.assertEqual(client._client.url, "https://localhost:443")
-        self.assertEqual(client._database, "test_db")
-        self.assertEqual(client._org, "default")
-        self.assertIsNone(client._token)
-
-    @patch.dict('os.environ', {}, clear=True)
-    def test_from_env_no_env_vars_set(self):
-        client = from_env()
-        self.assertIsInstance(client, InfluxDBClient3)
-        self.assertIsNotNone(client._client.url)
-        self.assertIsNone(client._database)
-        self.assertIsNone(client._token)
-        self.assertEqual(client._org, "default")
-
     def test_from_env_with_kargs(self):
         client = from_env(
             write_client_options=write_client_options(batch_size=10000),
@@ -109,6 +91,12 @@ class TestInfluxDBClient3(unittest.TestCase):
         self.assertIsInstance(client, InfluxDBClient3)
         self.assertEqual(client._write_client_options['batch_size'], 10000)
 
+    @patch.dict('os.environ', {'INFLUX_HOST': "", 'INFLUX_TOKEN': "",
+                               'INFLUX_DATABASE': "", 'INFLUX_ORG': ""})
+    def test_from_env_missing_variables(self):
+        with self.assertRaises(ValueError) as context:
+            from_env()
+        self.assertIn("Missing required environment variables", str(context.exception))
 
 if __name__ == '__main__':
     unittest.main()
