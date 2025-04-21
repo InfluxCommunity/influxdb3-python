@@ -49,11 +49,14 @@ def file_parser_options(**kwargs):
     """
     return kwargs
 
+
 # Constants for environment variable names
 INFLUX_HOST = "INFLUX_HOST"
 INFLUX_TOKEN = "INFLUX_TOKEN"
 INFLUX_DATABASE = "INFLUX_DATABASE"
 INFLUX_ORG = "INFLUX_ORG"
+
+
 def from_env(**kwargs: Any) -> 'InfluxDBClient3':
     """
     Create an instance of `InfluxDBClient3` using environment variables for configuration.
@@ -95,7 +98,6 @@ def from_env(**kwargs: Any) -> 'InfluxDBClient3':
         org=org,
         **kwargs
     )
-
 
 
 def _deep_merge(target, source):
