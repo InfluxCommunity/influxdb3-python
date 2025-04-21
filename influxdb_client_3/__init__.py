@@ -1,7 +1,8 @@
+import importlib.util
 import os
 import urllib.parse
+
 import pyarrow as pa
-import importlib.util
 
 from influxdb_client_3.query.query_api import QueryApi as _QueryApi, QueryApiOptionsBuilder
 from influxdb_client_3.read_file import UploadFile
@@ -52,23 +53,43 @@ def from_env(**kwargs):
     """
     Create an instance of `InfluxDBClient3` using environment variables for configuration.
 
-    This function retrieves the following environment variables:
+    This function retrieves and validates the following required environment variables:
       - `INFLUX_HOST`: The hostname or IP address of the InfluxDB server.
       - `INFLUX_TOKEN`: The authentication token used for accessing the server.
       - `INFLUX_DATABASE`: The default database for the client operations.
+    
+    And optional environment variable:
       - `INFLUX_ORG`: The organization associated with InfluxDB operations.
+                      Defaults to "default" if not set.
 
-    If any of these variables are not set, their respective parameters will
-    default to `None`.
+    If any of the required environment variables are not set, a ValueError will be
+    raised with details about the missing variables.
 
     :param kwargs: Additional keyword arguments that will be passed to the
-                   `InfluxDBClient3` constructor for customization.
+                   `InfluxDBClient3` constructor for customization. This allows for
+                   configuring specific client behaviors like write_client_options,
+                   flight_client_options, SSL settings, etc.
     :return: An initialized `InfluxDBClient3` instance.
+    :raises ValueError: If any required environment variables are not set.
     """
+    
+    invalid_env_vars = []
     host = os.getenv("INFLUX_HOST")
+    if host is None:
+        invalid_env_vars.append("INFLUX_HOST")
+    
     token = os.getenv("INFLUX_TOKEN")
+    if token is None:
+        invalid_env_vars.append("INFLUX_TOKEN")
+
     database = os.getenv("INFLUX_DATABASE")
+    if database is None:
+        invalid_env_vars.append("INFLUX_DATABASE")
+
     org = os.getenv("INFLUX_ORG")
+
+    if len(invalid_env_vars) > 0:
+        raise ValueError(f"The following environment variables are None or empty: {', '.join(invalid_env_vars)}")
 
     return InfluxDBClient3(host=host, token=token, database=database, org=org, **kwargs)
 
