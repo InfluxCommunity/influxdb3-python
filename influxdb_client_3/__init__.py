@@ -56,6 +56,7 @@ INFLUX_TOKEN = "INFLUX_TOKEN"
 INFLUX_DATABASE = "INFLUX_DATABASE"
 INFLUX_ORG = "INFLUX_ORG"
 INFLUX_PRECISION = "INFLUX_PRECISION"
+INFLUX_AUTH_SCHEME = "INFLUX_AUTH_SCHEME"
 
 
 def from_env(**kwargs: Any) -> 'InfluxDBClient3':
@@ -93,6 +94,9 @@ def from_env(**kwargs: Any) -> 'InfluxDBClient3':
 
     org = os.getenv(INFLUX_ORG, "default")
 
+    if os.getenv(INFLUX_AUTH_SCHEME) is not None:
+        kwargs['auth_scheme'] = os.getenv(INFLUX_AUTH_SCHEME)
+    
     write_client_option = None
     if os.getenv(INFLUX_PRECISION) is not None:
         write_client_option = default_client_options(
