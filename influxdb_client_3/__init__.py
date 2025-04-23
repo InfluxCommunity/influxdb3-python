@@ -10,7 +10,7 @@ from influxdb_client_3.read_file import UploadFile
 from influxdb_client_3.write_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
 from influxdb_client_3.write_client.client.exceptions import InfluxDBError
 from influxdb_client_3.write_client.client.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, \
-    PointSettings
+    PointSettings, WriteType
 from influxdb_client_3.write_client.domain.write_precision import WritePrecision
 
 polars = importlib.util.find_spec("polars") is not None
@@ -55,9 +55,11 @@ INFLUX_HOST = "INFLUX_HOST"
 INFLUX_TOKEN = "INFLUX_TOKEN"
 INFLUX_DATABASE = "INFLUX_DATABASE"
 INFLUX_ORG = "INFLUX_ORG"
+INFLUX_PRECISION = "INFLUX_PRECISION"
 
 
 def from_env(**kwargs: Any) -> 'InfluxDBClient3':
+    
     """
     Create an instance of `InfluxDBClient3` using environment variables for configuration.
 
@@ -78,7 +80,7 @@ def from_env(**kwargs: Any) -> 'InfluxDBClient3':
                    flight_client_options, SSL settings, etc.
     :return: An initialized `InfluxDBClient3` instance.
     :raises ValueError: If any required environment variables are not set.
-    """
+    """ 
     required_vars = {
         INFLUX_HOST: os.getenv(INFLUX_HOST),
         INFLUX_TOKEN: os.getenv(INFLUX_TOKEN),
@@ -91,10 +93,17 @@ def from_env(**kwargs: Any) -> 'InfluxDBClient3':
 
     org = os.getenv(INFLUX_ORG, "default")
 
+    write_client_option = None
+    if os.getenv(INFLUX_PRECISION) is not None:
+        write_client_option = default_client_options(
+            write_options=WriteOptions(write_type=WriteType.synchronous, write_precision=os.getenv(INFLUX_PRECISION))
+        )
+
     return InfluxDBClient3(
         host=required_vars[INFLUX_HOST],
         token=required_vars[INFLUX_TOKEN],
         database=required_vars[INFLUX_DATABASE],
+        write_client_options=write_client_option,
         org=org,
         **kwargs
     )
@@ -190,7 +199,7 @@ class InfluxDBClient3:
         self._database = database
         self._token = token
         self._write_client_options = write_client_options if write_client_options is not None \
-            else default_client_options(write_options=SYNCHRONOUS)
+            else default_client_options(write_options=WriteOptions(write_type=WriteType.synchronous, write_precision=WritePrecision.NS))
 
         # Parse the host input
         parsed_url = urllib.parse.urlparse(host)
