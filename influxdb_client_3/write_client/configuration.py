@@ -49,6 +49,7 @@ class Configuration(object, metaclass=TypeWithDefault):
     Ref: https://openapi-generator.tech
     Do not edit the class manually.
     """
+    #todo: remove wrong document
 
     def __init__(self):
         """Initialize configuration."""
@@ -117,6 +118,10 @@ class Configuration(object, metaclass=TypeWithDefault):
         self.proxy_headers = None
         # Safe chars for path_param
         self.safe_chars_for_path_param = ''
+
+        # Compression settings
+        self.enable_gzip = False
+        self.gzip_threshold = None
 
     @property
     def logger_file(self):

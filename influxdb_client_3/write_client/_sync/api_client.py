@@ -120,6 +120,10 @@ class ApiClient(object):
         config = self.configuration
         self._signin(resource_path=resource_path)
 
+        gzip_threshold = config.gzip_threshold
+        enable_gzip = config.enable_gzip
+        self.should_compress = self.check_should_compress(body, gzip_threshold, enable_gzip)
+        
         # header parameters
         header_params = header_params or {}
         config.update_request_header_params(resource_path, header_params)
@@ -191,6 +195,12 @@ class ApiClient(object):
         else:
             return (return_data, response_data.status,
                     response_data.getheaders())
+
+    def check_should_compress(self, body: bytearray, gzip_threshold: int, enable_gzip: bool) -> bool:
+        body_size = len(body)
+        if enable_gzip is True or (enable_gzip is not False and (gzip_threshold and body_size >= gzip_threshold)):
+            return True
+        return False
 
     def sanitize_for_serialization(self, obj):
         """Build a JSON POST object.

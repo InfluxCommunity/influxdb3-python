@@ -96,7 +96,9 @@ def from_env(**kwargs: Any) -> 'InfluxDBClient3':
     write_options = WriteOptions(write_type=WriteType.synchronous)
 
     if os.getenv(INFLUX_GZIP_THRESHOLD) is not None:
-        write_options.gzip_threshold = int(os.getenv(INFLUX_GZIP_THRESHOLD))
+        gzip_threshold = int(os.getenv(INFLUX_GZIP_THRESHOLD))
+        write_options.enable_gzip = True
+        write_options.gzip_threshold = gzip_threshold
 
     if os.getenv(INFLUX_PRECISION) is not None:
         write_options.write_precision = os.getenv(INFLUX_PRECISION)
@@ -105,7 +107,6 @@ def from_env(**kwargs: Any) -> 'InfluxDBClient3':
 
     if os.getenv(INFLUX_AUTH_SCHEME) is not None:
         kwargs['auth_scheme'] = os.getenv(INFLUX_AUTH_SCHEME)
-
     org = os.getenv(INFLUX_ORG, "default")
 
     return InfluxDBClient3(
@@ -210,17 +211,18 @@ class InfluxDBClient3:
 
         write_type = DefaultWriteOptions['write_type']
         write_precision = DefaultWriteOptions['write_precision']
-        gzip_threshold = DefaultWriteOptions['gzip_threshold']
+        gzip_threshold = None
         if isinstance(write_client_options, dict) and write_client_options.get('write_options') is not None:
             write_opts = write_client_options['write_options']
-            write_type = getattr(write_opts, 'write_type')
-            write_precision = getattr(write_opts, 'write_precision')
+            write_type = getattr(write_opts, 'write_type', write_type)
+            write_precision = getattr(write_opts, 'write_precision', write_precision)
             gzip_threshold = getattr(write_opts, 'gzip_threshold')
 
         write_options = WriteOptions(
             write_type=write_type,
             write_precision=write_precision,
             gzip_threshold=gzip_threshold,
+            enable_gzip=kwargs.get('enable_gzip', False)
         )
 
         self._write_client_options = {
@@ -244,6 +246,8 @@ class InfluxDBClient3:
             url=f"{scheme}://{hostname}:{port}",
             token=self._token,
             org=self._org,
+            enable_gzip=write_options.enable_gzip,
+            gzip_threshold=write_options.gzip_threshold,
             **kwargs)
 
         self._write_api = _WriteApi(influxdb_client=self._client, **self._write_client_options)

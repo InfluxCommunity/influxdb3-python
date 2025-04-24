@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from influxdb_client_3 import InfluxDBClient3, from_env, WritePrecision, WriteType
+from influxdb_client_3 import InfluxDBClient3, from_env, WritePrecision, DefaultWriteOptions
 from tests.util import asyncio_run
 from tests.util.mocks import ConstantFlightServer, ConstantData
 
@@ -75,13 +75,17 @@ class TestInfluxDBClient3(unittest.TestCase):
             assert {'data': 'query_type', 'reference': 'sql', 'value': -1.0} in result_list
 
     def test_default_client(self):
-        expected_precision = WritePrecision.NS
-        expected_write_type = WriteType.synchronous
+        expected_precision = DefaultWriteOptions['write_precision']
+        expected_write_type = DefaultWriteOptions['write_type']
+        expected_gzip_threshold = None
+        expected_gzip_enabled = False
 
         def verify_client_write_options(c):
             write_options = c._write_client_options.get('write_options')
             self.assertEqual(write_options.write_precision, expected_precision)
             self.assertEqual(write_options.write_type, expected_write_type)
+            self.assertEqual(write_options.gzip_threshold, expected_gzip_threshold)
+            self.assertEqual(write_options.enable_gzip, expected_gzip_enabled)
 
             self.assertEqual(c._write_api._write_options.write_precision, expected_precision)
             self.assertEqual(c._write_api._write_options.write_type, expected_write_type)

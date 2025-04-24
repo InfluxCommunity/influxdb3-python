@@ -38,11 +38,12 @@ class WriteType(Enum):
     asynchronous = 2
     synchronous = 3
 
+DEFAULT_GZIP_THRESHOLD = 1000
 
+#todo: convert to enum
 DefaultWriteOptions = {
     'write_type': WriteType.synchronous,
-    'write_precision': WritePrecision.NS,
-    'gzip_threshold': 1000
+    'write_precision': WritePrecision.NS
 }
 
 
@@ -59,7 +60,8 @@ class WriteOptions(object):
                  exponential_base=2,
                  max_close_wait=300_000,
                  write_precision=DEFAULT_WRITE_PRECISION,
-                 gzip_threshold=1000,
+                 gzip_threshold=None,
+                 enable_gzip=False,
                  write_scheduler=ThreadPoolScheduler(max_workers=1)) -> None:
         """
         Create write api configuration.
@@ -92,6 +94,7 @@ class WriteOptions(object):
         self.max_close_wait = max_close_wait
         self.write_precision = write_precision
         self.gzip_threshold = gzip_threshold
+        self.enable_gzip = enable_gzip
 
     def to_retry_strategy(self, **kwargs):
         """
