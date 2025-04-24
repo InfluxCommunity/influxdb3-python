@@ -10,7 +10,7 @@ from influxdb_client_3.read_file import UploadFile
 from influxdb_client_3.write_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
 from influxdb_client_3.write_client.client.exceptions import InfluxDBError
 from influxdb_client_3.write_client.client.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, \
-    PointSettings, WriteType
+    PointSettings, WriteType, DefaultWriteOptions
 from influxdb_client_3.write_client.domain.write_precision import WritePrecision
 
 polars = importlib.util.find_spec("polars") is not None
@@ -57,6 +57,7 @@ INFLUX_DATABASE = "INFLUX_DATABASE"
 INFLUX_ORG = "INFLUX_ORG"
 INFLUX_PRECISION = "INFLUX_PRECISION"
 INFLUX_AUTH_SCHEME = "INFLUX_AUTH_SCHEME"
+INFLUX_GZIP_THRESHOLD = "INFLUX_GZIP_THRESHOLD"
 
 
 def from_env(**kwargs: Any) -> 'InfluxDBClient3':
@@ -92,16 +93,20 @@ def from_env(**kwargs: Any) -> 'InfluxDBClient3':
     if missing_vars:
         raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
 
-    org = os.getenv(INFLUX_ORG, "default")
+    write_options = WriteOptions(write_type=WriteType.synchronous)
+
+    if os.getenv(INFLUX_GZIP_THRESHOLD) is not None:
+        write_options.gzip_threshold = int(os.getenv(INFLUX_GZIP_THRESHOLD))
+
+    if os.getenv(INFLUX_PRECISION) is not None:
+        write_options.write_precision = os.getenv(INFLUX_PRECISION)
+
+    write_client_option = {'write_options': write_options}
 
     if os.getenv(INFLUX_AUTH_SCHEME) is not None:
         kwargs['auth_scheme'] = os.getenv(INFLUX_AUTH_SCHEME)
-    
-    write_client_option = None
-    if os.getenv(INFLUX_PRECISION) is not None:
-        write_client_option = default_client_options(
-            write_options=WriteOptions(write_type=WriteType.synchronous, write_precision=os.getenv(INFLUX_PRECISION))
-        )
+
+    org = os.getenv(INFLUX_ORG, "default")
 
     return InfluxDBClient3(
         host=required_vars[INFLUX_HOST],
@@ -202,8 +207,26 @@ class InfluxDBClient3:
         self._org = org if org is not None else "default"
         self._database = database
         self._token = token
-        self._write_client_options = write_client_options if write_client_options is not None \
-            else default_client_options(write_options=WriteOptions(write_type=WriteType.synchronous, write_precision=WritePrecision.NS))
+
+        write_type = DefaultWriteOptions['write_type']
+        write_precision = DefaultWriteOptions['write_precision']
+        gzip_threshold = DefaultWriteOptions['gzip_threshold']
+        if isinstance(write_client_options, dict) and write_client_options.get('write_options') is not None:
+            write_opts = write_client_options['write_options']
+            write_type = getattr(write_opts, 'write_type')
+            write_precision = getattr(write_opts, 'write_precision')
+            gzip_threshold = getattr(write_opts, 'gzip_threshold')
+
+        write_options = WriteOptions(
+            write_type=write_type,
+            write_precision=write_precision,
+            gzip_threshold=gzip_threshold,
+        )
+
+        self._write_client_options = {
+            "write_options": write_options,
+            **(write_client_options or {})
+        }
 
         # Parse the host input
         parsed_url = urllib.parse.urlparse(host)

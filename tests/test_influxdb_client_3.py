@@ -78,13 +78,13 @@ class TestInfluxDBClient3(unittest.TestCase):
         expected_precision = WritePrecision.NS
         expected_write_type = WriteType.synchronous
 
-        def verify_client_write_options(client):
-            write_options = client._write_client_options.get('write_options')
+        def verify_client_write_options(c):
+            write_options = c._write_client_options.get('write_options')
             self.assertEqual(write_options.write_precision, expected_precision)
             self.assertEqual(write_options.write_type, expected_write_type)
 
-            self.assertEqual(client._write_api._write_options.write_precision, expected_precision)
-            self.assertEqual(client._write_api._write_options.write_type, expected_write_type)
+            self.assertEqual(c._write_api._write_options.write_precision, expected_precision)
+            self.assertEqual(c._write_api._write_options.write_type, expected_write_type)
 
         env_client = from_env()
         verify_client_write_options(env_client)
@@ -94,7 +94,8 @@ class TestInfluxDBClient3(unittest.TestCase):
 
 
     @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
-                               'INFLUX_DATABASE': 'test_db', 'INFLUX_ORG': 'test_org', 'INFLUX_PRECISION': WritePrecision.MS})
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_ORG': 'test_org', 'INFLUX_PRECISION': WritePrecision.MS,
+                               'INFLUX_GZIP_THRESHOLD': '2000'})
     def test_from_env_all_env_vars_set(self):
         client = from_env()
         self.assertIsInstance(client, InfluxDBClient3)
@@ -102,7 +103,11 @@ class TestInfluxDBClient3(unittest.TestCase):
         self.assertEqual(client._database, "test_db")
         self.assertEqual(client._org, "test_org")
         self.assertEqual(client._token, "test_token")
-        self.assertEqual(client._write_client_options.get("write_options").write_precision, WritePrecision.MS)
+
+        write_options = client._write_client_options.get("write_options")
+        self.assertEqual(write_options.write_precision, WritePrecision.MS)
+        self.assertEqual(write_options.gzip_threshold, 2000)
+
 
     @patch.dict('os.environ', {'INFLUX_HOST': "", 'INFLUX_TOKEN': "",
                                'INFLUX_DATABASE': "", 'INFLUX_ORG': ""})
