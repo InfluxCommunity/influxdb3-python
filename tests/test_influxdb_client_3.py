@@ -75,8 +75,8 @@ class TestInfluxDBClient3(unittest.TestCase):
             assert {'data': 'query_type', 'reference': 'sql', 'value': -1.0} in result_list
 
     def test_default_client(self):
-        expected_precision = DefaultWriteOptions['write_precision']
-        expected_write_type = DefaultWriteOptions['write_type']
+        expected_precision = DefaultWriteOptions.write_precision.value
+        expected_write_type = DefaultWriteOptions.write_type.value
         expected_gzip_threshold = None
         expected_gzip_enabled = False
 

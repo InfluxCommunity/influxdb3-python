@@ -209,8 +209,8 @@ class InfluxDBClient3:
         self._database = database
         self._token = token
 
-        write_type = DefaultWriteOptions['write_type']
-        write_precision = DefaultWriteOptions['write_precision']
+        write_type = DefaultWriteOptions.write_type.value
+        write_precision = DefaultWriteOptions.write_precision.value
         gzip_threshold = None
         if isinstance(write_client_options, dict) and write_client_options.get('write_options') is not None:
             write_opts = write_client_options['write_options']

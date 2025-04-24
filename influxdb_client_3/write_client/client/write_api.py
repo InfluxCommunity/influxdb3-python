@@ -41,10 +41,14 @@ class WriteType(Enum):
 DEFAULT_GZIP_THRESHOLD = 1000
 
 #todo: convert to enum
-DefaultWriteOptions = {
-    'write_type': WriteType.synchronous,
-    'write_precision': WritePrecision.NS
-}
+# DefaultWriteOptions = {
+#     'write_type': WriteType.synchronous,
+#     'write_precision': WritePrecision.NS
+# }
+class DefaultWriteOptions(Enum):
+    write_type = WriteType.synchronous
+    write_precision = WritePrecision.NS
+
 
 
 class WriteOptions(object):
