@@ -38,17 +38,13 @@ class WriteType(Enum):
     asynchronous = 2
     synchronous = 3
 
+
 DEFAULT_GZIP_THRESHOLD = 1000
 
-#todo: convert to enum
-# DefaultWriteOptions = {
-#     'write_type': WriteType.synchronous,
-#     'write_precision': WritePrecision.NS
-# }
+
 class DefaultWriteOptions(Enum):
     write_type = WriteType.synchronous
     write_precision = WritePrecision.NS
-
 
 
 class WriteOptions(object):
@@ -379,10 +375,10 @@ You can use native asynchronous version of the client:
         org = get_org_query_param(org=org, client=self._influxdb_client)
 
         self._append_default_tags(record)
-        
+
         if write_precision is None:
             write_precision = self._write_options.write_precision
-        
+
         if self._write_options.write_type is WriteType.batching:
             return self._write_batching(bucket, org, record,
                                         write_precision, **kwargs)
@@ -469,7 +465,7 @@ You can use native asynchronous version of the client:
                         **kwargs):
         if precision is None:
             precision = self._write_options.write_precision
-            
+
         if isinstance(data, bytes):
             _key = _BatchItemKey(bucket, org, precision)
             self._subject.on_next(_BatchItem(key=_key, data=data))

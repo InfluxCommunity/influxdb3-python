@@ -144,7 +144,8 @@ class ApiClientTests(unittest.TestCase):
         conf = Configuration()
         client = ApiClient(conf)
 
-        body = bytearray("12345678901234567890".encode("utf-8")) # len = 20
+        # len of body = 20
+        body = bytearray("12345678901234567890".encode("utf-8"))
         tests = [
             {
                 'gzip_threshold': 10,

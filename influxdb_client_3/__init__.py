@@ -61,7 +61,7 @@ INFLUX_GZIP_THRESHOLD = "INFLUX_GZIP_THRESHOLD"
 
 
 def from_env(**kwargs: Any) -> 'InfluxDBClient3':
-    
+
     """
     Create an instance of `InfluxDBClient3` using environment variables for configuration.
 
@@ -82,7 +82,8 @@ def from_env(**kwargs: Any) -> 'InfluxDBClient3':
                    flight_client_options, SSL settings, etc.
     :return: An initialized `InfluxDBClient3` instance.
     :raises ValueError: If any required environment variables are not set.
-    """ 
+    """
+
     required_vars = {
         INFLUX_HOST: os.getenv(INFLUX_HOST),
         INFLUX_TOKEN: os.getenv(INFLUX_TOKEN),

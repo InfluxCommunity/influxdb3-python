@@ -105,7 +105,7 @@ class ApiClient(object):
         gzip_threshold = config.gzip_threshold
         enable_gzip = config.enable_gzip
         self.should_compress = self.check_should_compress(body, gzip_threshold, enable_gzip)
-        
+
         # header parameters
         header_params = header_params or {}
         config.update_request_header_params(resource_path, header_params)
