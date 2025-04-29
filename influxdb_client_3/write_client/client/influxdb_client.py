@@ -4,6 +4,8 @@ from __future__ import absolute_import
 
 import logging
 
+from typing_extensions import deprecated
+
 from influxdb_client_3.write_client.client._base import _BaseClient
 from influxdb_client_3.write_client.client.write_api import WriteApi, WriteOptions, PointSettings
 
@@ -171,6 +173,7 @@ class InfluxDBClient(_BaseClient):
         return InfluxDBClient._from_config_file(config_file=config_file, debug=debug, enable_gzip=enable_gzip, **kwargs)
 
     @classmethod
+    @deprecated("Use up to date Env Properties")
     def from_env_properties(cls, debug=None, enable_gzip=False, **kwargs):
         """
         Configure client via environment properties.

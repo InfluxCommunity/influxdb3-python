@@ -10,7 +10,7 @@ import pyarrow
 import pytest
 from pyarrow._flight import FlightError
 
-from influxdb_client_3 import InfluxDBClient3, InfluxDBError, write_client_options, WriteOptions, from_env
+from influxdb_client_3 import InfluxDBClient3, InfluxDBError, write_client_options, WriteOptions
 from tests.util import asyncio_run, lp_to_py_object
 
 
@@ -277,7 +277,7 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
             assert lp_to_py_object(item) in result_list, f"original lp data \"{item}\" should be in result list"
 
     def test_from_env(self):
-        with from_env() as client:
+        with InfluxDBClient3.from_env() as client:
             id_test = time.time_ns()
             client.write(f"integration_test_python,type=used value=123.0,id_test={id_test}i")
 
@@ -291,7 +291,7 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
 
     @patch.dict('os.environ', {'INFLUX_AUTH_SCHEME': 'invalid_schema'})
     def test_from_env_invalid_auth_schema(self):
-        with from_env() as client:
+        with InfluxDBClient3.from_env() as client:
             with self.assertRaises(InfluxDBError) as err:
                 client.write("integration_test_python,type=used value=123.0")
             self.assertEqual('unauthorized access', err.exception.message)

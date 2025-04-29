@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from influxdb_client_3 import InfluxDBClient3, from_env, WritePrecision, DefaultWriteOptions
+from influxdb_client_3 import InfluxDBClient3, WritePrecision, DefaultWriteOptions
 from tests.util import asyncio_run
 from tests.util.mocks import ConstantFlightServer, ConstantData
 
@@ -90,7 +90,7 @@ class TestInfluxDBClient3(unittest.TestCase):
             self.assertEqual(c._write_api._write_options.write_precision, expected_precision)
             self.assertEqual(c._write_api._write_options.write_type, expected_write_type)
 
-        env_client = from_env()
+        env_client = InfluxDBClient3.from_env()
         verify_client_write_options(env_client)
 
         default_client = InfluxDBClient3()
@@ -101,7 +101,7 @@ class TestInfluxDBClient3(unittest.TestCase):
                                'INFLUX_PRECISION': WritePrecision.MS,
                                'INFLUX_GZIP_THRESHOLD': '2000'})
     def test_from_env_all_env_vars_set(self):
-        client = from_env()
+        client = InfluxDBClient3.from_env()
         self.assertIsInstance(client, InfluxDBClient3)
         self.assertEqual(client._client.url, "https://localhost:443")
         self.assertEqual(client._database, "test_db")
@@ -116,8 +116,40 @@ class TestInfluxDBClient3(unittest.TestCase):
                                'INFLUX_DATABASE': "", 'INFLUX_ORG': ""})
     def test_from_env_missing_variables(self):
         with self.assertRaises(ValueError) as context:
-            from_env()
+            InfluxDBClient3.from_env()
         self.assertIn("Missing required environment variables", str(context.exception))
+
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_PRECISION': WritePrecision.MS})
+    def test_parse_valid_write_precision(self):
+        client = InfluxDBClient3.from_env()
+        self.assertIsInstance(client, InfluxDBClient3)
+        self.assertEqual(client._write_client_options.get('write_options').write_precision, WritePrecision.MS)
+
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_PRECISION': 'invalid'})
+    def test_parse_invalid_write_precision(self):
+        with self.assertRaises(ValueError) as context:
+            InfluxDBClient3.from_env()
+        self.assertIn("Invalid precision value: invalid", str(context.exception))
+
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_GZIP_THRESHOLD': '2000'})
+    def test_parse_valid_gzip_threshold(self):
+        client = InfluxDBClient3.from_env()
+        self.assertIsInstance(client, InfluxDBClient3)
+        self.assertEqual(client._write_client_options.get('write_options').gzip_threshold, 2000)
+
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_GZIP_THRESHOLD': 'invalid'})
+    def test_parse_invalid_gzip_threshold(self):
+        with self.assertRaises(ValueError) as context:
+            InfluxDBClient3.from_env()
+        self.assertIn("Must be integer", str(context.exception))
 
 
 if __name__ == '__main__':

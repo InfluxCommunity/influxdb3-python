@@ -15,6 +15,13 @@ from influxdb_client_3.write_client.domain.write_precision import WritePrecision
 
 polars = importlib.util.find_spec("polars") is not None
 
+INFLUX_HOST = "INFLUX_HOST"
+INFLUX_TOKEN = "INFLUX_TOKEN"
+INFLUX_DATABASE = "INFLUX_DATABASE"
+INFLUX_ORG = "INFLUX_ORG"
+INFLUX_PRECISION = "INFLUX_PRECISION"
+INFLUX_AUTH_SCHEME = "INFLUX_AUTH_SCHEME"
+INFLUX_GZIP_THRESHOLD = "INFLUX_GZIP_THRESHOLD"
 
 def write_client_options(**kwargs):
     """
@@ -48,76 +55,6 @@ def file_parser_options(**kwargs):
     :return: dict with the arguments.
     """
     return kwargs
-
-
-# Constants for environment variable names
-INFLUX_HOST = "INFLUX_HOST"
-INFLUX_TOKEN = "INFLUX_TOKEN"
-INFLUX_DATABASE = "INFLUX_DATABASE"
-INFLUX_ORG = "INFLUX_ORG"
-INFLUX_PRECISION = "INFLUX_PRECISION"
-INFLUX_AUTH_SCHEME = "INFLUX_AUTH_SCHEME"
-INFLUX_GZIP_THRESHOLD = "INFLUX_GZIP_THRESHOLD"
-
-
-def from_env(**kwargs: Any) -> 'InfluxDBClient3':
-
-    """
-    Create an instance of `InfluxDBClient3` using environment variables for configuration.
-
-    This function retrieves and validates the following required environment variables:
-      - `INFLUX_HOST`: The hostname or IP address of the InfluxDB server.
-      - `INFLUX_TOKEN`: The authentication token used for accessing the server.
-      - `INFLUX_DATABASE`: The default database for the client operations.
-    And optional environment variable:
-      - `INFLUX_ORG`: The organization associated with InfluxDB operations.
-                      Defaults to "default" if not set.
-
-    If any of the required environment variables are not set, a ValueError will be
-    raised with details about the missing variables.
-
-    :param kwargs: Additional keyword arguments that will be passed to the
-                   `InfluxDBClient3` constructor for customization. This allows for
-                   configuring specific client behaviors like write_client_options,
-                   flight_client_options, SSL settings, etc.
-    :return: An initialized `InfluxDBClient3` instance.
-    :raises ValueError: If any required environment variables are not set.
-    """
-
-    required_vars = {
-        INFLUX_HOST: os.getenv(INFLUX_HOST),
-        INFLUX_TOKEN: os.getenv(INFLUX_TOKEN),
-        INFLUX_DATABASE: os.getenv(INFLUX_DATABASE)
-    }
-
-    missing_vars = [var for var, value in required_vars.items() if value is None or value == ""]
-    if missing_vars:
-        raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
-
-    write_options = WriteOptions(write_type=WriteType.synchronous)
-
-    if os.getenv(INFLUX_GZIP_THRESHOLD) is not None:
-        gzip_threshold = int(os.getenv(INFLUX_GZIP_THRESHOLD))
-        write_options.enable_gzip = True
-        write_options.gzip_threshold = gzip_threshold
-
-    if os.getenv(INFLUX_PRECISION) is not None:
-        write_options.write_precision = os.getenv(INFLUX_PRECISION)
-
-    write_client_option = {'write_options': write_options}
-
-    if os.getenv(INFLUX_AUTH_SCHEME) is not None:
-        kwargs['auth_scheme'] = os.getenv(INFLUX_AUTH_SCHEME)
-    org = os.getenv(INFLUX_ORG, "default")
-
-    return InfluxDBClient3(
-        host=required_vars[INFLUX_HOST],
-        token=required_vars[INFLUX_TOKEN],
-        database=required_vars[INFLUX_DATABASE],
-        write_client_options=write_client_option,
-        org=org,
-        **kwargs
-    )
 
 
 def _deep_merge(target, source):
@@ -154,6 +91,36 @@ def _merge_options(defaults, exclude_keys=None, custom=None):
         exclude_keys = []
 
     return _deep_merge(defaults, {key: value for key, value in custom.items() if key not in exclude_keys})
+
+
+def _parse_precision(precision):
+    """
+    Parse and validate precision value.
+    
+    :param precision: Precision value to validate
+    :return: Validated precision value
+    :raises ValueError: If precision is invalid
+    """
+    if precision not in [WritePrecision.NS, WritePrecision.MS, WritePrecision.S, WritePrecision.US]:
+        raise ValueError(f"Invalid precision value: {precision}")
+    return precision
+
+
+def _parse_gzip_threshold(threshold):
+    """
+    Parse and validate gzip threshold value.
+
+    :param threshold: Threshold value to validate
+    :return: Validated threshold value
+    :raises ValueError: If threshold is invalid
+    """
+    try:
+        threshold = int(threshold)
+    except (TypeError, ValueError):
+        raise ValueError(f"Invalid threshold value: {threshold}. Must be integer.")
+    if threshold < 0:
+        raise ValueError(f"Invalid threshold value: {threshold}. Must be non-negative.")
+    return threshold
 
 
 class InfluxDBClient3:
@@ -271,6 +238,69 @@ class InfluxDBClient3:
         self._query_api = _QueryApi(connection_string=connection_string, token=token,
                                     flight_client_options=flight_client_options,
                                     proxy=kwargs.get("proxy", None), options=q_opts_builder.build())
+
+
+    @classmethod
+    def from_env(cls, **kwargs: Any) -> 'InfluxDBClient3':
+
+        """
+        Create an instance of `InfluxDBClient3` using environment variables for configuration.
+
+        This function retrieves and validates the following required environment variables:
+          - `INFLUX_HOST`: The hostname or IP address of the InfluxDB server.
+          - `INFLUX_TOKEN`: The authentication token used for accessing the server.
+          - `INFLUX_DATABASE`: The default database for the client operations.
+        And optional environment variable:
+          - `INFLUX_ORG`: The organization associated with InfluxDB operations.
+                          Defaults to "default" if not set.
+
+        If any of the required environment variables are not set, a ValueError will be
+        raised with details about the missing variables.
+
+        :param kwargs: Additional keyword arguments that will be passed to the
+                       `InfluxDBClient3` constructor for customization. This allows for
+                       configuring specific client behaviors like write_client_options,
+                       flight_client_options, SSL settings, etc.
+        :return: An initialized `InfluxDBClient3` instance.
+        :raises ValueError: If any required environment variables are not set.
+        """
+
+        required_vars = {
+            INFLUX_HOST: os.getenv(INFLUX_HOST),
+            INFLUX_TOKEN: os.getenv(INFLUX_TOKEN),
+            INFLUX_DATABASE: os.getenv(INFLUX_DATABASE)
+        }
+
+        missing_vars = [var for var, value in required_vars.items() if value is None or value == ""]
+        if missing_vars:
+            raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+
+        write_options = WriteOptions(write_type=WriteType.synchronous)
+
+        gzip_threshold = os.getenv(INFLUX_GZIP_THRESHOLD)
+        if gzip_threshold is not None:
+            write_options.gzip_threshold = _parse_gzip_threshold(gzip_threshold)
+            write_options.enable_gzip = True
+
+        precision = os.getenv(INFLUX_PRECISION)
+        if precision is not None:
+            write_options.write_precision = _parse_precision(precision)
+
+        write_client_option = {'write_options': write_options}
+
+        if os.getenv(INFLUX_AUTH_SCHEME) is not None:
+            kwargs['auth_scheme'] = os.getenv(INFLUX_AUTH_SCHEME)
+        org = os.getenv(INFLUX_ORG, "default")
+
+        return InfluxDBClient3(
+            host=required_vars[INFLUX_HOST],
+            token=required_vars[INFLUX_TOKEN],
+            database=required_vars[INFLUX_DATABASE],
+            write_client_options=write_client_option,
+            org=org,
+            **kwargs
+        )
+
 
     def write(self, record=None, database=None, **kwargs):
         """
