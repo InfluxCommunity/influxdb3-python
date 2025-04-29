@@ -18,7 +18,6 @@ class BatchingCallback(object):
 
 # InfluxDB connection details
 token = ""
-org = "6a841c0c08328fb1"
 dbfrom = "a"
 dbto = "b"
 url = "eu-central-1-1.aws.cloud2.influxdata.com"
@@ -44,7 +43,6 @@ wco = write_client_options(success_callback=callback.success,
 # of 10k ms and gzip compression
 with InfluxDBClient3.InfluxDBClient3(token=token,
                                      host=url,
-                                     org=org,
                                      enable_gzip=True, write_client_options=wco) as _client:
     query = f"SHOW TAG KEYS FROM {measurement}"
     tags = _client.query(query=query, language="influxql", database=dbfrom)

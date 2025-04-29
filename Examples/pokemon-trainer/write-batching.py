@@ -36,7 +36,6 @@ wco = write_client_options(success_callback=callback.success,
 client = InfluxDBClient3(
     token="",
     host="eu-central-1-1.aws.cloud2.influxdata.com",
-    org="6a841c0c08328fb1",
     database="pokemon-codex", enable_gzip=True, write_client_options=wco)
 
 now = pd.Timestamp.now(tz='UTC').floor('ms')

@@ -7,7 +7,6 @@ from influxdb_client_3 import InfluxDBClient3
 client = InfluxDBClient3(
     token="",
     host="eu-central-1-1.aws.cloud2.influxdata.com",
-    org="6a841c0c08328fb1",
     database="pokemon-codex")
 
 now = pd.Timestamp.now(tz='UTC').floor('ms')

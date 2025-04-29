@@ -10,7 +10,6 @@ print(cert)
 client = InfluxDBClient3.InfluxDBClient3(
     token="",
     host="b0c7cce5-8dbc-428e-98c6-7f996fb96467.a.influxdb.io",
-    org="6a841c0c08328fb1",
     database="flightdemo",
     flight_client_options=flight_client_options(
         tls_root_certs=cert))

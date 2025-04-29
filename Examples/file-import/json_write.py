@@ -42,7 +42,6 @@ def main() -> None:
     """
        token: access token generated in cloud
        host: ATTN could be another AWS region or even another cloud provider
-       org: organization associated with account and database
        database: should have retention policy 'forever' to handle older sample data timestamps
        write_client_options: see above
        debug: allows low-level inspection of communications and context-manager termination
@@ -50,7 +49,6 @@ def main() -> None:
     with InfluxDBClient3.InfluxDBClient3(
             token="INSERT_TOKEN",
             host="https://us-east-1-1.aws.cloud2.influxdata.com/",
-            org="INSERT_ORG",
             database="example_data_forever",
             write_client_options=wco,
             debug=True) as client:
