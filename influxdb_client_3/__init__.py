@@ -32,6 +32,7 @@ INFLUX_CONNECTION_POOL_MAXSIZE = "INFLUX_CONNECTION_POOL_MAXSIZE"
 INFLUX_PROFILERS = "INFLUX_PROFILERS"
 INFLUX_TAG = "INFLUX_TAG"
 
+
 def write_client_options(**kwargs):
     """
     Function for providing additional arguments for the WriteApi client.
@@ -104,11 +105,19 @@ def _merge_options(defaults, exclude_keys=None, custom=None):
 
 def _parse_precision(precision):
     """
-    Parse and validate precision value.
-    
-    :param precision: Precision value to validate
-    :return: Validated precision value
-    :raises ValueError: If precision is invalid
+    Parses the precision value and ensures it is valid.
+
+    This function checks that the given `precision` is one of the allowed
+    values defined in `WritePrecision`. If the precision is invalid, it
+    raises a `ValueError`. The function returns the valid precision value
+    if it passes validation.
+
+    :param precision: The precision value to be validated.
+                      Must be one of WritePrecision.NS, WritePrecision.MS,
+                      WritePrecision.S, or WritePrecision.US.
+    :return: The valid precision value.
+    :rtype: WritePrecision
+    :raises ValueError: If the provided precision is not valid.
     """
     if precision not in [WritePrecision.NS, WritePrecision.MS, WritePrecision.S, WritePrecision.US]:
         raise ValueError(f"Invalid precision value: {precision}")
@@ -117,11 +126,18 @@ def _parse_precision(precision):
 
 def _parse_gzip_threshold(threshold):
     """
-    Parse and validate gzip threshold value.
+    Parses and validates the provided threshold value.
 
-    :param threshold: Threshold value to validate
-    :return: Validated threshold value
-    :raises ValueError: If threshold is invalid
+    This function ensures that the given threshold is a valid integer value,
+    and it raises an appropriate error if the threshold is not valid. It also
+    enforces that the threshold value is non-negative.
+
+    :param threshold: The input threshold value to be parsed and validated.
+    :type threshold: Any
+    :return: The validated threshold value as an integer.
+    :rtype: int
+    :raises ValueError: If the provided threshold is not an integer or if it is
+        negative.
     """
     try:
         threshold = int(threshold)
@@ -248,30 +264,32 @@ class InfluxDBClient3:
                                     flight_client_options=flight_client_options,
                                     proxy=kwargs.get("proxy", None), options=q_opts_builder.build())
 
-
     @classmethod
     def from_env(cls, **kwargs: Any) -> 'InfluxDBClient3':
 
         """
-        Create an instance of `InfluxDBClient3` using environment variables for configuration.
+        Creates an instance of InfluxDBClient3 configured by specific environment
+        variables. This method automatically loads configuration settings,
+        such as connection details, security parameters, and performance
+        options, from environment variables and initializes the client
+        accordingly.
 
-        This function retrieves and validates the following required environment variables:
-          - `INFLUX_HOST`: The hostname or IP address of the InfluxDB server.
-          - `INFLUX_TOKEN`: The authentication token used for accessing the server.
-          - `INFLUX_DATABASE`: The default database for the client operations.
-        And optional environment variable:
-          - `INFLUX_ORG`: The organization associated with InfluxDB operations.
-                          Defaults to "default" if not set.
+        :param cls:
+            The class used to create the client instance.
+        :param kwargs:
+            Additional optional parameters that can be passed to customize the
+            configuration or override specific settings derived from the
+            environment variables.
 
-        If any of the required environment variables are not set, a ValueError will be
-        raised with details about the missing variables.
+        :raises ValueError:
+            If any required environment variables are missing or have empty
+            values.
 
-        :param kwargs: Additional keyword arguments that will be passed to the
-                       `InfluxDBClient3` constructor for customization. This allows for
-                       configuring specific client behaviors like write_client_options,
-                       flight_client_options, SSL settings, etc.
-        :return: An initialized `InfluxDBClient3` instance.
-        :raises ValueError: If any required environment variables are not set.
+        :return:
+            An initialized instance of the `InfluxDBClient3` class with all the
+            configuration settings applied.
+        :rtype:
+            InfluxDBClient3
         """
 
         required_vars = {
@@ -343,7 +361,6 @@ class InfluxDBClient3:
             org=org,
             **kwargs
         )
-
 
     def write(self, record=None, database=None, **kwargs):
         """

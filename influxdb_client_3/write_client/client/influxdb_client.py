@@ -49,7 +49,9 @@ class InfluxDBClient(_BaseClient):
                                                except batching writes. As a default there is no one retry strategy.
         :key bool auth_basic: Set this to true to enable basic authentication when talking to a InfluxDB 1.8.x that
                               does not use auth-enabled but is protected by a reverse proxy with basic authentication.
-                              (defaults to false, don't set to true when talking to InfluxDB 2)
+                              (defaults to false, don't set to true when talking to InfluxDB 2).
+        :key int gzip_threshold: If the payload size is larger than this gzip_threshold, then
+                                 the payload will be zipped.
         :key str username: ``username`` to authenticate via username and password credentials to the InfluxDB 2.x
         :key str password: ``password`` to authenticate via username and password credentials to the InfluxDB 2.x
         :key list[str] profilers: list of enabled Flux profilers

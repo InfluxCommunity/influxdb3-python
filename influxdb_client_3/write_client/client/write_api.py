@@ -80,6 +80,8 @@ class WriteOptions(object):
         :param max_close_wait: the maximum time to wait for writes to be flushed if close() is called
         :param write_precision: the time precision for the data written to InfluxDB.
         :param write_scheduler:
+        :param gzip_threshold: if the payload size is larger than the gzip_threshold, the payload will be zipped.
+        :param enable_gzip: set true to enable to zip the payload.
         """
         self.write_type = write_type
         self.batch_size = batch_size

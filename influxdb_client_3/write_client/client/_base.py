@@ -36,6 +36,50 @@ LOGGERS_NAMES = [
 class _BaseClient(object):
     def __init__(self, url, token, debug=None, timeout=10_000, enable_gzip=False, gzip_threshold=None, org: str = None,
                  default_tags: dict = None, http_client_logger: str = None, **kwargs) -> None:
+        """
+        Initializes the configuration for an HTTP client with support for customizable settings
+        such as authentication token, debugging, timeout, and gzip compression. This class
+        encapsulates the client configuration, logging setup, and authentication mechanisms
+        to allow seamless interaction with an HTTP backend.
+
+        :param url: The base URL for the HTTP client.
+        :type url: str
+        :param token: The authentication token to be used in requests.
+        :type token: str
+        :param debug: Enables debug mode for logging client operations. Defaults to None.
+        :type debug: bool, optional
+        :param timeout: The timeout duration for HTTP requests in milliseconds. Defaults to 10,000.
+        :type timeout: int
+        :param enable_gzip: Flag to enable or disable gzip compression. Defaults to False.
+        :type enable_gzip: bool
+        :param gzip_threshold: The threshold size for enabling gzip compression, if applicable.
+        :type gzip_threshold: int, optional
+        :param org: The organization identifier to be associated with the client.
+        :type org: str, optional
+        :param default_tags: A dictionary of default tags to add to outgoing requests for metadata purposes.
+        :type default_tags: dict, optional
+        :param http_client_logger: The logger name to use for HTTP client-specific logging.
+        :type http_client_logger: str, optional
+        :param kwargs: Additional optional parameters to customize the HTTP client:
+
+            - verify_ssl: Flag to enable or disable SSL certificate verification. Defaults to True.
+            - ssl_ca_cert: Path to the CA certificate file for verifying SSL. Defaults to None.
+            - cert_file: Path to a client SSL certificate file for authentication. Defaults to None.
+            - cert_key_file: Path to the client’s SSL key file, if separate. Defaults to None.
+            - cert_key_password: Password for the client’s SSL key file, if applicable. Defaults to None.
+            - ssl_context: SSLContext object to configure custom SSL parameters. Defaults to None.
+            - proxy: Proxy server URL, if a proxy is to be used. Defaults to None.
+            - proxy_headers: A dictionary containing custom headers for the proxy server. Defaults to None.
+            - connection_pool_maxsize: Defines the maximum pool size for connections.
+              Default inherits from the configuration.
+            - retries: Determines if request retrying is enabled. Defaults to None.
+            - profilers: Profilers for performance tracking. Defaults to None.
+            - username: Username for basic authentication. Defaults to None.
+            - password: Password for basic authentication. Defaults to None.
+            - auth_scheme: Custom authentication scheme to use with the token. Defaults to "Token".
+            - auth_basic: Boolean flag to enable HTTP Basic Authentication. Defaults to False.
+
+        """
         self.url = url
         self.org = org
 
