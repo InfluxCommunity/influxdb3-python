@@ -98,8 +98,12 @@ class TestInfluxDBClient3(unittest.TestCase):
 
     @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
                                'INFLUX_DATABASE': 'test_db', 'INFLUX_ORG': 'test_org',
-                               'INFLUX_PRECISION': WritePrecision.MS,
-                               'INFLUX_GZIP_THRESHOLD': '2000'})
+                               'INFLUX_PRECISION': WritePrecision.MS, 'INFLUX_GZIP_THRESHOLD': '2000',
+                               'INFLUX_TIMEOUT': '6000', 'INFLUX_VERIFY_SSL': 'False',
+                               'INFLUX_CERT_FILE': 'path_to_cert', 'INFLUX_CERT_KEY_FILE': 'path_to_cert_key',
+                               'INFLUX_CERT_KEY_PASSWORD': 'cert_key_password', 'INFLUX_CONNECTION_POOL_MAXSIZE': '200',
+                               'INFLUX_PROFILERS': 'prof1,prof2, prof3', 'INFLUX_TAG_TAG1': 'Tag1',
+                               'INFLUX_TAG_TAG2': 'Tag2'})
     def test_from_env_all_env_vars_set(self):
         client = InfluxDBClient3.from_env()
         self.assertIsInstance(client, InfluxDBClient3)
@@ -107,10 +111,26 @@ class TestInfluxDBClient3(unittest.TestCase):
         self.assertEqual(client._database, "test_db")
         self.assertEqual(client._org, "test_org")
         self.assertEqual(client._token, "test_token")
-
         write_options = client._write_client_options.get("write_options")
         self.assertEqual(write_options.write_precision, WritePrecision.MS)
         self.assertEqual(write_options.gzip_threshold, 2000)
+        self.assertEqual(client._client.conf.verify_ssl, False)
+        self.assertEqual(client._client.conf.cert_file, 'path_to_cert')
+        self.assertEqual(client._client.conf.cert_key_file, 'path_to_cert_key')
+        self.assertEqual(client._client.conf.cert_key_password, 'cert_key_password')
+        self.assertEqual(client._client.conf.connection_pool_maxsize, 200)
+        self.assertEqual(client._client.conf.timeout, 6000)
+        self.assertEqual(client._client.profilers, ['prof1', 'prof2', 'prof3'])
+        self.assertEqual(client._client.default_tags['tag1'], 'Tag1')
+        self.assertEqual(client._client.default_tags['tag2'], 'Tag2')
+        client._write_api._point_settings = {}
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_SSL_CA_CERT': 'invalid/path'})
+    def test_from_env_invalid_ssl_cert(self):
+        with self.assertRaises(FileNotFoundError) as context:
+            InfluxDBClient3.from_env()
+        self.assertIn("No such file or directory: 'invalid/path'", str(context.exception))
 
     @patch.dict('os.environ', {'INFLUX_HOST': "", 'INFLUX_TOKEN': "",
                                'INFLUX_DATABASE': "", 'INFLUX_ORG': ""})
@@ -119,7 +139,6 @@ class TestInfluxDBClient3(unittest.TestCase):
             InfluxDBClient3.from_env()
         self.assertIn("Missing required environment variables", str(context.exception))
 
-
     @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
                                'INFLUX_DATABASE': 'test_db', 'INFLUX_PRECISION': WritePrecision.MS})
     def test_parse_valid_write_precision(self):
@@ -127,14 +146,12 @@ class TestInfluxDBClient3(unittest.TestCase):
         self.assertIsInstance(client, InfluxDBClient3)
         self.assertEqual(client._write_client_options.get('write_options').write_precision, WritePrecision.MS)
 
-
     @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
-                               'INFLUX_DATABASE': 'test_db', 'INFLUX_PRECISION': 'invalid'})
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_PRECISION': 'invalid_value'})
     def test_parse_invalid_write_precision(self):
         with self.assertRaises(ValueError) as context:
             InfluxDBClient3.from_env()
-        self.assertIn("Invalid precision value: invalid", str(context.exception))
-
+        self.assertIn("Invalid precision value: invalid_value", str(context.exception))
 
     @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
                                'INFLUX_DATABASE': 'test_db', 'INFLUX_GZIP_THRESHOLD': '2000'})
@@ -142,7 +159,6 @@ class TestInfluxDBClient3(unittest.TestCase):
         client = InfluxDBClient3.from_env()
         self.assertIsInstance(client, InfluxDBClient3)
         self.assertEqual(client._write_client_options.get('write_options').gzip_threshold, 2000)
-
 
     @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
                                'INFLUX_DATABASE': 'test_db', 'INFLUX_GZIP_THRESHOLD': 'invalid'})

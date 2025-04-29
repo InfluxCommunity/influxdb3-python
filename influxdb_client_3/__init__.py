@@ -22,6 +22,15 @@ INFLUX_ORG = "INFLUX_ORG"
 INFLUX_PRECISION = "INFLUX_PRECISION"
 INFLUX_AUTH_SCHEME = "INFLUX_AUTH_SCHEME"
 INFLUX_GZIP_THRESHOLD = "INFLUX_GZIP_THRESHOLD"
+INFLUX_TIMEOUT = "INFLUX_TIMEOUT"
+INFLUX_VERIFY_SSL = "INFLUX_VERIFY_SSL"
+INFLUX_SSL_CA_CERT = "INFLUX_SSL_CA_CERT"
+INFLUX_CERT_FILE = "INFLUX_CERT_FILE"
+INFLUX_CERT_KEY_FILE = "INFLUX_CERT_KEY_FILE"
+INFLUX_CERT_KEY_PASSWORD = "INFLUX_CERT_KEY_PASSWORD"
+INFLUX_CONNECTION_POOL_MAXSIZE = "INFLUX_CONNECTION_POOL_MAXSIZE"
+INFLUX_PROFILERS = "INFLUX_PROFILERS"
+INFLUX_TAG = "INFLUX_TAG"
 
 def write_client_options(**kwargs):
     """
@@ -270,7 +279,6 @@ class InfluxDBClient3:
             INFLUX_TOKEN: os.getenv(INFLUX_TOKEN),
             INFLUX_DATABASE: os.getenv(INFLUX_DATABASE)
         }
-
         missing_vars = [var for var, value in required_vars.items() if value is None or value == ""]
         if missing_vars:
             raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
@@ -290,8 +298,43 @@ class InfluxDBClient3:
 
         if os.getenv(INFLUX_AUTH_SCHEME) is not None:
             kwargs['auth_scheme'] = os.getenv(INFLUX_AUTH_SCHEME)
-        org = os.getenv(INFLUX_ORG, "default")
 
+        timeout = os.getenv(INFLUX_TIMEOUT)
+        if timeout is not None:
+            kwargs['timeout'] = int(timeout)
+
+        ssl_ca_cert = os.getenv(INFLUX_SSL_CA_CERT)
+        if ssl_ca_cert is not None:
+            kwargs['ssl_ca_cert'] = ssl_ca_cert
+
+        cert_file = os.getenv(INFLUX_CERT_FILE)
+        if cert_file is not None:
+            kwargs['cert_file'] = cert_file
+
+        cert_key_file = os.getenv(INFLUX_CERT_KEY_FILE)
+        if cert_key_file is not None:
+            kwargs['cert_key_file'] = cert_key_file
+
+        cert_key_password = os.getenv(INFLUX_CERT_KEY_PASSWORD)
+        if cert_key_password is not None:
+            kwargs['cert_key_password'] = cert_key_password
+
+        connection_pool_maxsize = os.getenv(INFLUX_CONNECTION_POOL_MAXSIZE)
+        if connection_pool_maxsize is not None:
+            kwargs['connection_pool_maxsize'] = int(connection_pool_maxsize)
+
+        profilers = os.getenv(INFLUX_PROFILERS)
+        if profilers is not None:
+            kwargs['profilers'] = [x.strip() for x in profilers.split(',')]
+
+        default_tags = dict()
+        for key, value in os.environ.items():
+            if key.startswith("{0}_".format(INFLUX_TAG)):
+                default_tags[key[11:].lower()] = value
+        kwargs['default_tags'] = default_tags
+
+        kwargs['verify_ssl'] = bool(os.getenv(INFLUX_VERIFY_SSL, 'True').lower() in ['True', 'true'])
+        org = os.getenv(INFLUX_ORG, "default")
         return InfluxDBClient3(
             host=required_vars[INFLUX_HOST],
             token=required_vars[INFLUX_TOKEN],
