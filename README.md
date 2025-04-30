@@ -198,4 +198,4 @@ table = client.query(
 
 print(table.to_pandas())
 ```
-You may also include your own root certificate via this manor aswell.
+You may include your own root certificate in this manner as well.
