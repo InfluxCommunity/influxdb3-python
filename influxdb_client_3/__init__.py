@@ -10,6 +10,8 @@ from influxdb_client_3.write_client.client.write_api import WriteApi as _WriteAp
     PointSettings
 from influxdb_client_3.write_client.domain.write_precision import WritePrecision
 
+from ipaddress import IPv6Address, AddressValueError
+
 polars = importlib.util.find_spec("polars") is not None
 
 
@@ -146,6 +148,12 @@ class InfluxDBClient3:
         scheme = parsed_url.scheme if parsed_url.scheme else "https"
         hostname = parsed_url.hostname if parsed_url.hostname else host
         port = parsed_url.port if parsed_url.port else 443
+
+        try:
+            IPv6Address(hostname)
+            hostname = f"[{hostname}]"
+        except AddressValueError:
+            pass
 
         # Construct the clients using the parsed values
         if write_port_overwrite is not None:
