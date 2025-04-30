@@ -2,6 +2,9 @@
 
 ## 0.13.0 [unreleased]
 
+### Bug Fixes
+
+1. [#132](https://github.com/InfluxCommunity/influxdb3-python/pull/132): Fixes support for IPv6 addresses in the `host` parameter of the client. The client now correctly handles IPv6 addresses by enclosing them in square brackets.
 
 ## 0.12.0 [2025-03-26] 
 
