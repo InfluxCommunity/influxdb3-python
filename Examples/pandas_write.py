@@ -5,7 +5,6 @@ import numpy as np
 client = InfluxDBClient3.InfluxDBClient3(
     token="",
     host="eu-central-1-1.aws.cloud2.influxdata.com",
-    org="",
     database="")
 
 

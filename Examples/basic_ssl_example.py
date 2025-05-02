@@ -70,7 +70,6 @@ def write_and_query_with_explicit_sys_cert(conf):
     print("\nwrite and query with typical linux system cert\n")
     with InfluxDBClient3(token=conf.token,
                          host=conf.host,
-                         org=conf.org,
                          database=conf.database,
                          ssl_ca_cert="/etc/ssl/certs/ca-certificates.crt",
                          verify_ssl=True) as _client:
@@ -90,7 +89,6 @@ def query_with_verify_ssl_off(conf, cert):
     # Switch verify_ssl to True to throw SSL_ERROR_SSL
     with InfluxDBClient3(token=conf.token,
                          host=conf.host,
-                         org=conf.org,
                          database=conf.database,
                          ssl_ca_cert=cert,
                          verify_ssl=False) as _client:

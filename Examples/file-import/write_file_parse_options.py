@@ -33,7 +33,6 @@ wco = write_client_options(success_callback=callback.success,
 with InfluxDBClient3.InfluxDBClient3(
         token="",
         host="eu-central-1-1.aws.cloud2.influxdata.com",
-        org="6a841c0c08328fb1",
         database="python", write_client_options=wco) as client:
     fpo = file_parser_options(columns=["time", "machineID", "vibration"])
 

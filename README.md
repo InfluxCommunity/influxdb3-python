@@ -57,13 +57,11 @@ from influxdb_client_3 import InfluxDBClient3, Point
 
 ## Initialization
 If you are using InfluxDB Cloud, then you should note that:
-1. You will need to supply your org id, this is not necessary for InfluxDB Dedicated.
-2. Use bucket name for the `database` argument.
+1. Use bucket name for the `database` argument.
 
 ```python
 client = InfluxDBClient3(token="your-token",
                          host="your-host",
-                         org="your-org",
                          database="your-database")
 ```
 
@@ -124,7 +122,6 @@ wco = write_client_options(success_callback=callback.success,
 with  InfluxDBClient3.InfluxDBClient3(
     token="INSERT_TOKEN",
     host="eu-central-1-1.aws.cloud2.influxdata.com",
-    org="6a841c0c08328fb1",
     database="python", write_client_options=wco) as client:
 
 
@@ -171,26 +168,23 @@ Install `certifi`
 pip install certifi
 ```
 Next include certifi within the flight client options:
+
 ```python
-import influxdb_client_3 as InfluxDBClient3
-import pandas as pd
-import numpy as np
-from influxdb_client_3 import flight_client_options
 import certifi
+
+import influxdb_client_3 as InfluxDBClient3
+from influxdb_client_3 import flight_client_options
 
 fh = open(certifi.where(), "r")
 cert = fh.read()
 fh.close()
 
-
 client = InfluxDBClient3.InfluxDBClient3(
     token="",
     host="b0c7cce5-8dbc-428e-98c6-7f996fb96467.a.influxdb.io",
-    org="6a841c0c08328fb1",
     database="flightdemo",
     flight_client_options=flight_client_options(
         tls_root_certs=cert))
-
 
 table = client.query(
     query="SELECT * FROM flight WHERE time > now() - 4h",

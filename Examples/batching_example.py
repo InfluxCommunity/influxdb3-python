@@ -70,7 +70,6 @@ def main() -> None:
     # of 10k ms and gzip compression
     with InfluxDBClient3.InfluxDBClient3(token=conf.token,
                                          host=conf.host,
-                                         org=conf.org,
                                          database=conf.database,
                                          enable_gzip=True,
                                          write_client_options=wco) as _client:

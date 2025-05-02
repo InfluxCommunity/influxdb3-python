@@ -212,7 +212,7 @@ class InfluxDBClient(_BaseClient):
 
 
                 # Initialize SYNCHRONOUS instance of WriteApi
-                with InfluxDBClient(url="http://localhost:8086", token="my-token", org="my-org") as client:
+                with InfluxDBClient(url="http://localhost:8086", token="my-token") as client:
                     write_api = client.write_api(write_options=SYNCHRONOUS)
 
         If you would like to use a **background batching**, you have to configure client like this:
@@ -222,7 +222,7 @@ class InfluxDBClient(_BaseClient):
             from influxdb_client import InfluxDBClient
 
             # Initialize background batching instance of WriteApi
-            with InfluxDBClient(url="http://localhost:8086", token="my-token", org="my-org") as client:
+            with InfluxDBClient(url="http://localhost:8086", token="my-token") as client:
                 with client.write_api() as write_api:
                     pass
 
@@ -246,7 +246,7 @@ class InfluxDBClient(_BaseClient):
                     print(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
 
 
-            with InfluxDBClient(url="http://localhost:8086", token="my-token", org="my-org") as client:
+            with InfluxDBClient(url="http://localhost:8086", token="my-token") as client:
                 callback = BatchingCallback()
                 with client.write_api(success_callback=callback.success,
                                       error_callback=callback.error,

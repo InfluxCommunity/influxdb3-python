@@ -104,7 +104,7 @@ class QueryApi(object):
 
 
             # Initialize instance of QueryApi
-            with InfluxDBClient(url="http://localhost:8086", token="my-token", org="my-org") as client:
+            with InfluxDBClient(url="http://localhost:8086", token="my-token") as client:
                 query_api = client.query_api()
     """
 

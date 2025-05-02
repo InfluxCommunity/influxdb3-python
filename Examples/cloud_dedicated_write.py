@@ -9,7 +9,6 @@ config = Config()
 client = InfluxDBClient3.InfluxDBClient3(
     token=config.token,
     host=config.host,
-    org=config.org,
     database=config.database,
     write_options=WriteOptions(
         batch_size=500,
