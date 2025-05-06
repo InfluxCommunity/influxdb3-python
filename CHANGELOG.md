@@ -4,7 +4,8 @@
 
 ### Features
 
-1. [#130](https://github.com/InfluxCommunity/influxdb3-python/pull/130): Remove org parameters from the example code because It is not mandatory in Influxdb3
+1. [#127](https://github.com/InfluxCommunity/influxdb3-python/pull/127): Support creating client from environment variables
+2. [#130](https://github.com/InfluxCommunity/influxdb3-python/pull/130): Remove org parameters from the example code because It is not mandatory in Influxdb3
 
 ## 0.12.0 [2025-03-26] 
 

@@ -139,3 +139,49 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(headers['Trace-Sampled'], 'false')
         self.assertEqual(headers['X-Influxdb-Request-Id'], requestid)
         self.assertEqual(headers['X-Influxdb-Build'], 'Mock')
+
+    def test_check_should_compress_true(self):
+        conf = Configuration()
+        client = ApiClient(conf)
+
+        # len of body = 20
+        body = bytearray("12345678901234567890".encode("utf-8"))
+        tests = [
+            {
+                'gzip_threshold': 10,
+                'enable_gzip': True,
+                'expected': True
+            },
+            {
+                'gzip_threshold': 30,
+                'enable_gzip': True,
+                'expected': True
+            },
+            {
+                'gzip_threshold': None,
+                'enable_gzip': True,
+                'expected': True
+            },
+            {
+                'gzip_threshold': 30,
+                'enable_gzip': None,
+                'expected': False
+            },
+            {
+                'gzip_threshold': 30,
+                'enable_gzip': False,
+                'expected': False
+            },
+            {
+                'gzip_threshold': 10,
+                'enable_gzip': None,
+                'expected': True
+            },
+        ]
+
+        for test in tests:
+            gzip_threshold = test['gzip_threshold']
+            enable_gzip = test['enable_gzip']
+            expected = test['expected']
+            result = client.check_should_compress(body, gzip_threshold, enable_gzip)
+            self.assertEqual(result, expected)

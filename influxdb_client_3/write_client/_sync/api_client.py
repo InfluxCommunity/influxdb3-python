@@ -102,6 +102,10 @@ class ApiClient(object):
         config = self.configuration
         self._signin(resource_path=resource_path)
 
+        gzip_threshold = config.gzip_threshold
+        enable_gzip = config.enable_gzip
+        self.should_compress = self.check_should_compress(body, gzip_threshold, enable_gzip)
+
         # header parameters
         header_params = header_params or {}
         config.update_request_header_params(resource_path, header_params)
@@ -173,6 +177,33 @@ class ApiClient(object):
         else:
             return (return_data, response_data.status,
                     response_data.getheaders())
+
+    def check_should_compress(self, body: bytearray, gzip_threshold: int, enable_gzip: bool) -> bool:
+        """
+        Determines whether the given body should be compressed based on its size,
+        a defined threshold for compression, and a flag indicating whether
+        compression is enabled.
+
+        This function evaluates whether the body meets the required criteria for
+        compression. Compression may be enabled explicitly or conditionally
+        based on the body size exceeding the provided threshold.
+
+        :param body: The content to be evaluated for compression.
+        :type body: bytearray
+        :param gzip_threshold: The minimum size threshold for compression to be applied.
+        :type gzip_threshold: int
+        :param enable_gzip: A flag indicating whether gzip compression is enabled.
+            It can explicitly enable or disable compression, or conditionally
+            allow compression if the body size exceeds the threshold.
+        :type enable_gzip: bool
+        :return: Returns True if the body meets the criteria for compression;
+            otherwise, returns False.
+        :rtype: bool
+        """
+        body_size = len(body)
+        if enable_gzip is True or (enable_gzip is not False and (gzip_threshold and body_size >= gzip_threshold)):
+            return True
+        return False
 
     def sanitize_for_serialization(self, obj):
         """Build a JSON POST object.

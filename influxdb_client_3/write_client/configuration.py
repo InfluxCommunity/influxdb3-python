@@ -98,6 +98,10 @@ class Configuration(object, metaclass=TypeWithDefault):
         # Safe chars for path_param
         self.safe_chars_for_path_param = ''
 
+        # Compression settings
+        self.enable_gzip = False
+        self.gzip_threshold = None
+
     @property
     def logger_file(self):
         """Logger file.

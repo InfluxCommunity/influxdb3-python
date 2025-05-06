@@ -1,16 +1,36 @@
-import urllib.parse
-import pyarrow as pa
 import importlib.util
+import os
+import urllib.parse
+from typing import Any
+
+import pyarrow as pa
 
 from influxdb_client_3.query.query_api import QueryApi as _QueryApi, QueryApiOptionsBuilder
 from influxdb_client_3.read_file import UploadFile
 from influxdb_client_3.write_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
 from influxdb_client_3.write_client.client.exceptions import InfluxDBError
 from influxdb_client_3.write_client.client.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, \
-    PointSettings
+    PointSettings, WriteType, DefaultWriteOptions
 from influxdb_client_3.write_client.domain.write_precision import WritePrecision
 
 polars = importlib.util.find_spec("polars") is not None
+
+INFLUX_HOST = "INFLUX_HOST"
+INFLUX_TOKEN = "INFLUX_TOKEN"
+INFLUX_DATABASE = "INFLUX_DATABASE"
+INFLUX_ORG = "INFLUX_ORG"
+INFLUX_PRECISION = "INFLUX_PRECISION"
+INFLUX_AUTH_SCHEME = "INFLUX_AUTH_SCHEME"
+INFLUX_GZIP_THRESHOLD = "INFLUX_GZIP_THRESHOLD"
+INFLUX_TIMEOUT = "INFLUX_TIMEOUT"
+INFLUX_VERIFY_SSL = "INFLUX_VERIFY_SSL"
+INFLUX_SSL_CA_CERT = "INFLUX_SSL_CA_CERT"
+INFLUX_CERT_FILE = "INFLUX_CERT_FILE"
+INFLUX_CERT_KEY_FILE = "INFLUX_CERT_KEY_FILE"
+INFLUX_CERT_KEY_PASSWORD = "INFLUX_CERT_KEY_PASSWORD"
+INFLUX_CONNECTION_POOL_MAXSIZE = "INFLUX_CONNECTION_POOL_MAXSIZE"
+INFLUX_PROFILERS = "INFLUX_PROFILERS"
+INFLUX_TAG = "INFLUX_TAG"
 
 
 def write_client_options(**kwargs):
@@ -83,6 +103,51 @@ def _merge_options(defaults, exclude_keys=None, custom=None):
     return _deep_merge(defaults, {key: value for key, value in custom.items() if key not in exclude_keys})
 
 
+def _parse_precision(precision):
+    """
+    Parses the precision value and ensures it is valid.
+
+    This function checks that the given `precision` is one of the allowed
+    values defined in `WritePrecision`. If the precision is invalid, it
+    raises a `ValueError`. The function returns the valid precision value
+    if it passes validation.
+
+    :param precision: The precision value to be validated.
+                      Must be one of WritePrecision.NS, WritePrecision.MS,
+                      WritePrecision.S, or WritePrecision.US.
+    :return: The valid precision value.
+    :rtype: WritePrecision
+    :raises ValueError: If the provided precision is not valid.
+    """
+    if precision not in [WritePrecision.NS, WritePrecision.MS, WritePrecision.S, WritePrecision.US]:
+        raise ValueError(f"Invalid precision value: {precision}")
+    return precision
+
+
+def _parse_gzip_threshold(threshold):
+    """
+    Parses and validates the provided threshold value.
+
+    This function ensures that the given threshold is a valid integer value,
+    and it raises an appropriate error if the threshold is not valid. It also
+    enforces that the threshold value is non-negative.
+
+    :param threshold: The input threshold value to be parsed and validated.
+    :type threshold: Any
+    :return: The validated threshold value as an integer.
+    :rtype: int
+    :raises ValueError: If the provided threshold is not an integer or if it is
+        negative.
+    """
+    try:
+        threshold = int(threshold)
+    except (TypeError, ValueError):
+        raise ValueError(f"Invalid threshold value: {threshold}. Must be integer.")
+    if threshold < 0:
+        raise ValueError(f"Invalid threshold value: {threshold}. Must be non-negative.")
+    return threshold
+
+
 class InfluxDBClient3:
     def __init__(
             self,
@@ -136,8 +201,27 @@ class InfluxDBClient3:
         self._org = org if org is not None else "default"
         self._database = database
         self._token = token
-        self._write_client_options = write_client_options if write_client_options is not None \
-            else default_client_options(write_options=SYNCHRONOUS)
+
+        write_type = DefaultWriteOptions.write_type.value
+        write_precision = DefaultWriteOptions.write_precision.value
+        gzip_threshold = None
+        if isinstance(write_client_options, dict) and write_client_options.get('write_options') is not None:
+            write_opts = write_client_options['write_options']
+            write_type = getattr(write_opts, 'write_type', write_type)
+            write_precision = getattr(write_opts, 'write_precision', write_precision)
+            gzip_threshold = getattr(write_opts, 'gzip_threshold')
+
+        write_options = WriteOptions(
+            write_type=write_type,
+            write_precision=write_precision,
+            gzip_threshold=gzip_threshold,
+            enable_gzip=kwargs.get('enable_gzip', False)
+        )
+
+        self._write_client_options = {
+            "write_options": write_options,
+            **(write_client_options or {})
+        }
 
         # Parse the host input
         parsed_url = urllib.parse.urlparse(host)
@@ -155,6 +239,8 @@ class InfluxDBClient3:
             url=f"{scheme}://{hostname}:{port}",
             token=self._token,
             org=self._org,
+            enable_gzip=write_options.enable_gzip,
+            gzip_threshold=write_options.gzip_threshold,
             **kwargs)
 
         self._write_api = _WriteApi(influxdb_client=self._client, **self._write_client_options)
@@ -177,6 +263,104 @@ class InfluxDBClient3:
         self._query_api = _QueryApi(connection_string=connection_string, token=token,
                                     flight_client_options=flight_client_options,
                                     proxy=kwargs.get("proxy", None), options=q_opts_builder.build())
+
+    @classmethod
+    def from_env(cls, **kwargs: Any) -> 'InfluxDBClient3':
+
+        """
+        Creates an instance of InfluxDBClient3 configured by specific environment
+        variables. This method automatically loads configuration settings,
+        such as connection details, security parameters, and performance
+        options, from environment variables and initializes the client
+        accordingly.
+
+        :param cls:
+            The class used to create the client instance.
+        :param kwargs:
+            Additional optional parameters that can be passed to customize the
+            configuration or override specific settings derived from the
+            environment variables.
+
+        :raises ValueError:
+            If any required environment variables are missing or have empty
+            values.
+
+        :return:
+            An initialized instance of the `InfluxDBClient3` class with all the
+            configuration settings applied.
+        :rtype:
+            InfluxDBClient3
+        """
+
+        required_vars = {
+            INFLUX_HOST: os.getenv(INFLUX_HOST),
+            INFLUX_TOKEN: os.getenv(INFLUX_TOKEN),
+            INFLUX_DATABASE: os.getenv(INFLUX_DATABASE)
+        }
+        missing_vars = [var for var, value in required_vars.items() if value is None or value == ""]
+        if missing_vars:
+            raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+
+        write_options = WriteOptions(write_type=WriteType.synchronous)
+
+        gzip_threshold = os.getenv(INFLUX_GZIP_THRESHOLD)
+        if gzip_threshold is not None:
+            write_options.gzip_threshold = _parse_gzip_threshold(gzip_threshold)
+            write_options.enable_gzip = True
+
+        precision = os.getenv(INFLUX_PRECISION)
+        if precision is not None:
+            write_options.write_precision = _parse_precision(precision)
+
+        write_client_option = {'write_options': write_options}
+
+        if os.getenv(INFLUX_AUTH_SCHEME) is not None:
+            kwargs['auth_scheme'] = os.getenv(INFLUX_AUTH_SCHEME)
+
+        timeout = os.getenv(INFLUX_TIMEOUT)
+        if timeout is not None:
+            kwargs['timeout'] = int(timeout)
+
+        ssl_ca_cert = os.getenv(INFLUX_SSL_CA_CERT)
+        if ssl_ca_cert is not None:
+            kwargs['ssl_ca_cert'] = ssl_ca_cert
+
+        cert_file = os.getenv(INFLUX_CERT_FILE)
+        if cert_file is not None:
+            kwargs['cert_file'] = cert_file
+
+        cert_key_file = os.getenv(INFLUX_CERT_KEY_FILE)
+        if cert_key_file is not None:
+            kwargs['cert_key_file'] = cert_key_file
+
+        cert_key_password = os.getenv(INFLUX_CERT_KEY_PASSWORD)
+        if cert_key_password is not None:
+            kwargs['cert_key_password'] = cert_key_password
+
+        connection_pool_maxsize = os.getenv(INFLUX_CONNECTION_POOL_MAXSIZE)
+        if connection_pool_maxsize is not None:
+            kwargs['connection_pool_maxsize'] = int(connection_pool_maxsize)
+
+        profilers = os.getenv(INFLUX_PROFILERS)
+        if profilers is not None:
+            kwargs['profilers'] = [x.strip() for x in profilers.split(',')]
+
+        default_tags = dict()
+        for key, value in os.environ.items():
+            if key.startswith("{0}_".format(INFLUX_TAG)):
+                default_tags[key[11:].lower()] = value
+        kwargs['default_tags'] = default_tags
+
+        kwargs['verify_ssl'] = bool(os.getenv(INFLUX_VERIFY_SSL, 'True').lower() in ['True', 'true'])
+        org = os.getenv(INFLUX_ORG, "default")
+        return InfluxDBClient3(
+            host=required_vars[INFLUX_HOST],
+            token=required_vars[INFLUX_TOKEN],
+            database=required_vars[INFLUX_DATABASE],
+            write_client_options=write_client_option,
+            org=org,
+            **kwargs
+        )
 
     def write(self, record=None, database=None, **kwargs):
         """

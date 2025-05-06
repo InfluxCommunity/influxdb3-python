@@ -4,6 +4,8 @@ from __future__ import absolute_import
 
 import logging
 
+from typing_extensions import deprecated
+
 from influxdb_client_3.write_client.client._base import _BaseClient
 from influxdb_client_3.write_client.client.write_api import WriteApi, WriteOptions, PointSettings
 
@@ -13,7 +15,9 @@ logger = logging.getLogger('influxdb_client_3.write_client.client.influxdb_clien
 class InfluxDBClient(_BaseClient):
     """InfluxDBClient is client for InfluxDB v2."""
 
-    def __init__(self, url, token: str = None, debug=None, timeout=10_000, enable_gzip=False, org: str = None,
+    def __init__(self, url, token: str = None,
+                 debug=None, timeout=10_000,
+                 enable_gzip=False, gzip_threshold=None, org: str = None,
                  default_tags: dict = None, **kwargs) -> None:
         """
         Initialize defaults.
@@ -45,12 +49,16 @@ class InfluxDBClient(_BaseClient):
                                                except batching writes. As a default there is no one retry strategy.
         :key bool auth_basic: Set this to true to enable basic authentication when talking to a InfluxDB 1.8.x that
                               does not use auth-enabled but is protected by a reverse proxy with basic authentication.
-                              (defaults to false, don't set to true when talking to InfluxDB 2)
+                              (defaults to false, don't set to true when talking to InfluxDB 2).
+        :key int gzip_threshold: If the payload size is larger than this gzip_threshold, then
+                                 the payload will be zipped.
         :key str username: ``username`` to authenticate via username and password credentials to the InfluxDB 2.x
         :key str password: ``password`` to authenticate via username and password credentials to the InfluxDB 2.x
         :key list[str] profilers: list of enabled Flux profilers
         """
-        super().__init__(url=url, token=token, debug=debug, timeout=timeout, enable_gzip=enable_gzip, org=org,
+
+        super().__init__(url=url, token=token, debug=debug, timeout=timeout,
+                         enable_gzip=enable_gzip, gzip_threshold=gzip_threshold, org=org,
                          default_tags=default_tags, http_client_logger="urllib3", **kwargs)
 
         from influxdb_client_3.write_client._sync.api_client import ApiClient
@@ -167,6 +175,7 @@ class InfluxDBClient(_BaseClient):
         return InfluxDBClient._from_config_file(config_file=config_file, debug=debug, enable_gzip=enable_gzip, **kwargs)
 
     @classmethod
+    @deprecated("Use up to date Env Properties")
     def from_env_properties(cls, debug=None, enable_gzip=False, **kwargs):
         """
         Configure client via environment properties.
