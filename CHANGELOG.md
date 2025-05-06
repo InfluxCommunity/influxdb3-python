@@ -5,6 +5,7 @@
 ### Features
 
 1. [#130](https://github.com/InfluxCommunity/influxdb3-python/pull/130): Remove org parameters from the example code because It is not mandatory in Influxdb3
+2. [#137](https://github.com/InfluxCommunity/influxdb3-python/pull/137): Add support for environment variables with the same name as in other clients
 
 ## 0.12.0 [2025-03-26] 
 
