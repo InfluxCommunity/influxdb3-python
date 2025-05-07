@@ -43,7 +43,6 @@ class TestWritePolars(unittest.TestCase):
             database="my_db",
             token="my_token"
         )
-        self.client._write_api._point_settings = PointSettings()
 
     def test_write_polars(self):
         import polars as pl
@@ -78,7 +77,6 @@ class TestWritePolars(unittest.TestCase):
                 write_options=WriteOptions(batch_size=2)
             )
         )
-        self.client._write_api._point_settings = PointSettings()
         self.client._write_api._write_options = WriteOptions(batch_size=2)
         self.client._write_api._write_service = Mock(spec=WriteService)
 

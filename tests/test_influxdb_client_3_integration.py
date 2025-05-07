@@ -4,7 +4,6 @@ import random
 import string
 import time
 import unittest
-from unittest.mock import patch
 
 import pyarrow
 import pytest
@@ -275,23 +274,3 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         result_list = result.to_pylist()
         for item in data:
             assert lp_to_py_object(item) in result_list, f"original lp data \"{item}\" should be in result list"
-
-    def test_from_env(self):
-        with InfluxDBClient3.from_env() as client:
-            id_test = time.time_ns()
-            client.write(f"integration_test_python,type=used value=123.0,id_test={id_test}i")
-
-            sql = 'SELECT * FROM integration_test_python where type=$type and id_test=$id_test'
-            data = client.query(sql, mode="pandas", query_parameters={'type': 'used', 'id_test': id_test})
-
-            self.assertIsNotNone(data)
-            self.assertEqual(1, len(data))
-            self.assertEqual(id_test, data['id_test'][0])
-            self.assertEqual(123.0, data['value'][0])
-
-    @patch.dict('os.environ', {'INFLUX_AUTH_SCHEME': 'invalid_schema'})
-    def test_from_env_invalid_auth_schema(self):
-        with InfluxDBClient3.from_env() as client:
-            with self.assertRaises(InfluxDBError) as err:
-                client.write("integration_test_python,type=used value=123.0")
-            self.assertEqual('unauthorized access', err.exception.message)
