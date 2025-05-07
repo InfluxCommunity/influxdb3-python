@@ -4,6 +4,8 @@ from __future__ import absolute_import
 
 import logging
 
+from typing_extensions import deprecated
+
 from influxdb_client_3.write_client.client._base import _BaseClient
 from influxdb_client_3.write_client.client.write_api import WriteApi, WriteOptions, PointSettings
 
@@ -167,6 +169,7 @@ class InfluxDBClient(_BaseClient):
         return InfluxDBClient._from_config_file(config_file=config_file, debug=debug, enable_gzip=enable_gzip, **kwargs)
 
     @classmethod
+    @deprecated('Use InfluxDBClient.from_env() instead.')
     def from_env_properties(cls, debug=None, enable_gzip=False, **kwargs):
         """
         Configure client via environment properties.
@@ -199,6 +202,22 @@ class InfluxDBClient(_BaseClient):
             - INFLUXDB_V2_TAG
         """
         return InfluxDBClient._from_env_properties(debug=debug, enable_gzip=enable_gzip, **kwargs)
+
+    @classmethod
+    def from_env(cls, debug=None, enable_gzip=False, **kwargs):
+        """
+        Creates an instance of the class using environment configuration variables.
+
+        This class method retrieves configuration variables from the system environment
+        and uses them to configure and initialize an instance of the class. This allows
+        for dynamic configuration of the client without the need for hardcoding values
+        or explicitly passing them during instantiation.
+
+        :param debug: Enable verbose logging of http requests
+        :param enable_gzip: Enable Gzip compression for http requests. Currently, only the "Write" and "Query" endpoints
+                            supports the Gzip compression.
+        """
+        return InfluxDBClient._from_env(debug=debug, enable_gzip=enable_gzip, **kwargs)
 
     def write_api(self, write_options=WriteOptions(), point_settings=PointSettings(), **kwargs) -> WriteApi:
         """

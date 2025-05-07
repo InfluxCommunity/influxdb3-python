@@ -1,6 +1,7 @@
-import urllib.parse
-import pyarrow as pa
 import importlib.util
+import urllib.parse
+
+import pyarrow as pa
 
 from influxdb_client_3.query.query_api import QueryApi as _QueryApi, QueryApiOptionsBuilder
 from influxdb_client_3.read_file import UploadFile
