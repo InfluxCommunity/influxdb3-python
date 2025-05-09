@@ -25,6 +25,3 @@ class TestWriteApi(unittest.TestCase):
         self.write_api._write_batching(bucket, org, data, precision)
 
         mock_write_batching.assert_called_once_with(bucket, org, data, precision)
-
-
-
