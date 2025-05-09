@@ -175,7 +175,7 @@ class _BaseClient(object):
                    profilers=profilers, proxy=proxy, **kwargs)
 
     @classmethod
-    @deprecated('Use _from_env() instead.')
+    @deprecated('Use InfluxDBClient3.from_env() instead.')
     def _from_env_properties(cls, debug=None, enable_gzip=False, **kwargs):
         url = os.getenv('INFLUXDB_V2_URL', "http://localhost:8086")
         token = os.getenv('INFLUXDB_V2_TOKEN', "my-token")
