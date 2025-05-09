@@ -3,6 +3,7 @@
 import unittest
 from unittest import mock
 
+from influxdb_client_3 import Point
 from influxdb_client_3.write_client.client.write_api import WriteApi
 from influxdb_client_3.write_client.domain import WritePrecision
 
@@ -19,9 +20,9 @@ class TestWriteApi(unittest.TestCase):
     def test_write_batching_with_bytes(self, mock_write_batching):
         bucket = "my_bucket"
         org = "my_org"
-        data = b"test_data"
+        # data = b"test_data"
         precision = WritePrecision.NS
+        point = Point.measurement("h2o").field("val", 1).time(1257894000123456000, write_precision=precision)
 
-        self.write_api._write_batching(bucket, org, data, precision)
-
-        mock_write_batching.assert_called_once_with(bucket, org, data, precision)
+        self.write_api._write_batching(bucket, org, point, precision)
+        mock_write_batching.assert_called_once_with(bucket, org, point, precision)
