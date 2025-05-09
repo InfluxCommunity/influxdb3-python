@@ -77,7 +77,6 @@ class TestInfluxDBClient3(unittest.TestCase):
     def test_default_client(self):
         expected_precision = DefaultWriteOptions.write_precision.value
         expected_write_type = DefaultWriteOptions.write_type.value
-        expected_gzip_enabled = False
 
         def verify_client_write_options(c):
             write_options = c._write_client_options.get('write_options')
