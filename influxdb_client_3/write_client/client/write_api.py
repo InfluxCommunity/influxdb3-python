@@ -16,12 +16,12 @@ from reactivex import operators as ops, Observable
 from reactivex.scheduler import ThreadPoolScheduler
 from reactivex.subject import Subject
 
-from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.client._base import _BaseWriteApi, _HAS_DATACLASS
 from influxdb_client_3.write_client.client.util.helpers import get_org_query_param
 from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
 from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION
 from influxdb_client_3.write_client.client.write.retry import WritesRetry
+from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.rest import _UTF_8_encoding
 
 logger = logging.getLogger('influxdb_client_3.write_client.client.write_api')
@@ -467,8 +467,7 @@ You can use native asynchronous version of the client:
                                  precision, **kwargs)
 
         elif isinstance(data, Point):
-            write_precision = data.write_precision if data.write_precision is not None else precision
-            self._write_batching(bucket, org, data.to_line_protocol(), write_precision, **kwargs)
+            self._write_batching(bucket, org, data.to_line_protocol(), data.write_precision, **kwargs)
 
         elif isinstance(data, dict):
             self._write_batching(bucket, org, Point.from_dict(data, write_precision=precision, **kwargs),
