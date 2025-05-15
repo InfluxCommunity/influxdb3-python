@@ -104,7 +104,8 @@ class TestInfluxDBClient3(unittest.TestCase):
 
     @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
                                'INFLUX_DATABASE': 'test_db', 'INFLUX_ORG': 'test_org',
-                               'INFLUX_PRECISION': WritePrecision.MS, 'INFLUX_AUTH_SCHEME': 'custom_scheme'})
+                               'INFLUX_PRECISION': WritePrecision.MS, 'INFLUX_AUTH_SCHEME': 'custom_scheme',
+                               'INFLUX_GZIP_THRESHOLD': '2000'})
     def test_from_env_all_env_vars_set(self):
         client = InfluxDBClient3.from_env()
         self.assertIsInstance(client, InfluxDBClient3)
@@ -113,6 +114,7 @@ class TestInfluxDBClient3(unittest.TestCase):
         self.assertEqual(client._client.auth_header_value, f"custom_scheme {client._token}")
         self.assertEqual(client._database, "test_db")
         self.assertEqual(client._org, "test_org")
+        self.assertEqual(client._client.api_client.rest_client.configuration.gzip_threshold, 2000)
 
         write_options = client._write_client_options.get("write_options")
         self.assertEqual(write_options.write_precision, WritePrecision.MS)
