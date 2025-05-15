@@ -142,18 +142,22 @@ class ApiClientTests(unittest.TestCase):
 
     def test_should_gzip(self):
         # Test when gzip is disabled
-        assert not ApiClient.should_gzip("test", enable_gzip=False, gzip_threshold=1)
+        self.assertFalse(ApiClient.should_gzip("test", enable_gzip=False, gzip_threshold=1))
+        self.assertFalse(ApiClient.should_gzip("test", enable_gzip=False, gzip_threshold=10000))
+        self.assertFalse(ApiClient.should_gzip("test", enable_gzip=False, gzip_threshold=None))
 
-        # Test when threshold is None
-        assert not ApiClient.should_gzip("test", enable_gzip=True, gzip_threshold=None)
+        # Test when enable_gzip is True
+        self.assertTrue(ApiClient.should_gzip("test", enable_gzip=True, gzip_threshold=None))
+        self.assertTrue(ApiClient.should_gzip("test", enable_gzip=True, gzip_threshold=1))
+        self.assertFalse(ApiClient.should_gzip("test", enable_gzip=True, gzip_threshold=100000))
 
         # Test payload smaller than threshold
-        assert not ApiClient.should_gzip("test", enable_gzip=True, gzip_threshold=10000)
+        self.assertFalse(ApiClient.should_gzip("test", enable_gzip=True, gzip_threshold=10000))
 
         # Test payload larger than threshold
         large_payload = "x" * 10000
-        assert ApiClient.should_gzip(large_payload, enable_gzip=True, gzip_threshold=1000)
+        self.assertTrue(ApiClient.should_gzip(large_payload, enable_gzip=True, gzip_threshold=1000))
 
-        # Test exact threshold match
-        exact_payload = "x" * 1000
-        assert ApiClient.should_gzip(exact_payload, enable_gzip=True, gzip_threshold=1000)
+        # Test exact threshold match and less than threshold
+        payload = "x" * 1000
+        self.assertTrue(ApiClient.should_gzip(payload, enable_gzip=True, gzip_threshold=1000))

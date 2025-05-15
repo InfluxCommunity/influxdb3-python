@@ -93,23 +93,38 @@ class ApiClient(object):
         self.default_headers[header_name] = header_value
 
     @staticmethod
-    def should_gzip(payload: str, enable_gzip: bool = True, gzip_threshold: int = None) -> bool:
+    def should_gzip(payload: str, enable_gzip: bool = False, gzip_threshold: int = None) -> bool:
         """
-        Determine if the payload should be compressed with gzip.
+        Determines whether gzip compression should be applied to the given payload based
+        on the specified conditions. This method evaluates the `enable_gzip` flag and
+        considers the size of the payload in relation to the optional `gzip_threshold`.
+        If `enable_gzip` is set to True and no threshold is provided, gzip compression
+        is advised without any size condition. If a threshold is specified, compression
+        is applied only when the size of the payload meets or exceeds the threshold.
+        By default, no compression is performed if `enable_gzip` is False.
 
-        Args:
-            payload: The string content to potentially compress
-            enable_gzip: Flag indicating if gzip compression is enabled
-            gzip_threshold: Minimum size in bytes for compression to be applied
-
-        Returns:
-            bool: True if the payload should be compressed, False otherwise
+        :param payload: The payload data as a string for which gzip determination is to
+            be made.
+        :type payload: str
+        :param enable_gzip: A flag indicating whether gzip compression is enabled. By
+            default, this flag is False.
+        :type enable_gzip: bool, optional
+        :param gzip_threshold: Optional threshold specifying the minimum size (in bytes)
+            of the payload to trigger gzip compression. Only considered if
+            `enable_gzip` is True.
+        :type gzip_threshold: int, optional
+        :return: A boolean value indicating True if gzip compression should be applied
+            based on the payload size, the enable_gzip flag, and the gzip_threshold.
+        :rtype: bool
         """
-        if not enable_gzip:
-            return False
+        if enable_gzip is not False:
+            if gzip_threshold is not None:
+                payload_size = len(payload.encode('utf-8'))
+                return payload_size >= gzip_threshold
+            if enable_gzip is True:
+                return True
 
-        payload_size = len(payload.encode('utf-8'))
-        return gzip_threshold is not None and payload_size >= gzip_threshold
+        return False
 
     def __call_api(
             self, resource_path, method, path_params=None,
