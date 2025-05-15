@@ -16,12 +16,12 @@ from reactivex import operators as ops, Observable
 from reactivex.scheduler import ThreadPoolScheduler
 from reactivex.subject import Subject
 
-from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.client._base import _BaseWriteApi, _HAS_DATACLASS
 from influxdb_client_3.write_client.client.util.helpers import get_org_query_param
 from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
 from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION
 from influxdb_client_3.write_client.client.write.retry import WritesRetry
+from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.rest import _UTF_8_encoding
 
 logger = logging.getLogger('influxdb_client_3.write_client.client.write_api')
@@ -39,6 +39,11 @@ class WriteType(Enum):
     synchronous = 3
 
 
+class DefaultWriteOptions(Enum):
+    write_type = WriteType.synchronous
+    write_precision = WritePrecision.NS
+
+
 class WriteOptions(object):
     """Write configuration."""
 
@@ -51,6 +56,7 @@ class WriteOptions(object):
                  max_retry_time=180_000,
                  exponential_base=2,
                  max_close_wait=300_000,
+                 write_precision=DEFAULT_WRITE_PRECISION,
                  write_scheduler=ThreadPoolScheduler(max_workers=1)) -> None:
         """
         Create write api configuration.
@@ -80,6 +86,7 @@ class WriteOptions(object):
         self.exponential_base = exponential_base
         self.write_scheduler = write_scheduler
         self.max_close_wait = max_close_wait
+        self.write_precision = write_precision
 
     def to_retry_strategy(self, **kwargs):
         """
@@ -290,7 +297,7 @@ You can use native asynchronous version of the client:
                   str, Iterable['str'], Point, Iterable['Point'], dict, Iterable['dict'], bytes, Iterable['bytes'],
                   Observable, NamedTuple, Iterable['NamedTuple'], 'dataclass', Iterable['dataclass']
               ] = None,
-              write_precision: WritePrecision = DEFAULT_WRITE_PRECISION, **kwargs) -> Any:
+              write_precision: WritePrecision = None, **kwargs) -> Any:
         """
         Write time-series data into InfluxDB.
 
@@ -360,6 +367,9 @@ You can use native asynchronous version of the client:
         org = get_org_query_param(org=org, client=self._influxdb_client)
 
         self._append_default_tags(record)
+
+        if write_precision is None:
+            write_precision = self._write_options.write_precision
 
         if self._write_options.write_type is WriteType.batching:
             return self._write_batching(bucket, org, record,
@@ -443,8 +453,11 @@ You can use native asynchronous version of the client:
         pass
 
     def _write_batching(self, bucket, org, data,
-                        precision=DEFAULT_WRITE_PRECISION,
+                        precision=None,
                         **kwargs):
+        if precision is None:
+            precision = self._write_options.write_precision
+
         if isinstance(data, bytes):
             _key = _BatchItemKey(bucket, org, precision)
             self._subject.on_next(_BatchItem(key=_key, data=data))
