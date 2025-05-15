@@ -49,6 +49,7 @@ class _BaseClient(object):
         else:
             self.conf.host = self.url
         self.conf.enable_gzip = enable_gzip
+        self.conf.gzip_threshold = kwargs.get('gzip_threshold', None)
         self.conf.verify_ssl = kwargs.get('verify_ssl', True)
         self.conf.ssl_ca_cert = kwargs.get('ssl_ca_cert', None)
         self.conf.cert_file = kwargs.get('cert_file', None)
@@ -277,9 +278,9 @@ class _Configuration(Configuration):
         self.username = None
         self.password = None
 
-    def update_request_header_params(self, path: str, params: dict):
-        super().update_request_header_params(path, params)
-        if self.enable_gzip:
+    def update_request_header_params(self, path: str, params: dict, should_gzip: bool = False):
+        super().update_request_header_params(path, params, should_gzip)
+        if should_gzip:
             # GZIP Request
             if path == '/api/v2/write':
                 params["Content-Encoding"] = "gzip"
@@ -293,9 +294,9 @@ class _Configuration(Configuration):
             pass
         pass
 
-    def update_request_body(self, path: str, body):
-        _body = super().update_request_body(path, body)
-        if self.enable_gzip:
+    def update_request_body(self, path: str, body, should_gzip: bool = False):
+        _body = super().update_request_body(path, body, should_gzip)
+        if should_gzip:
             # GZIP Request
             if path == '/api/v2/write':
                 import gzip

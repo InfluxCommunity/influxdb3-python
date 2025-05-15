@@ -92,6 +92,25 @@ class ApiClient(object):
         """Set HTTP header for this API client."""
         self.default_headers[header_name] = header_value
 
+    @staticmethod
+    def should_gzip(payload: str, enable_gzip: bool = True, gzip_threshold: int = None) -> bool:
+        """
+        Determine if the payload should be compressed with gzip.
+
+        Args:
+            payload: The string content to potentially compress
+            enable_gzip: Flag indicating if gzip compression is enabled
+            gzip_threshold: Minimum size in bytes for compression to be applied
+
+        Returns:
+            bool: True if the payload should be compressed, False otherwise
+        """
+        if not enable_gzip:
+            return False
+
+        payload_size = len(payload.encode('utf-8'))
+        return gzip_threshold is not None and payload_size >= gzip_threshold
+
     def __call_api(
             self, resource_path, method, path_params=None,
             query_params=None, header_params=None, body=None, post_params=None,
@@ -102,9 +121,16 @@ class ApiClient(object):
         config = self.configuration
         self._signin(resource_path=resource_path)
 
+        # body
+        should_gzip = False
+        if body:
+            should_gzip = self.should_gzip(config.enable_gzip, config.gzip_threshold, body)
+            body = self.sanitize_for_serialization(body)
+            body = config.update_request_body(resource_path, body, should_gzip)
+
         # header parameters
         header_params = header_params or {}
-        config.update_request_header_params(resource_path, header_params)
+        config.update_request_header_params(resource_path, header_params, should_gzip)
         header_params.update(self.default_headers)
         if self.cookie:
             header_params['Cookie'] = self.cookie
@@ -140,11 +166,6 @@ class ApiClient(object):
 
         # auth setting
         self.update_params_for_auth(header_params, query_params, auth_settings)
-
-        # body
-        if body:
-            body = self.sanitize_for_serialization(body)
-            body = config.update_request_body(resource_path, body)
 
         # request url
         url = self.configuration.host + resource_path

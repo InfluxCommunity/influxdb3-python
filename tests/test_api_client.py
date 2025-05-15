@@ -139,3 +139,21 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(headers['Trace-Sampled'], 'false')
         self.assertEqual(headers['X-Influxdb-Request-Id'], requestid)
         self.assertEqual(headers['X-Influxdb-Build'], 'Mock')
+
+    def test_should_gzip(self):
+        # Test when gzip is disabled
+        assert not ApiClient.should_gzip("test", enable_gzip=False, gzip_threshold=1)
+
+        # Test when threshold is None
+        assert not ApiClient.should_gzip("test", enable_gzip=True, gzip_threshold=None)
+
+        # Test payload smaller than threshold
+        assert not ApiClient.should_gzip("test", enable_gzip=True, gzip_threshold=10000)
+
+        # Test payload larger than threshold
+        large_payload = "x" * 10000
+        assert ApiClient.should_gzip(large_payload, enable_gzip=True, gzip_threshold=1000)
+
+        # Test exact threshold match
+        exact_payload = "x" * 1000
+        assert ApiClient.should_gzip(exact_payload, enable_gzip=True, gzip_threshold=1000)
