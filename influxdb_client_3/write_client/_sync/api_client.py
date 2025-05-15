@@ -139,7 +139,7 @@ class ApiClient(object):
         # body
         should_gzip = False
         if body:
-            should_gzip = self.should_gzip(config.enable_gzip, config.gzip_threshold, body)
+            should_gzip = self.should_gzip(body, config.enable_gzip, config.gzip_threshold)
             body = self.sanitize_for_serialization(body)
             body = config.update_request_body(resource_path, body, should_gzip)
 
