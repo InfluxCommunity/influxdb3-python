@@ -226,7 +226,23 @@ class InfluxDBClient3:
 
     @classmethod
     def from_env(cls, **kwargs: Any) -> 'InfluxDBClient3':
+        """
+        Creates an instance of the ``InfluxDBClient3`` class using environment
+        variables for configuration. This method simplifies client creation by
+        automatically reading required information from the system environment.
 
+        It verifies the presence of required environment variables such as host,
+        token, and database. If any of these variables are missing or empty,
+        a ``ValueError`` will be raised. Optional parameters such as precision and
+        authentication scheme will also be extracted from the environment when
+        present, allowing further customization of the client.
+
+        :param kwargs: Additional parameters that are passed to the client constructor.
+        :type kwargs: Any
+        :raises ValueError: If any required environment variables are missing or empty.
+        :return: An initialized client object of type ``InfluxDBClient3``.
+        :rtype: InfluxDBClient3
+        """
         required_vars = {
             INFLUX_HOST: os.getenv(INFLUX_HOST),
             INFLUX_TOKEN: os.getenv(INFLUX_TOKEN),
