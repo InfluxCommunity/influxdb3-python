@@ -206,53 +206,6 @@ class _BaseClient(object):
                    connection_pool_maxsize=_to_int(connection_pool_maxsize), auth_basic=_to_bool(auth_basic),
                    profilers=profilers, **kwargs)
 
-    @classmethod
-    def _from_env(cls, debug=None, enable_gzip=False, **kwargs):
-        """
-        Creates and configures an instance of the class using environment variable values. The method loads
-        configuration values for connecting to an InfluxDB server instance from preset environment variables.
-        Options include connection details such as host, token, organization, and optional parameters
-        like SSL settings, profiling, and default tags. Non-specified parameters fallback to defaults
-        or None, ensuring a straightforward integration with varied InfluxDB setups.
-
-        :param debug: Determines whether debugging mode is enabled.
-        :type debug: Optional[bool]
-        :param enable_gzip: Indicates whether gzip compression is enabled for requests.
-        :type enable_gzip: bool
-        :param kwargs: Additional keyword arguments to configure the instance.
-        :type kwargs: dict
-        :return: Instance of the class configured using the provided environmental settings.
-        :rtype: cls
-        """
-        url = os.getenv('INFLUX_HOST', "http://localhost:8086")
-        token = os.getenv('INFLUX_TOKEN', "my-token")
-        org = os.getenv('INFLUX_ORG', "my-org")
-        timeout = os.getenv('INFLUX_TIMEOUT', "10000")
-        verify_ssl = os.getenv('INFLUX_VERIFY_SSL', "True")
-        ssl_ca_cert = os.getenv('INFLUX_SSL_CA_CERT', None)
-        cert_file = os.getenv('INFLUX_CERT_FILE', None)
-        cert_key_file = os.getenv('INFLUX_CERT_KEY_FILE', None)
-        cert_key_password = os.getenv('INFLUX_CERT_KEY_PASSWORD', None)
-        connection_pool_maxsize = os.getenv('INFLUX_CONNECTION_POOL_MAXSIZE', None)
-        auth_basic = os.getenv('INFLUX_AUTH_BASIC', "False")
-
-        prof = os.getenv("INFLUX_PROFILERS", None)
-        profilers = None
-        if prof is not None:
-            profilers = [x.strip() for x in prof.split(',')]
-
-        default_tags = dict()
-
-        for key, value in os.environ.items():
-            if key.startswith("INFLUX_TAG_"):
-                default_tags[key[11:].lower()] = value
-
-        return cls(url, token, debug=debug, timeout=_to_int(timeout), org=org, default_tags=default_tags,
-                   enable_gzip=enable_gzip, verify_ssl=_to_bool(verify_ssl), ssl_ca_cert=ssl_ca_cert,
-                   cert_file=cert_file, cert_key_file=cert_key_file, cert_key_password=cert_key_password,
-                   connection_pool_maxsize=_to_int(connection_pool_maxsize), auth_basic=_to_bool(auth_basic),
-                   profilers=profilers, **kwargs)
-
 
 class _BaseWriteApi(object):
     def __init__(self, influxdb_client, point_settings=None):
