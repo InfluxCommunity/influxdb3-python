@@ -98,6 +98,10 @@ class Configuration(object, metaclass=TypeWithDefault):
         # Safe chars for path_param
         self.safe_chars_for_path_param = ''
 
+        # Compression settings
+        self.enable_gzip = False
+        self.gzip_threshold = None
+
     @property
     def logger_file(self):
         """Logger file.
@@ -245,19 +249,21 @@ class Configuration(object, metaclass=TypeWithDefault):
                "SDK Package Version: {client_version}".\
                format(env=sys.platform, pyversion=sys.version, client_version=VERSION)
 
-    def update_request_header_params(self, path: str, params: dict):
+    def update_request_header_params(self, path: str, params: dict, should_gzip: bool = False):
         """Update header params based on custom settings.
 
-        :param path: Resource path
+        :param path: Resource path.
         :param params: Header parameters dict to be updated.
+        :param should_gzip: Describes if request body should be gzip compressed.
         """
         pass
 
-    def update_request_body(self, path: str, body):
+    def update_request_body(self, path: str, body, should_gzip: bool = False):
         """Update http body based on custom settings.
 
-        :param path: Resource path
+        :param path: Resource path.
         :param body: Request body to be updated.
+        :param should_gzip: Describes if request body should be gzip compressed.
         :return: Updated body
         """
         return body

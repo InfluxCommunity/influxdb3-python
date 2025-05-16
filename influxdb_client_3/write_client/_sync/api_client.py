@@ -92,6 +92,40 @@ class ApiClient(object):
         """Set HTTP header for this API client."""
         self.default_headers[header_name] = header_value
 
+    @staticmethod
+    def should_gzip(payload: str, enable_gzip: bool = False, gzip_threshold: int = None) -> bool:
+        """
+        Determines whether gzip compression should be applied to the given payload based
+        on the specified conditions. This method evaluates the `enable_gzip` flag and
+        considers the size of the payload in relation to the optional `gzip_threshold`.
+        If `enable_gzip` is set to True and no threshold is provided, gzip compression
+        is advised without any size condition. If a threshold is specified, compression
+        is applied only when the size of the payload meets or exceeds the threshold.
+        By default, no compression is performed if `enable_gzip` is False.
+
+        :param payload: The payload data as a string for which gzip determination is to
+            be made.
+        :type payload: str
+        :param enable_gzip: A flag indicating whether gzip compression is enabled. By
+            default, this flag is False.
+        :type enable_gzip: bool, optional
+        :param gzip_threshold: Optional threshold specifying the minimum size (in bytes)
+            of the payload to trigger gzip compression. Only considered if
+            `enable_gzip` is True.
+        :type gzip_threshold: int, optional
+        :return: A boolean value indicating True if gzip compression should be applied
+            based on the payload size, the enable_gzip flag, and the gzip_threshold.
+        :rtype: bool
+        """
+        if enable_gzip is not False:
+            if gzip_threshold is not None:
+                payload_size = len(payload.encode('utf-8'))
+                return payload_size >= gzip_threshold
+            if enable_gzip is True:
+                return True
+
+        return False
+
     def __call_api(
             self, resource_path, method, path_params=None,
             query_params=None, header_params=None, body=None, post_params=None,
@@ -102,9 +136,16 @@ class ApiClient(object):
         config = self.configuration
         self._signin(resource_path=resource_path)
 
+        # body
+        should_gzip = False
+        if body:
+            should_gzip = self.should_gzip(body, config.enable_gzip, config.gzip_threshold)
+            body = self.sanitize_for_serialization(body)
+            body = config.update_request_body(resource_path, body, should_gzip)
+
         # header parameters
         header_params = header_params or {}
-        config.update_request_header_params(resource_path, header_params)
+        config.update_request_header_params(resource_path, header_params, should_gzip)
         header_params.update(self.default_headers)
         if self.cookie:
             header_params['Cookie'] = self.cookie
@@ -140,11 +181,6 @@ class ApiClient(object):
 
         # auth setting
         self.update_params_for_auth(header_params, query_params, auth_settings)
-
-        # body
-        if body:
-            body = self.sanitize_for_serialization(body)
-            body = config.update_request_body(resource_path, body)
 
         # request url
         url = self.configuration.host + resource_path

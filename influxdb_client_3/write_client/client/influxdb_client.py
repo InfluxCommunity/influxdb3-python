@@ -16,7 +16,7 @@ class InfluxDBClient(_BaseClient):
     """InfluxDBClient is client for InfluxDB v2."""
 
     def __init__(self, url, token: str = None, debug=None, timeout=10_000, enable_gzip=False, org: str = None,
-                 default_tags: dict = None, **kwargs) -> None:
+                 default_tags: dict = None, gzip_threshold=None, **kwargs) -> None:
         """
         Initialize defaults.
 
@@ -52,7 +52,8 @@ class InfluxDBClient(_BaseClient):
         :key str password: ``password`` to authenticate via username and password credentials to the InfluxDB 2.x
         :key list[str] profilers: list of enabled Flux profilers
         """
-        super().__init__(url=url, token=token, debug=debug, timeout=timeout, enable_gzip=enable_gzip, org=org,
+        super().__init__(url=url, token=token, debug=debug, timeout=timeout, enable_gzip=enable_gzip,
+                         gzip_threshold=gzip_threshold, org=org,
                          default_tags=default_tags, http_client_logger="urllib3", **kwargs)
 
         from influxdb_client_3.write_client._sync.api_client import ApiClient

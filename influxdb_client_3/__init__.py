@@ -21,6 +21,7 @@ INFLUX_DATABASE = "INFLUX_DATABASE"
 INFLUX_ORG = "INFLUX_ORG"
 INFLUX_PRECISION = "INFLUX_PRECISION"
 INFLUX_AUTH_SCHEME = "INFLUX_AUTH_SCHEME"
+INFLUX_GZIP_THRESHOLD = "INFLUX_GZIP_THRESHOLD"
 
 
 def write_client_options(**kwargs):
@@ -112,6 +113,30 @@ def _parse_precision(precision):
     if precision not in [WritePrecision.NS, WritePrecision.MS, WritePrecision.S, WritePrecision.US]:
         raise ValueError(f"Invalid precision value: {precision}")
     return precision
+
+
+def _parse_gzip_threshold(threshold):
+    """
+    Parses and validates the provided threshold value.
+
+    This function ensures that the given threshold is a valid integer value,
+    and it raises an appropriate error if the threshold is not valid. It also
+    enforces that the threshold value is non-negative.
+
+    :param threshold: The input threshold value to be parsed and validated.
+    :type threshold: Any
+    :return: The validated threshold value as an integer.
+    :rtype: int
+    :raises ValueError: If the provided threshold is not an integer or if it is
+        negative.
+    """
+    try:
+        threshold = int(threshold)
+    except (TypeError, ValueError):
+        raise ValueError(f"Invalid threshold value: {threshold}. Must be integer.")
+    if threshold < 0:
+        raise ValueError(f"Invalid threshold value: {threshold}. Must be non-negative.")
+    return threshold
 
 
 class InfluxDBClient3:
@@ -226,7 +251,23 @@ class InfluxDBClient3:
 
     @classmethod
     def from_env(cls, **kwargs: Any) -> 'InfluxDBClient3':
+        """
+        Creates an instance of the ``InfluxDBClient3`` class using environment
+        variables for configuration. This method simplifies client creation by
+        automatically reading required information from the system environment.
 
+        It verifies the presence of required environment variables such as host,
+        token, and database. If any of these variables are missing or empty,
+        a ``ValueError`` will be raised. Optional parameters such as precision and
+        authentication scheme will also be extracted from the environment when
+        present, allowing further customization of the client.
+
+        :param kwargs: Additional parameters that are passed to the client constructor.
+        :type kwargs: Any
+        :raises ValueError: If any required environment variables are missing or empty.
+        :return: An initialized client object of type ``InfluxDBClient3``.
+        :rtype: InfluxDBClient3
+        """
         required_vars = {
             INFLUX_HOST: os.getenv(INFLUX_HOST),
             INFLUX_TOKEN: os.getenv(INFLUX_TOKEN),
@@ -237,6 +278,11 @@ class InfluxDBClient3:
             raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
 
         write_options = WriteOptions(write_type=WriteType.synchronous)
+
+        gzip_threshold = os.getenv(INFLUX_GZIP_THRESHOLD)
+        if gzip_threshold is not None:
+            kwargs['gzip_threshold'] = _parse_gzip_threshold(gzip_threshold)
+            kwargs['enable_gzip'] = True
 
         precision = os.getenv(INFLUX_PRECISION)
         if precision is not None:
