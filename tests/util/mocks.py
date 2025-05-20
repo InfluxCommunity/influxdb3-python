@@ -5,9 +5,8 @@ import time
 from pyarrow import (
     array,
     Table,
-    concat_tables
+    concat_tables, ArrowException
 )
-
 from pyarrow.flight import (
     FlightServerBase,
     RecordBatchStream,
@@ -158,3 +157,7 @@ class HeaderCheckFlightServer(FlightServerBase):
         for idx, batch in enumerate(table.to_batches()):
             buf = struct.pack('<i', idx)
             yield batch, buf
+
+class ErrorFlightServer(FlightServerBase):
+    def do_get(self, context, ticket):
+        raise ArrowException

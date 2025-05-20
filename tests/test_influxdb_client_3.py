@@ -2,8 +2,9 @@ import unittest
 from unittest.mock import patch
 
 from influxdb_client_3 import InfluxDBClient3, WritePrecision, DefaultWriteOptions, Point, WriteOptions, WriteType
+from influxdb_client_3.influxdb_client_error import InfluxdbClientQueryError
 from tests.util import asyncio_run
-from tests.util.mocks import ConstantFlightServer, ConstantData
+from tests.util.mocks import ConstantFlightServer, ConstantData, ErrorFlightServer
 
 
 class TestInfluxDBClient3(unittest.TestCase):
@@ -142,6 +143,20 @@ class TestInfluxDBClient3(unittest.TestCase):
             InfluxDBClient3.from_env()
         self.assertIn("Invalid precision value: invalid_value", str(context.exception))
 
+    def test_query_with_arrow_error(self):
+        f = ErrorFlightServer()
+        with InfluxDBClient3(f"http://localhost:{f.port}", "my_org", "my_db", "my_token") as c:
+            with self.assertRaises(InfluxdbClientQueryError) as err:
+                c.query("SELECT * FROM my_data")
+            self.assertIn("Error while executing query", str(err.exception))
+
+    @asyncio_run
+    async def test_async_query_with_arrow_error(self):
+        f = ErrorFlightServer()
+        with InfluxDBClient3(f"http://localhost:{f.port}", "my_org", "my_db", "my_token") as c:
+            with self.assertRaises(InfluxdbClientQueryError) as err:
+                await c.query_async("SELECT * FROM my_data")
+            self.assertIn("Error while executing query", str(err.exception))
 
 if __name__ == '__main__':
     unittest.main()
