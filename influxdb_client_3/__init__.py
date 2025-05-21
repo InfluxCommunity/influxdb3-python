@@ -4,7 +4,9 @@ import urllib.parse
 from typing import Any
 
 import pyarrow as pa
+from pyarrow import ArrowException
 
+from influxdb_client_3.influxdb_client_error import InfluxdbClientQueryError
 from influxdb_client_3.query.query_api import QueryApi as _QueryApi, QueryApiOptionsBuilder
 from influxdb_client_3.read_file import UploadFile
 from influxdb_client_3.write_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
@@ -400,8 +402,8 @@ class InfluxDBClient3:
 
         try:
             return self._query_api.query(query=query, language=language, mode=mode, database=database, **kwargs)
-        except InfluxDBError as e:
-            raise e
+        except ArrowException as e:
+            raise InfluxdbClientQueryError(f"Error while executing query: {e}")
 
     async def query_async(self, query: str, language: str = "sql", mode: str = "all", database: str = None, **kwargs):
         """Query data from InfluxDB asynchronously.
@@ -433,8 +435,8 @@ class InfluxDBClient3:
                                                      mode=mode,
                                                      database=database,
                                                      **kwargs)
-        except InfluxDBError as e:
-            raise e
+        except ArrowException as e:
+            raise InfluxdbClientQueryError(f"Error while executing query: {e}")
 
     def close(self):
         """Close the client and clean up resources."""
