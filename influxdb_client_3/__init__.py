@@ -430,7 +430,7 @@ class InfluxDBClient3:
             database = self._database
 
         try:
-             return await self._query_api.query_async(query=query,
+            return await self._query_api.query_async(query=query,
                                                      language=language,
                                                      mode=mode,
                                                      database=database,

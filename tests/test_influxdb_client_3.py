@@ -158,5 +158,6 @@ class TestInfluxDBClient3(unittest.TestCase):
                 await c.query_async("SELECT * FROM my_data")
             self.assertIn("Error while executing query", str(err.exception))
 
+
 if __name__ == '__main__':
     unittest.main()

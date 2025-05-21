@@ -168,7 +168,6 @@ class QueryApi(object):
 
         return self._translate_stream_reader(flight_reader, mode)
 
-
     async def query_async(self, query: str, language: str, mode: str, database: str, **kwargs):
         """Query data from InfluxDB asynchronously.
 
@@ -190,8 +189,8 @@ class QueryApi(object):
         _flight_reader = await loop.run_in_executor(None,
                                                     self._flight_client.do_get, ticket, options)
         return await loop.run_in_executor(None, self._translate_stream_reader,
-                                              _flight_reader,
-                                              mode)
+                                          _flight_reader,
+                                          mode)
 
     def _translate_stream_reader(self, reader: FlightStreamReader, mode: str):
         from influxdb_client_3 import polars as has_polars

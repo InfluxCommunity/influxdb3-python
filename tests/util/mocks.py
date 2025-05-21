@@ -158,6 +158,7 @@ class HeaderCheckFlightServer(FlightServerBase):
             buf = struct.pack('<i', idx)
             yield batch, buf
 
+
 class ErrorFlightServer(FlightServerBase):
     def do_get(self, context, ticket):
         raise ArrowException
