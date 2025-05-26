@@ -89,6 +89,22 @@ class TestInfluxDBClient3(unittest.TestCase):
         expected_precision = DefaultWriteOptions.write_precision.value
         expected_write_type = DefaultWriteOptions.write_type.value
 
+        import os
+        try:
+            os.environ["INFLUX_HOST"]
+        except KeyError:
+            os.environ["INFLUX_HOST"] = "http://my-influx.io"
+
+        try:
+            os.environ["INFLUX_TOKEN"]
+        except KeyError:
+            os.environ["INFLUX_TOKEN"] = "my-token"
+
+        try:
+            os.environ["INFLUX_DATABASE"]
+        except KeyError:
+            os.environ["INFLUX_DATABASE"] = "my-bucket"
+
         def verify_client_write_options(c):
             write_options = c._write_client_options.get('write_options')
             self.assertEqual(write_options.write_precision, expected_precision)
