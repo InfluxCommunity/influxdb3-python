@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import logging
 from typing import Dict
 
-from influxdb_client_3.write_client.client.exceptions import InfluxDBError
+from influxdb_client_3.exceptions.exceptions import InfluxDBError
 from influxdb_client_3.write_client.configuration import Configuration
 
 _UTF_8_encoding = 'utf-8'

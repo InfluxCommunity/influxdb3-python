@@ -3,7 +3,7 @@ Demonstrates handling error when querying InfluxDB.
 """
 import logging
 from config import Config
-from influxdb_client_3.influxdb_client_error import InfluxdbClientQueryError
+from influxdb_client_3.exceptions.exceptions import InfluxDB3ClientQueryError
 
 import influxdb_client_3 as InfluxDBClient3
 
@@ -25,7 +25,7 @@ def main() -> None:
     try:
         # Select from a bucket that doesn't exist
         client.query("Select a from cpu11")
-    except InfluxdbClientQueryError as e:
+    except InfluxDB3ClientQueryError as e:
         logging.log(logging.ERROR, e.message)
 
 
