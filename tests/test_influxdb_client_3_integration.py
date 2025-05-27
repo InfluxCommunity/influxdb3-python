@@ -7,9 +7,9 @@ import unittest
 
 import pyarrow
 import pytest
-from pyarrow._flight import FlightError
+from influxdb_client_3.exceptions import InfluxDB3ClientQueryError, InfluxDBError
 
-from influxdb_client_3 import InfluxDBClient3, InfluxDBError, write_client_options, WriteOptions
+from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions
 from tests.util import asyncio_run, lp_to_py_object
 
 
@@ -225,7 +225,7 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
                 query = "SELECT table_name FROM information_schema.tables"
                 client.query(query, mode="")
                 assert False, "query should throw SSL_ERROR"
-            except FlightError as fe:
+            except InfluxDB3ClientQueryError as fe:
                 assert str(fe).__contains__('SSL_ERROR_SSL')
             finally:
                 self.remove_test_cert(cert_file)

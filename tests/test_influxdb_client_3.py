@@ -2,8 +2,9 @@ import unittest
 from unittest.mock import patch
 
 from influxdb_client_3 import InfluxDBClient3, WritePrecision, DefaultWriteOptions, Point, WriteOptions, WriteType
+from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
 from tests.util import asyncio_run
-from tests.util.mocks import ConstantFlightServer, ConstantData
+from tests.util.mocks import ConstantFlightServer, ConstantData, ErrorFlightServer
 
 
 class TestInfluxDBClient3(unittest.TestCase):
@@ -83,10 +84,28 @@ class TestInfluxDBClient3(unittest.TestCase):
             self.assertTrue(True)
         except Exception as e:
             self.fail(f"Write API with default options raised an exception: {str(e)}")
+        finally:
+            client._write_api._on_complete()  # abort batch writes - otherwise test cycles through urllib3 retries
 
     def test_default_client(self):
         expected_precision = DefaultWriteOptions.write_precision.value
         expected_write_type = DefaultWriteOptions.write_type.value
+
+        import os
+        try:
+            os.environ["INFLUX_HOST"]
+        except KeyError:
+            os.environ["INFLUX_HOST"] = "http://my-influx.io"
+
+        try:
+            os.environ["INFLUX_TOKEN"]
+        except KeyError:
+            os.environ["INFLUX_TOKEN"] = "my-token"
+
+        try:
+            os.environ["INFLUX_DATABASE"]
+        except KeyError:
+            os.environ["INFLUX_DATABASE"] = "my-bucket"
 
         def verify_client_write_options(c):
             write_options = c._write_client_options.get('write_options')
@@ -141,6 +160,21 @@ class TestInfluxDBClient3(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             InfluxDBClient3.from_env()
         self.assertIn("Invalid precision value: invalid_value", str(context.exception))
+
+    def test_query_with_arrow_error(self):
+        f = ErrorFlightServer()
+        with InfluxDBClient3(f"http://localhost:{f.port}", "my_org", "my_db", "my_token") as c:
+            with self.assertRaises(InfluxDB3ClientQueryError) as err:
+                c.query("SELECT * FROM my_data")
+            self.assertIn("Error while executing query", str(err.exception))
+
+    @asyncio_run
+    async def test_async_query_with_arrow_error(self):
+        f = ErrorFlightServer()
+        with InfluxDBClient3(f"http://localhost:{f.port}", "my_org", "my_db", "my_token") as c:
+            with self.assertRaises(InfluxDB3ClientQueryError) as err:
+                await c.query_async("SELECT * FROM my_data")
+            self.assertIn("Error while executing query", str(err.exception))
 
 
 if __name__ == '__main__':

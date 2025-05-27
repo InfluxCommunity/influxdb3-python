@@ -162,14 +162,11 @@ class QueryApi(object):
                                    It should be a ``dictionary`` of key-value pairs.
         :return: The query result in the specified mode.
         """
-        try:
-            ticket, _options = self._prepare_query(query, language, database, **kwargs)
+        ticket, _options = self._prepare_query(query, language, database, **kwargs)
 
-            flight_reader = self._do_get(ticket, _options)
+        flight_reader = self._do_get(ticket, _options)
 
-            return self._translate_stream_reader(flight_reader, mode)
-        except Exception as e:
-            raise e
+        return self._translate_stream_reader(flight_reader, mode)
 
     async def query_async(self, query: str, language: str, mode: str, database: str, **kwargs):
         """Query data from InfluxDB asynchronously.
@@ -187,16 +184,13 @@ class QueryApi(object):
                            It should be a ``dictionary`` of key-value pairs.
         :return: The query result in the specified mode.
         """
-        try:
-            ticket, options = self._prepare_query(query, language, database, **kwargs)
-            loop = asyncio.get_running_loop()
-            _flight_reader = await loop.run_in_executor(None,
-                                                        self._flight_client.do_get, ticket, options)
-            return await loop.run_in_executor(None, self._translate_stream_reader,
-                                              _flight_reader,
-                                              mode)
-        except Exception as e:
-            raise e
+        ticket, options = self._prepare_query(query, language, database, **kwargs)
+        loop = asyncio.get_running_loop()
+        _flight_reader = await loop.run_in_executor(None,
+                                                    self._flight_client.do_get, ticket, options)
+        return await loop.run_in_executor(None, self._translate_stream_reader,
+                                          _flight_reader,
+                                          mode)
 
     def _translate_stream_reader(self, reader: FlightStreamReader, mode: str):
         from influxdb_client_3 import polars as has_polars
