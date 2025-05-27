@@ -4,7 +4,7 @@ import logging
 
 from urllib3 import HTTPResponse
 
-logger = logging.getLogger('influxdb_client_3.exceptions.exceptions')
+logger = logging.getLogger('influxdb_client_3.exceptions')
 
 
 class InfluxDB3ClientError(Exception):

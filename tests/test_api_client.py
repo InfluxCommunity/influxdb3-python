@@ -6,7 +6,7 @@ from urllib3 import response
 
 from influxdb_client_3.write_client._sync.api_client import ApiClient
 from influxdb_client_3.write_client.configuration import Configuration
-from influxdb_client_3.exceptions.exceptions import InfluxDBError
+from influxdb_client_3.exceptions import InfluxDBError
 from influxdb_client_3.write_client.service import WriteService
 from influxdb_client_3.version import VERSION
 

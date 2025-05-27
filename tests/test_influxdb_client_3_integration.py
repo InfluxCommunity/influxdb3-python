@@ -7,7 +7,7 @@ import unittest
 
 import pyarrow
 import pytest
-from influxdb_client_3.exceptions.exceptions import InfluxDB3ClientQueryError, InfluxDBError
+from influxdb_client_3.exceptions import InfluxDB3ClientQueryError, InfluxDBError
 
 from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions
 from tests.util import asyncio_run, lp_to_py_object

@@ -3,7 +3,7 @@ Demonstrates handling error when querying InfluxDB.
 """
 import logging
 from config import Config
-from influxdb_client_3.exceptions.exceptions import InfluxDB3ClientQueryError
+from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
 
 import influxdb_client_3 as InfluxDBClient3
 

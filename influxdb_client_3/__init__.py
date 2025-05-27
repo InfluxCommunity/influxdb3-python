@@ -6,11 +6,11 @@ from typing import Any
 import pyarrow as pa
 from pyarrow import ArrowException
 
-from influxdb_client_3.exceptions.exceptions import InfluxDB3ClientQueryError
+from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
 from influxdb_client_3.query.query_api import QueryApi as _QueryApi, QueryApiOptionsBuilder
 from influxdb_client_3.read_file import UploadFile
 from influxdb_client_3.write_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
-from influxdb_client_3.exceptions.exceptions import InfluxDBError
+from influxdb_client_3.exceptions import InfluxDBError
 from influxdb_client_3.write_client.client.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, \
     PointSettings, DefaultWriteOptions, WriteType
 from influxdb_client_3.write_client.domain.write_precision import WritePrecision
