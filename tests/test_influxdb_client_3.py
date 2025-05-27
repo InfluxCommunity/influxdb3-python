@@ -84,6 +84,8 @@ class TestInfluxDBClient3(unittest.TestCase):
             self.assertTrue(True)
         except Exception as e:
             self.fail(f"Write API with default options raised an exception: {str(e)}")
+        finally:
+            client._write_api._on_complete()  # abort batch writes - otherwise test cycles through urllib3 retries
 
     def test_default_client(self):
         expected_precision = DefaultWriteOptions.write_precision.value
