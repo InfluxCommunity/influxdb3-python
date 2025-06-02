@@ -2,6 +2,10 @@
 
 ## 0.14.0 [unreleased]
 
+### Features
+
+1. [#141](https://github.com/InfluxCommunity/influxdb3-python/pull/141) Move "setuptools" package to build dependency.
+
 ## 0.13.0 [2025-05-20]
 
 ### Features
