@@ -19,7 +19,7 @@ from reactivex.subject import Subject
 from influxdb_client_3.write_client.client._base import _BaseWriteApi, _HAS_DATACLASS
 from influxdb_client_3.write_client.client.util.helpers import get_org_query_param
 from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
-from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION
+from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION, DEFAULT_WRITE_NO_SYNC
 from influxdb_client_3.write_client.client.write.retry import WritesRetry
 from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.rest import _UTF_8_encoding
@@ -41,7 +41,8 @@ class WriteType(Enum):
 
 class DefaultWriteOptions(Enum):
     write_type = WriteType.synchronous
-    write_precision = WritePrecision.NS
+    write_precision = DEFAULT_WRITE_PRECISION
+    no_sync = DEFAULT_WRITE_NO_SYNC
 
 
 class WriteOptions(object):
@@ -57,6 +58,7 @@ class WriteOptions(object):
                  exponential_base=2,
                  max_close_wait=300_000,
                  write_precision=DEFAULT_WRITE_PRECISION,
+                 no_sync=DEFAULT_WRITE_NO_SYNC,
                  write_scheduler=ThreadPoolScheduler(max_workers=1)) -> None:
         """
         Create write api configuration.
@@ -72,7 +74,9 @@ class WriteOptions(object):
         :param max_retry_delay: the maximum delay between each retry attempt in milliseconds
         :param max_retry_time: total timeout for all retry attempts in milliseconds, if 0 retry is disabled
         :param exponential_base: base for the exponential retry delay
-        :parama max_close_wait: the maximum time to wait for writes to be flushed if close() is called
+        :param max_close_wait: the maximum time to wait for writes to be flushed if close() is called
+        :param write_precision: precision to use when writing points to InfluxDB
+        :param no_sync: skip waiting for WAL persistence on write
         :param write_scheduler:
         """
         self.write_type = write_type
@@ -87,6 +91,7 @@ class WriteOptions(object):
         self.write_scheduler = write_scheduler
         self.max_close_wait = max_close_wait
         self.write_precision = write_precision
+        self.no_sync = no_sync
 
     def to_retry_strategy(self, **kwargs):
         """
@@ -375,6 +380,8 @@ You can use native asynchronous version of the client:
             return self._write_batching(bucket, org, record,
                                         write_precision, **kwargs)
 
+        no_sync = self._write_options.no_sync
+
         payloads = defaultdict(list)
         self._serialize(record, write_precision, payloads, **kwargs)
 
@@ -382,7 +389,7 @@ You can use native asynchronous version of the client:
 
         def write_payload(payload):
             final_string = b'\n'.join(payload[1])
-            return self._post_write(_async_req, bucket, org, final_string, payload[0])
+            return self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync)
 
         results = list(map(write_payload, payloads.items()))
         if not _async_req:
@@ -519,18 +526,21 @@ You can use native asynchronous version of the client:
         else:
             _retry_callback_delegate = None
 
+        no_sync = self._write_options.no_sync
+
         retry = self._write_options.to_retry_strategy(retry_callback=_retry_callback_delegate)
 
         self._post_write(False, batch_item.key.bucket, batch_item.key.org, batch_item.data,
-                         batch_item.key.precision, urlopen_kw={'retries': retry})
+                         batch_item.key.precision, no_sync, urlopen_kw={'retries': retry})
 
         logger.debug("Write request finished %s", batch_item)
 
         return _BatchResponse(data=batch_item)
 
-    def _post_write(self, _async_req, bucket, org, body, precision, **kwargs):
+    def _post_write(self, _async_req, bucket, org, body, precision, no_sync, **kwargs):
 
         return self._write_service.post_write(org=org, bucket=bucket, body=body, precision=precision,
+                                              no_sync=no_sync,
                                               async_req=_async_req,
                                               content_type="text/plain; charset=utf-8",
                                               **kwargs)
