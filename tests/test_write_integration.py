@@ -81,8 +81,8 @@ class TestWriteIntegration:
                     write_type=WriteType.synchronous,
                     no_sync=True)))
 
-        with pytest.raises(ApiException, match=".*Server doesn't support write with no_sync=true " \
-                                               "\(supported by InfluxDB 3 Core/Enterprise servers only\)."):
+        with pytest.raises(ApiException, match=r".*Server doesn't support write with no_sync=true "
+                                               r"\(supported by InfluxDB 3 Core/Enterprise servers only\)."):
             client.write(self.SAMPLE_RECORD)
 
         self.assert_request_made(httpserver, RequestMatcher(
