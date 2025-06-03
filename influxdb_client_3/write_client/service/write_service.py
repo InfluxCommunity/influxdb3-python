@@ -191,7 +191,6 @@ class WriteService(_BaseService):
                 precision = local_var_params['precision']
                 query_params.append(('precision', WritePrecisionConverter.to_v2_api_string(precision)))  # noqa: E501
 
-
         header_params = {}
         if 'zap_trace_span' in local_var_params:
             header_params['Zap-Trace-Span'] = local_var_params['zap_trace_span']  # noqa: E501
