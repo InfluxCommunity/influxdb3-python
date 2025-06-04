@@ -19,10 +19,12 @@ from reactivex.subject import Subject
 from influxdb_client_3.write_client.client._base import _BaseWriteApi, _HAS_DATACLASS
 from influxdb_client_3.write_client.client.util.helpers import get_org_query_param
 from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
-from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION, DEFAULT_WRITE_NO_SYNC
+from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION
 from influxdb_client_3.write_client.client.write.retry import WritesRetry
 from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.rest import _UTF_8_encoding
+
+DEFAULT_WRITE_NO_SYNC = False
 
 logger = logging.getLogger('influxdb_client_3.write_client.client.write_api')
 

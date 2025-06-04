@@ -13,7 +13,6 @@ from influxdb_client_3.write_client.domain.write_precision import WritePrecision
 EPOCH = datetime.fromtimestamp(0, tz=timezone.utc)
 
 DEFAULT_WRITE_PRECISION = WritePrecision.NS
-DEFAULT_WRITE_NO_SYNC = False
 
 _ESCAPE_MEASUREMENT = str.maketrans({
     ',': r'\,',
