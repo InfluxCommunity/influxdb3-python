@@ -219,14 +219,17 @@ class InfluxDBClient3:
 
         write_type = DefaultWriteOptions.write_type.value
         write_precision = DefaultWriteOptions.write_precision.value
+        write_no_sync = DefaultWriteOptions.no_sync.value
         if isinstance(write_client_options, dict) and write_client_options.get('write_options') is not None:
             write_opts = write_client_options['write_options']
             write_type = getattr(write_opts, 'write_type', write_type)
             write_precision = getattr(write_opts, 'write_precision', write_precision)
+            write_no_sync = getattr(write_opts, 'no_sync', write_no_sync)
 
         write_options = WriteOptions(
             write_type=write_type,
             write_precision=write_precision,
+            no_sync=write_no_sync,
         )
 
         self._write_client_options = {
