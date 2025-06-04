@@ -144,7 +144,7 @@ class WriteService(_BaseService):
             urlopen_kw=kwargs.get('urlopen_kw', None))
 
     def _post_write_prepare(self, org, bucket, body, **kwargs):  # noqa: E501,D401,D403
-        local_var_params = locals()
+        local_var_params = dict(locals())
 
         all_params = ['org', 'bucket', 'body', 'zap_trace_span', 'content_encoding', 'content_type', 'content_length', 'accept', 'org_id', 'precision', 'no_sync']  # noqa: E501
         self._check_operation_params('post_write', all_params, local_var_params)

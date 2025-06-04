@@ -103,7 +103,7 @@ class SignoutService(_BaseService):
             urlopen_kw=kwargs.get('urlopen_kw', None))
 
     def _post_signout_prepare(self, **kwargs):  # noqa: E501,D401,D403
-        local_var_params = locals()
+        local_var_params = dict(locals())
 
         all_params = ['zap_trace_span']  # noqa: E501
         self._check_operation_params('post_signout', all_params, local_var_params)

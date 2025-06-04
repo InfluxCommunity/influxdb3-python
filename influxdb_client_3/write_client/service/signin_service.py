@@ -106,7 +106,7 @@ class SigninService(_BaseService):
             urlopen_kw=kwargs.get('urlopen_kw', None))
 
     def _post_signin_prepare(self, **kwargs):  # noqa: E501,D401,D403
-        local_var_params = locals()
+        local_var_params = dict(locals())
 
         all_params = ['zap_trace_span', 'authorization']  # noqa: E501
         self._check_operation_params('post_signin', all_params, local_var_params)
