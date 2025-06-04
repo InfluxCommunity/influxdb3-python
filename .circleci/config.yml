@@ -23,8 +23,6 @@ commands:
             pip install .\[dataframe\] --user
             pip install .\[test\] --user
             pytest -m "<< parameters.pytest-marker >>" tests --junitxml=test-reports/junit.xml --cov=./influxdb_client_3 --cov-report xml:coverage.xml
-      - store_artifacts:
-          path: coverage.xml
       - save_cache:
           name: Saving Pip Cache
           key: *cache-key
