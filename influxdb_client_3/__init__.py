@@ -159,13 +159,8 @@ def _parse_write_no_sync(write_no_sync):
     :type write_no_sync: Any
     :return: The validated write no sync value as an boolean.
     :rtype: bool
-    :raises ValueError: If the provided value is not a boolean.
     """
-    try:
-        write_no_sync = bool(write_no_sync)
-    except (TypeError, ValueError):
-        raise ValueError(f"Invalid write no sync value: {write_no_sync}. Must be boolean.")
-    return write_no_sync
+    return write_no_sync.strip().lower() in ['true', '1', 't', 'y', 'yes']
 
 
 class InfluxDBClient3:
