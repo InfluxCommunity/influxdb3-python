@@ -8,8 +8,7 @@ from influxdb_client_3 import InfluxDBClient3, WriteOptions, WritePrecision, wri
 from influxdb_client_3.write_client.rest import ApiException
 
 
-@pytest.mark.integration
-class TestWriteIntegration:
+class TestWriteWithLocalServer:
     SAMPLE_RECORD = "mem,tag=one value=1.0"
 
     @staticmethod
