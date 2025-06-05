@@ -165,15 +165,15 @@ class WriteService(_BaseService):
         query_params = []
 
         no_sync = 'no_sync' in local_var_params and local_var_params['no_sync']
+        if 'org' in local_var_params:
+            query_params.append(('org', local_var_params['org']))  # noqa: E501
+        if 'org_id' in local_var_params:
+            query_params.append(('orgID', local_var_params['org_id']))  # noqa: E501
+        if 'bucket' in local_var_params:
+            query_params.append(('db' if no_sync else 'bucket', local_var_params['bucket']))  # noqa: E501
         if no_sync:
             # Setting no_sync=true is supported only in the v3 API.
             path = '/api/v3/write_lp'
-            if 'org' in local_var_params:
-                query_params.append(('org', local_var_params['org']))  # noqa: E501
-            if 'org_id' in local_var_params:
-                query_params.append(('orgID', local_var_params['org_id']))  # noqa: E501
-            if 'bucket' in local_var_params:
-                query_params.append(('db', local_var_params['bucket']))  # noqa: E501
             if 'precision' in local_var_params:
                 precision = local_var_params['precision']
                 query_params.append(('precision', WritePrecisionConverter.to_v3_api_string(precision)))  # noqa: E501
@@ -181,12 +181,6 @@ class WriteService(_BaseService):
         else:
             # By default, use the v2 API.
             path = '/api/v2/write'
-            if 'org' in local_var_params:
-                query_params.append(('org', local_var_params['org']))  # noqa: E501
-            if 'org_id' in local_var_params:
-                query_params.append(('orgID', local_var_params['org_id']))  # noqa: E501
-            if 'bucket' in local_var_params:
-                query_params.append(('bucket', local_var_params['bucket']))  # noqa: E501
             if 'precision' in local_var_params:
                 precision = local_var_params['precision']
                 query_params.append(('precision', WritePrecisionConverter.to_v2_api_string(precision)))  # noqa: E501
