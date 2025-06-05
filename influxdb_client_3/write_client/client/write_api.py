@@ -209,7 +209,7 @@ def _body_reduce(batch_items):
 
 class WriteApi(_BaseWriteApi):
     """
-    Implementation for '/api/v2/write' endpoint.
+    Implementation for '/api/v2/write' and '/api/v3/write_lp' endpoint.
 
     Example:
         .. code-block:: python

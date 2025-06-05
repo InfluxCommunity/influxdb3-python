@@ -282,7 +282,7 @@ class _Configuration(Configuration):
         super().update_request_header_params(path, params, should_gzip)
         if should_gzip:
             # GZIP Request
-            if path == '/api/v2/write':
+            if path == '/api/v2/write' or path == '/api/v3/write_lp':
                 params["Content-Encoding"] = "gzip"
                 params["Accept-Encoding"] = "identity"
                 pass
@@ -298,7 +298,7 @@ class _Configuration(Configuration):
         _body = super().update_request_body(path, body, should_gzip)
         if should_gzip:
             # GZIP Request
-            if path == '/api/v2/write':
+            if path == '/api/v2/write' or path == '/api/v3/write_lp':
                 import gzip
                 if isinstance(_body, bytes):
                     return gzip.compress(data=_body)

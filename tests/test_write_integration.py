@@ -45,7 +45,7 @@ class TestWriteWithLocalServer:
                     write_precision=WritePrecision.US,
                     no_sync=False
                 )
-            )
+            ),
         ).write(self.SAMPLE_RECORD)
 
         self.assert_request_made(httpserver, RequestMatcher(
@@ -87,3 +87,43 @@ class TestWriteWithLocalServer:
         self.assert_request_made(httpserver, RequestMatcher(
             method="POST", uri="/api/v3/write_lp",
             query_string={"org": "ORG", "db": "DB", "precision": "nanosecond", "no_sync": "true"}))
+
+    def test_write_with_no_sync_false_and_gzip(self, httpserver: HTTPServer):
+        self.set_response_status(httpserver, 200)
+
+        InfluxDBClient3(
+            host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN",
+            write_client_options=write_client_options(
+                write_options=WriteOptions(
+                    write_type=WriteType.synchronous,
+                    write_precision=WritePrecision.US,
+                    no_sync=False
+                )
+            ),
+            enable_gzip=True
+        ).write(self.SAMPLE_RECORD)
+
+        self.assert_request_made(httpserver, RequestMatcher(
+            method="POST", uri="/api/v2/write",
+            query_string={"org": "ORG", "bucket": "DB", "precision": "us"},
+            headers={"Content-Encoding": "gzip"}, ))
+
+    def test_write_with_no_sync_true_and_gzip(self, httpserver: HTTPServer):
+        self.set_response_status(httpserver, 200)
+
+        InfluxDBClient3(
+            host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN",
+            write_client_options=write_client_options(
+                write_options=WriteOptions(
+                    write_type=WriteType.synchronous,
+                    write_precision=WritePrecision.US,
+                    no_sync=True
+                )
+            ),
+            enable_gzip=True
+        ).write(self.SAMPLE_RECORD)
+
+        self.assert_request_made(httpserver, RequestMatcher(
+            method="POST", uri="/api/v3/write_lp",
+            query_string={"org": "ORG", "db": "DB", "precision": "microsecond", "no_sync": "true"},
+            headers={"Content-Encoding": "gzip"}, ))
