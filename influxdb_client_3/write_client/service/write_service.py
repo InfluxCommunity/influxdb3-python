@@ -3,7 +3,10 @@
 from __future__ import absolute_import
 
 import re  # noqa: F401
+from http import HTTPStatus
 
+from influxdb_client_3.write_client.domain.write_precision_converter import WritePrecisionConverter
+from influxdb_client_3.write_client.rest import ApiException
 from influxdb_client_3.write_client.service._base_service import _BaseService
 
 
@@ -33,6 +36,7 @@ class WriteService(_BaseService):
         :param str accept: The content type that the client can understand. Writes only return a response body if they fail--for example, due to a formatting problem or quota limit.  #### InfluxDB Cloud    - Returns only `application/json` for format and limit errors.   - Returns only `text/html` for some quota limit errors.  #### InfluxDB OSS    - Returns only `application/json` for format and limit errors.  #### Related guides  - [Troubleshoot issues writing data](https://docs.influxdata.com/influxdb/latest/write-data/troubleshoot/)
         :param str org_id: An organization ID.  #### InfluxDB Cloud  - Doesn't use the `org` parameter or `orgID` parameter. - Writes data to the bucket in the organization   associated with the authorization (API token).  #### InfluxDB OSS  - Requires either the `org` parameter or the `orgID` parameter. - If you pass both `orgID` and `org`, they must both be valid. - Writes data to the bucket in the specified organization.
         :param WritePrecision precision: The precision for unix timestamps in the line protocol batch.
+        :param bool no_sync: Instructs the server whether to wait with the response until WAL persistence completes. True value means faster write but without the confirmation that the data was persisted. Note: This option is supported by InfluxDB 3 Core and Enterprise servers only. For other InfluxDB 3 server types (InfluxDB Clustered, InfluxDB Clould Serverless/Dedicated) the write operation will fail with an error.
         :return: None
                  If the method is called asynchronously,
                  returns the request thread.
@@ -64,29 +68,38 @@ class WriteService(_BaseService):
         :param str accept: The content type that the client can understand. Writes only return a response body if they fail--for example, due to a formatting problem or quota limit.  #### InfluxDB Cloud    - Returns only `application/json` for format and limit errors.   - Returns only `text/html` for some quota limit errors.  #### InfluxDB OSS    - Returns only `application/json` for format and limit errors.  #### Related guides  - [Troubleshoot issues writing data](https://docs.influxdata.com/influxdb/latest/write-data/troubleshoot/)
         :param str org_id: An organization ID.  #### InfluxDB Cloud  - Doesn't use the `org` parameter or `orgID` parameter. - Writes data to the bucket in the organization   associated with the authorization (API token).  #### InfluxDB OSS  - Requires either the `org` parameter or the `orgID` parameter. - If you pass both `orgID` and `org`, they must both be valid. - Writes data to the bucket in the specified organization.
         :param WritePrecision precision: The precision for unix timestamps in the line protocol batch.
+        :param bool no_sync: Instructs the server whether to wait with the response until WAL persistence completes. True value means faster write but without the confirmation that the data was persisted. Note: This option is supported by InfluxDB 3 Core and Enterprise servers only. For other InfluxDB 3 server types (InfluxDB Clustered, InfluxDB Clould Serverless/Dedicated) the write operation will fail with an error.
         :return: None
                  If the method is called asynchronously,
                  returns the request thread.
         """  # noqa: E501
-        local_var_params, path_params, query_params, header_params, body_params = \
+        local_var_params, path, path_params, query_params, header_params, body_params = \
             self._post_write_prepare(org, bucket, body, **kwargs)  # noqa: E501
 
-        return self.api_client.call_api(
-            '/api/v2/write', 'POST',
-            path_params,
-            query_params,
-            header_params,
-            body=body_params,
-            post_params=[],
-            files={},
-            response_type=None,  # noqa: E501
-            auth_settings=[],
-            async_req=local_var_params.get('async_req'),
-            _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
-            _preload_content=local_var_params.get('_preload_content', True),
-            _request_timeout=local_var_params.get('_request_timeout'),
-            collection_formats={},
-            urlopen_kw=kwargs.get('urlopen_kw', None))
+        try:
+            return self.api_client.call_api(
+                path, 'POST',
+                path_params,
+                query_params,
+                header_params,
+                body=body_params,
+                post_params=[],
+                files={},
+                response_type=None,  # noqa: E501
+                auth_settings=[],
+                async_req=local_var_params.get('async_req'),
+                _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
+                _preload_content=local_var_params.get('_preload_content', True),
+                _request_timeout=local_var_params.get('_request_timeout'),
+                collection_formats={},
+                urlopen_kw=kwargs.get('urlopen_kw', None))
+        except ApiException as e:
+            no_sync = 'no_sync' in local_var_params and local_var_params['no_sync']
+            if no_sync and e.status == HTTPStatus.METHOD_NOT_ALLOWED:
+                message = "Server doesn't support write with no_sync=true " \
+                          "(supported by InfluxDB 3 Core/Enterprise servers only)."
+                raise ApiException(status=0, reason=message)
+            raise e
 
     async def post_write_async(self, org, bucket, body, **kwargs):  # noqa: E501,D401,D403
         """Write data.
@@ -105,15 +118,16 @@ class WriteService(_BaseService):
         :param str accept: The content type that the client can understand. Writes only return a response body if they fail--for example, due to a formatting problem or quota limit.  #### InfluxDB Cloud    - Returns only `application/json` for format and limit errors.   - Returns only `text/html` for some quota limit errors.  #### InfluxDB OSS    - Returns only `application/json` for format and limit errors.  #### Related guides  - [Troubleshoot issues writing data](https://docs.influxdata.com/influxdb/latest/write-data/troubleshoot/)
         :param str org_id: An organization ID.  #### InfluxDB Cloud  - Doesn't use the `org` parameter or `orgID` parameter. - Writes data to the bucket in the organization   associated with the authorization (API token).  #### InfluxDB OSS  - Requires either the `org` parameter or the `orgID` parameter. - If you pass both `orgID` and `org`, they must both be valid. - Writes data to the bucket in the specified organization.
         :param WritePrecision precision: The precision for unix timestamps in the line protocol batch.
+        :param bool no_sync: Instructs the server whether to wait with the response until WAL persistence completes. True value means faster write but without the confirmation that the data was persisted. Note: This option is supported by InfluxDB 3 Core and Enterprise servers only. For other InfluxDB 3 server types (InfluxDB Clustered, InfluxDB Clould Serverless/Dedicated) the write operation will fail with an error.
         :return: None
                  If the method is called asynchronously,
                  returns the request thread.
         """  # noqa: E501
-        local_var_params, path_params, query_params, header_params, body_params = \
+        local_var_params, path, path_params, query_params, header_params, body_params = \
             self._post_write_prepare(org, bucket, body, **kwargs)  # noqa: E501
 
         return await self.api_client.call_api(
-            '/api/v2/write', 'POST',
+            path, 'POST',
             path_params,
             query_params,
             header_params,
@@ -130,9 +144,9 @@ class WriteService(_BaseService):
             urlopen_kw=kwargs.get('urlopen_kw', None))
 
     def _post_write_prepare(self, org, bucket, body, **kwargs):  # noqa: E501,D401,D403
-        local_var_params = locals()
+        local_var_params = dict(locals())
 
-        all_params = ['org', 'bucket', 'body', 'zap_trace_span', 'content_encoding', 'content_type', 'content_length', 'accept', 'org_id', 'precision']  # noqa: E501
+        all_params = ['org', 'bucket', 'body', 'zap_trace_span', 'content_encoding', 'content_type', 'content_length', 'accept', 'org_id', 'precision', 'no_sync']  # noqa: E501
         self._check_operation_params('post_write', all_params, local_var_params)
         # verify the required parameter 'org' is set
         if ('org' not in local_var_params or
@@ -148,16 +162,28 @@ class WriteService(_BaseService):
             raise ValueError("Missing the required parameter `body` when calling `post_write`")  # noqa: E501
 
         path_params = {}
-
         query_params = []
+
+        no_sync = 'no_sync' in local_var_params and local_var_params['no_sync']
         if 'org' in local_var_params:
             query_params.append(('org', local_var_params['org']))  # noqa: E501
         if 'org_id' in local_var_params:
             query_params.append(('orgID', local_var_params['org_id']))  # noqa: E501
         if 'bucket' in local_var_params:
-            query_params.append(('bucket', local_var_params['bucket']))  # noqa: E501
-        if 'precision' in local_var_params:
-            query_params.append(('precision', local_var_params['precision']))  # noqa: E501
+            query_params.append(('db' if no_sync else 'bucket', local_var_params['bucket']))  # noqa: E501
+        if no_sync:
+            # Setting no_sync=true is supported only in the v3 API.
+            path = '/api/v3/write_lp'
+            if 'precision' in local_var_params:
+                precision = local_var_params['precision']
+                query_params.append(('precision', WritePrecisionConverter.to_v3_api_string(precision)))  # noqa: E501
+            query_params.append(('no_sync', 'true'))
+        else:
+            # By default, use the v2 API.
+            path = '/api/v2/write'
+            if 'precision' in local_var_params:
+                precision = local_var_params['precision']
+                query_params.append(('precision', WritePrecisionConverter.to_v2_api_string(precision)))  # noqa: E501
 
         header_params = {}
         if 'zap_trace_span' in local_var_params:
@@ -182,4 +208,4 @@ class WriteService(_BaseService):
         header_params['Content-Type'] = self.api_client.select_header_content_type(  # noqa: E501
             ['text/plain'])  # noqa: E501
 
-        return local_var_params, path_params, query_params, header_params, body_params
+        return local_var_params, path, path_params, query_params, header_params, body_params

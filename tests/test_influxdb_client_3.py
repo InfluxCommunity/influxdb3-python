@@ -90,6 +90,7 @@ class TestInfluxDBClient3(unittest.TestCase):
     def test_default_client(self):
         expected_precision = DefaultWriteOptions.write_precision.value
         expected_write_type = DefaultWriteOptions.write_type.value
+        expected_no_sync = DefaultWriteOptions.no_sync.value
 
         import os
         try:
@@ -111,9 +112,11 @@ class TestInfluxDBClient3(unittest.TestCase):
             write_options = c._write_client_options.get('write_options')
             self.assertEqual(write_options.write_precision, expected_precision)
             self.assertEqual(write_options.write_type, expected_write_type)
+            self.assertEqual(write_options.no_sync, expected_no_sync)
 
             self.assertEqual(c._write_api._write_options.write_precision, expected_precision)
             self.assertEqual(c._write_api._write_options.write_type, expected_write_type)
+            self.assertEqual(c._write_api._write_options.no_sync, expected_no_sync)
 
         env_client = InfluxDBClient3.from_env()
         verify_client_write_options(env_client)
@@ -124,7 +127,7 @@ class TestInfluxDBClient3(unittest.TestCase):
     @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
                                'INFLUX_DATABASE': 'test_db', 'INFLUX_ORG': 'test_org',
                                'INFLUX_PRECISION': WritePrecision.MS, 'INFLUX_AUTH_SCHEME': 'custom_scheme',
-                               'INFLUX_GZIP_THRESHOLD': '2000'})
+                               'INFLUX_GZIP_THRESHOLD': '2000', 'INFLUX_WRITE_NO_SYNC': 'true'})
     def test_from_env_all_env_vars_set(self):
         client = InfluxDBClient3.from_env()
         self.assertIsInstance(client, InfluxDBClient3)
@@ -137,6 +140,7 @@ class TestInfluxDBClient3(unittest.TestCase):
 
         write_options = client._write_client_options.get("write_options")
         self.assertEqual(write_options.write_precision, WritePrecision.MS)
+        self.assertEqual(write_options.no_sync, True)
 
         client._write_api._point_settings = {}
 
@@ -148,11 +152,25 @@ class TestInfluxDBClient3(unittest.TestCase):
         self.assertIn("Missing required environment variables", str(context.exception))
 
     @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
-                               'INFLUX_DATABASE': 'test_db', 'INFLUX_PRECISION': WritePrecision.MS})
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_PRECISION': WritePrecision.S})
     def test_parse_valid_write_precision(self):
         client = InfluxDBClient3.from_env()
         self.assertIsInstance(client, InfluxDBClient3)
-        self.assertEqual(client._write_client_options.get('write_options').write_precision, WritePrecision.MS)
+        self.assertEqual(client._write_client_options.get('write_options').write_precision, WritePrecision.S)
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_PRECISION': "microsecond"})
+    def test_parse_valid_long_write_precision_us(self):
+        client = InfluxDBClient3.from_env()
+        self.assertIsInstance(client, InfluxDBClient3)
+        self.assertEqual(client._write_client_options.get('write_options').write_precision, WritePrecision.US)
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_PRECISION': "nanosecond"})
+    def test_parse_valid_long_write_precision_ns(self):
+        client = InfluxDBClient3.from_env()
+        self.assertIsInstance(client, InfluxDBClient3)
+        self.assertEqual(client._write_client_options.get('write_options').write_precision, WritePrecision.NS)
 
     @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
                                'INFLUX_DATABASE': 'test_db', 'INFLUX_PRECISION': 'invalid_value'})
@@ -160,6 +178,38 @@ class TestInfluxDBClient3(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             InfluxDBClient3.from_env()
         self.assertIn("Invalid precision value: invalid_value", str(context.exception))
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_WRITE_NO_SYNC': 'true'})
+    def test_parse_write_no_sync_true(self):
+        client = InfluxDBClient3.from_env()
+        self.assertIsInstance(client, InfluxDBClient3)
+        write_options = client._write_client_options.get("write_options")
+        self.assertEqual(write_options.no_sync, True)
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_WRITE_NO_SYNC': 'TrUe'})
+    def test_parse_write_no_sync_true_mixed_chars(self):
+        client = InfluxDBClient3.from_env()
+        self.assertIsInstance(client, InfluxDBClient3)
+        write_options = client._write_client_options.get("write_options")
+        self.assertEqual(write_options.no_sync, True)
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_WRITE_NO_SYNC': 'false'})
+    def test_parse_write_no_sync_false(self):
+        client = InfluxDBClient3.from_env()
+        self.assertIsInstance(client, InfluxDBClient3)
+        write_options = client._write_client_options.get("write_options")
+        self.assertEqual(write_options.no_sync, False)
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_WRITE_NO_SYNC': 'anything-else'})
+    def test_parse_write_no_sync_anything_else_is_false(self):
+        client = InfluxDBClient3.from_env()
+        self.assertIsInstance(client, InfluxDBClient3)
+        write_options = client._write_client_options.get("write_options")
+        self.assertEqual(write_options.no_sync, False)
 
     def test_query_with_arrow_error(self):
         f = ErrorFlightServer()

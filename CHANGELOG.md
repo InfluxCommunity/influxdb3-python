@@ -2,6 +2,17 @@
 
 ## 0.14.0 [unreleased]
 
+### Features
+
+1. [#142](https://github.com/InfluxCommunity/influxdb3-python/pull/142):  Support fast writes without waiting for WAL
+   persistence:
+   - New write option (`WriteOptions.no_sync`) added: `True` value means faster write but without the confirmation that
+     the data was persisted. Default value: `False`.
+   - **Supported by self-managed InfluxDB 3 Core and Enterprise servers only!**
+   - Also configurable via environment variable (`INFLUX_WRITE_NO_SYNC`).
+   - Long precision string values added from v3 HTTP API: `"nanosecond"`, `"microsecond"`, `"millisecond"`,
+     `"second"` (     in addition to the existing `"ns"`, `"us"`, `"ms"`, `"s"`).
+
 ## 0.13.0 [2025-05-20]
 
 ### Features
