@@ -4,7 +4,8 @@
 
 ### Features
 
-1. [#142](https://github.com/InfluxCommunity/influxdb3-python/pull/142):  Support fast writes without waiting for WAL
+1. [#141](https://github.com/InfluxCommunity/influxdb3-python/pull/141) Move "setuptools" package to build dependency.
+2. [#142](https://github.com/InfluxCommunity/influxdb3-python/pull/142):  Support fast writes without waiting for WAL
    persistence:
    - New write option (`WriteOptions.no_sync`) added: `True` value means faster write but without the confirmation that
      the data was persisted. Default value: `False`.
