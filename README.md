@@ -1,3 +1,4 @@
+<!--home-start-->
 <p align="center">
     <img src="https://github.com/InfluxCommunity/influxdb3-python/blob/main/python-logo.png?raw=true" alt="Your Image" width="150px">
 </p>
@@ -48,7 +49,7 @@ Note: This does not include Pandas support. If you would like to use key feature
 *Note: Please make sure you are using 3.6 or above. For the best performance use 3.11+*
 
 # Usage
-One of the easiest ways to get started is to checkout the ["Pokemon Trainer Cookbook"](Examples/pokemon-trainer/cookbook.ipynb). This scenario takes you through the basics of both the client library and Pyarrow.
+One of the easiest ways to get started is to checkout the ["Pokemon Trainer Cookbook"](https://github.com/InfluxCommunity/influxdb3-python/blob/main/Examples/pokemon-trainer/cookbook.ipynb). This scenario takes you through the basics of both the client library and Pyarrow.
 
 ## Importing the Module
 ```python
@@ -213,3 +214,4 @@ pip install -e .[pandas,polars,dataframe,test]
 # Run the tests
 python -m pytest .
 ```
+<!--home-end-->

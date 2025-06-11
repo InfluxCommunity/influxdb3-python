@@ -1,0 +1,6 @@
+site_name: InfluxDB 3.0 Python Client
+docs_dir: .
+nav:
+  - Home: index.md
+plugins:
+  - include-markdown
