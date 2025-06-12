@@ -58,7 +58,7 @@ from influxdb_client_3 import InfluxDBClient3, Point
 
 ## Initialization
 If you are using InfluxDB Cloud, then you should note that:
-1. Use bucket name for the `database` argument.
+1. Use bucket name for `database` or `bucket` in function argument.
 
 ```python
 client = InfluxDBClient3(token="your-token",
