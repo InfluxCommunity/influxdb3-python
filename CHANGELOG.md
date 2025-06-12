@@ -13,6 +13,7 @@
    - Also configurable via environment variable (`INFLUX_WRITE_NO_SYNC`).
    - Long precision string values added from v3 HTTP API: `"nanosecond"`, `"microsecond"`, `"millisecond"`,
      `"second"` (     in addition to the existing `"ns"`, `"us"`, `"ms"`, `"s"`).
+3. [#145](https://github.com/InfluxCommunity/influxdb3-python/pull/145): Improve the document wording for README.md
 
 ## 0.13.0 [2025-05-20]
 
