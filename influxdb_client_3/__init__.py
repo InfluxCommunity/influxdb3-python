@@ -475,7 +475,6 @@ class InfluxDBClient3:
             response_type=object
         )
 
-
         for key, value in header.items():
             if key.lower() == "x-influxdb-version":
                 version = value
