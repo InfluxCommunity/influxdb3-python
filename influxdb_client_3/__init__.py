@@ -14,7 +14,6 @@ from influxdb_client_3.write_client import InfluxDBClient as _InfluxDBClient, Wr
 from influxdb_client_3.write_client.client.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, \
     PointSettings, DefaultWriteOptions, WriteType
 from influxdb_client_3.write_client.domain.write_precision import WritePrecision
-from influxdb_client_3.write_client.rest import ApiException
 
 polars = importlib.util.find_spec("polars") is not None
 
@@ -470,7 +469,12 @@ class InfluxDBClient3:
 
     def get_server_version(self) -> str:
         version = None
-        (resp_body, _, header) = self._client.api_client.call_api(resource_path="/ping", method="GET", response_type=object)
+        (resp_body, _, header) = self._client.api_client.call_api(
+            resource_path="/ping",
+            method="GET",
+            response_type=object
+        )
+
 
         for key, value in header.items():
             if key.lower() == "x-influxdb-version":
