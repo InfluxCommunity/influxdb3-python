@@ -2,6 +2,10 @@
 
 ## 0.15.0 [unreleased]
 
+### Features
+
+1. [#146](https://github.com/InfluxCommunity/influxdb3-python/pull/146): Add function to get InfluxDB version.
+
 ## 0.14.0 [2025-06-18]
 
 ### Features
