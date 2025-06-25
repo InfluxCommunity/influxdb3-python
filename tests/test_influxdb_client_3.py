@@ -1,10 +1,20 @@
+import re
 import unittest
 from unittest.mock import patch
 
-from influxdb_client_3 import InfluxDBClient3, WritePrecision, DefaultWriteOptions, Point, WriteOptions, WriteType
+from pytest_httpserver import HTTPServer
+
+from influxdb_client_3 import InfluxDBClient3, WritePrecision, DefaultWriteOptions, Point, WriteOptions, WriteType, \
+    ApiException
 from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
 from tests.util import asyncio_run
 from tests.util.mocks import ConstantFlightServer, ConstantData, ErrorFlightServer
+
+
+def http_server():
+    httpserver = HTTPServer()
+    httpserver.start()
+    return httpserver
 
 
 class TestInfluxDBClient3(unittest.TestCase):
@@ -226,6 +236,46 @@ class TestInfluxDBClient3(unittest.TestCase):
                 await c.query_async("SELECT * FROM my_data")
             self.assertIn("Error while executing query", str(err.exception))
 
+    def test_get_version_header_success(self):
+        server = http_server()
+        server.expect_request(re.compile(".*")).respond_with_json(
+            headers={"X-Influxdb-Version": "1.8.2"},
+            response_json={"version": "3.0"}
+        )
+        version = InfluxDBClient3(
+            host=f'http://{server.host}:{server.port}', org="ORG", database="DB", token="TOKEN"
+        ).get_server_version()
+        assert version == "1.8.2"
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_get_version_in_body_success(self):
+        server = http_server()
+        server.expect_request('/ping').respond_with_json(
+            response_json={"version": "3.0"},
+        )
+        version = InfluxDBClient3(
+            host=f'http://{server.host}:{server.port}', org="ORG", database="DB", token="TOKEN"
+        ).get_server_version()
+        assert version == "3.0"
+
+    def test_get_version_empty(self):
+        server = http_server()
+        server.expect_request("/ping").respond_with_data(
+            headers={"abc": "1.8.2"},
+        )
+
+        version = InfluxDBClient3(
+            host=f'http://{server.host}:{server.port}', org="ORG", database="DB", token="TOKEN"
+        ).get_server_version()
+        assert version is None
+
+    def test_get_version_fail(self):
+        server = http_server()
+        server.expect_request("/ping").respond_with_json(
+            response_json={"error": "error"},
+            status=400
+        )
+        with self.assertRaises(ApiException):
+            InfluxDBClient3(
+                host=f'http://{server.host}:{server.port}', org="ORG", database="DB", token="TOKEN"
+            ).get_server_version()
+
