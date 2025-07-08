@@ -32,6 +32,11 @@ class TestInfluxDBClient3(unittest.TestCase):
             database="my_db",
             token="my_token"
         )
+        self.http_server = http_server()
+
+    def tearDown(self):
+        if self.http_server is not None:
+            self.http_server.stop()
 
     def test_init(self):
         self.assertEqual(self.client._org, "my_org")
@@ -237,7 +242,7 @@ class TestInfluxDBClient3(unittest.TestCase):
             self.assertIn("Error while executing query", str(err.exception))
 
     def test_get_version_header_success(self):
-        server = http_server()
+        server = self.http_server
         server.expect_request(re.compile(".*")).respond_with_json(
             headers={"X-Influxdb-Version": "1.8.2"},
             response_json={"version": "3.0"}
@@ -248,7 +253,7 @@ class TestInfluxDBClient3(unittest.TestCase):
         assert version == "1.8.2"
 
     def test_get_version_in_body_success(self):
-        server = http_server()
+        server = self.http_server
         server.expect_request('/ping').respond_with_json(
             response_json={"version": "3.0"},
         )
@@ -258,7 +263,7 @@ class TestInfluxDBClient3(unittest.TestCase):
         assert version == "3.0"
 
     def test_get_version_empty(self):
-        server = http_server()
+        server = self.http_server
         server.expect_request("/ping").respond_with_data(
             headers={"abc": "1.8.2"},
         )
@@ -269,7 +274,7 @@ class TestInfluxDBClient3(unittest.TestCase):
         assert version is None
 
     def test_get_version_fail(self):
-        server = http_server()
+        server = self.http_server
         server.expect_request("/ping").respond_with_json(
             response_json={"error": "error"},
             status=400
