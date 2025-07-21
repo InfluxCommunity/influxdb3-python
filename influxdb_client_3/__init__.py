@@ -468,6 +468,15 @@ class InfluxDBClient3:
             raise InfluxDB3ClientQueryError(f"Error while executing query: {e}")
 
     def get_server_version(self) -> str:
+        """
+        Get the version of the connected InfluxDB server.
+
+        This method makes a ping request to the server and extracts the version information
+        from either the response headers or response body.
+
+        :return: The version string of the InfluxDB server.
+        :rtype: str
+        """
         version = None
         (resp_body, _, header) = self._client.api_client.call_api(
             resource_path="/ping",
@@ -481,7 +490,7 @@ class InfluxDBClient3:
                 break
 
         if version is None and isinstance(resp_body, dict):
-            version = resp_body['version'] if version is None else version
+            version = resp_body['version']
 
         return version
 
