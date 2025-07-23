@@ -274,3 +274,7 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         result_list = result.to_pylist()
         for item in data:
             assert lp_to_py_object(item) in result_list, f"original lp data \"{item}\" should be in result list"
+
+    def test_get_server_version(self):
+        version = self.client.get_server_version()
+        assert version is not None
