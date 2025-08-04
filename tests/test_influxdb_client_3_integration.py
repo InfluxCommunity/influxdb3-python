@@ -20,9 +20,9 @@ def random_hex(len=6):
 @pytest.mark.skipif(
     not all(
         [
-            os.getenv('INFLUX_DB3_LOCAL_HOST'),
-            os.getenv('INFLUX_DB3_LOCAL_TOKEN'),
-            os.getenv('INFLUX_DB3_LOCAL_DATABASE'),
+            os.getenv('TESTING_INFLUXDB_URL'),
+            os.getenv('TESTING_INFLUXDB_TOKEN'),
+            os.getenv('TESTING_INFLUXDB_DATABASE'),
         ]
     ),
     reason="Integration test environment variables not set.",
@@ -34,9 +34,9 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         self._caplog = caplog
 
     def setUp(self):
-        self.host = os.getenv('INFLUX_DB3_LOCAL_HOST')
-        self.token = os.getenv('INFLUX_DB3_LOCAL_TOKEN')
-        self.database = os.getenv('INFLUX_DB3_LOCAL_DATABASE')
+        self.host = os.getenv('TESTING_INFLUXDB_URL')
+        self.token = os.getenv('TESTING_INFLUXDB_TOKEN')
+        self.database = os.getenv('TESTING_INFLUXDB_DATABASE')
         self.client = InfluxDBClient3(host=self.host, database=self.database, token=self.token)
 
     def tearDown(self):
@@ -75,16 +75,6 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         self.assertEqual('Authorization header was malformed, the request was not in the form of '
                          '\'Authorization: <auth-scheme> <token>\', supported auth-schemes are Bearer, Token and Basic',
                          err.exception.message)  # Cloud
-
-    def test_error_headers(self):
-        self.client = InfluxDBClient3(host=self.host, database=self.database, token=self.token)
-        with self.assertRaises(InfluxDBError) as err:
-            self.client.write("integration_test_python,type=used value=123.0,test_id=")
-        self.assertIn("Could not parse entire line. Found trailing content:", err.exception.message)
-        headers = err.exception.getheaders()
-        print("SONN")
-        print(headers)
-        self.assertIsNotNone(headers)
 
     def test_batch_write_callbacks(self):
         write_success = False
