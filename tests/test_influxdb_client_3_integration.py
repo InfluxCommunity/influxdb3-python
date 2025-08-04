@@ -83,6 +83,8 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
             self.client.write("integration_test_python,type=used value=123.0,test_id=")
         self.assertIn("Could not parse entire line. Found trailing content:", err.exception.message)
         headers = err.exception.getheaders()
+        print("SONN")
+        print(headers)
         try:
             self.assertIsNotNone(headers)
             self.assertRegex(headers['trace-id'], '[0-9a-f]{16}')
