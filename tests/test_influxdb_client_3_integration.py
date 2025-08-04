@@ -64,14 +64,14 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         test_id = time.time_ns()
         with self.assertRaises(InfluxDBError) as err:
             self.client.write(f"integration_test_python,type=used value=123.0,test_id={test_id}i")
-        self.assertEqual('unauthorized access', err.exception.message)  # Cloud
+        self.assertEqual('Authorization header was malformed, the request was not in the form of \'Authorization: <auth-scheme> <token>\', supported auth-schemes are Bearer, Token and Basic', err.exception.message)  # Cloud
 
     def test_auth_error_auth_scheme(self):
         self.client = InfluxDBClient3(host=self.host, database=self.database, token=self.token, auth_scheme='Any')
         test_id = time.time_ns()
         with self.assertRaises(InfluxDBError) as err:
             self.client.write(f"integration_test_python,type=used value=123.0,test_id={test_id}i")
-        self.assertEqual('unauthorized access', err.exception.message)  # Cloud
+        self.assertEqual('Authorization header was malformed, the request was not in the form of \'Authorization: <auth-scheme> <token>\', supported auth-schemes are Bearer, Token and Basic', err.exception.message)  # Cloud
 
     def test_error_headers(self):
         self.client = InfluxDBClient3(host=self.host, database=self.database, token=self.token)
