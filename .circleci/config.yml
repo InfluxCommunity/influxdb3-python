@@ -54,7 +54,6 @@ jobs:
       - run:
           name: Setup InfluxDB service
           command: |
-            chmod +x ./scripts/influxdb-setup.sh 
             ./scripts/influxdb-setup.sh \
               --export-url-as TESTING_INFLUXDB_URL \
               --export-db-as TESTING_INFLUXDB_DATABASE \
