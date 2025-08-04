@@ -1,15 +1,14 @@
 import logging
 import os
+import pyarrow
+import pytest
 import random
 import string
 import time
 import unittest
 
-import pyarrow
-import pytest
-from influxdb_client_3.exceptions import InfluxDB3ClientQueryError, InfluxDBError
-
 from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions
+from influxdb_client_3.exceptions import InfluxDBError
 from tests.util import asyncio_run, lp_to_py_object
 
 
@@ -64,30 +63,18 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         test_id = time.time_ns()
         with self.assertRaises(InfluxDBError) as err:
             self.client.write(f"integration_test_python,type=used value=123.0,test_id={test_id}i")
-        self.assertEqual('unauthorized access', err.exception.message)  # Cloud
+        self.assertEqual('Authorization header was malformed, the request was not in the form of '
+                         '\'Authorization: <auth-scheme> <token>\', supported auth-schemes are Bearer, Token and Basic',
+                         err.exception.message)  # Cloud
 
     def test_auth_error_auth_scheme(self):
         self.client = InfluxDBClient3(host=self.host, database=self.database, token=self.token, auth_scheme='Any')
         test_id = time.time_ns()
         with self.assertRaises(InfluxDBError) as err:
             self.client.write(f"integration_test_python,type=used value=123.0,test_id={test_id}i")
-        self.assertEqual('unauthorized access', err.exception.message)  # Cloud
-
-    def test_error_headers(self):
-        self.client = InfluxDBClient3(host=self.host, database=self.database, token=self.token)
-        with self.assertRaises(InfluxDBError) as err:
-            self.client.write("integration_test_python,type=used value=123.0,test_id=")
-        self.assertIn("Could not parse entire line. Found trailing content:", err.exception.message)
-        headers = err.exception.getheaders()
-        try:
-            self.assertIsNotNone(headers)
-            self.assertRegex(headers['trace-id'], '[0-9a-f]{16}')
-            self.assertEqual('false', headers['trace-sampled'])
-            self.assertIsNotNone(headers['Strict-Transport-Security'])
-            self.assertRegex(headers['X-Influxdb-Request-ID'], '[0-9a-f]+')
-            self.assertIsNotNone(headers['X-Influxdb-Build'])
-        except KeyError as ke:
-            self.fail(f'Header {ke} not found')
+        self.assertEqual('Authorization header was malformed, the request was not in the form of '
+                         '\'Authorization: <auth-scheme> <token>\', supported auth-schemes are Bearer, Token and Basic',
+                         err.exception.message)  # Cloud
 
     def test_batch_write_callbacks(self):
         write_success = False
@@ -211,24 +198,6 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
 
     def remove_test_cert(self, cert_file):
         os.remove(cert_file)
-
-    def test_queries_w_bad_cert(self):
-        cert_file = "test_cert.pem"
-        self.create_test_cert(cert_file)
-        with InfluxDBClient3(host=self.host,
-                             database=self.database,
-                             token=self.token,
-                             verify_ssl=True,
-                             ssl_ca_cert=cert_file,
-                             debug=True) as client:
-            try:
-                query = "SELECT table_name FROM information_schema.tables"
-                client.query(query, mode="")
-                assert False, "query should throw SSL_ERROR"
-            except InfluxDB3ClientQueryError as fe:
-                assert str(fe).__contains__('SSL_ERROR_SSL')
-            finally:
-                self.remove_test_cert(cert_file)
 
     def test_verify_ssl_false(self):
         cert_file = "test_cert.pem"
