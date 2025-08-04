@@ -5,6 +5,7 @@
 ### Features
 
 1. [#146](https://github.com/InfluxCommunity/influxdb3-python/pull/146): Add function to get InfluxDB version.
+2. [#149](https://github.com/InfluxCommunity/influxdb3-python/pull/149): Run integration tests against a locally started InfluxDB 3 Core server.
 
 ## 0.14.0 [2025-06-18]
 
