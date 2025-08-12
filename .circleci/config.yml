@@ -47,8 +47,7 @@ jobs:
       - run:
           name: "Running tests"
           command: |
-            cd home/my_env
-            source bin/activate
+            source home/my_env/bin/activate
             sudo pip3 install influxdb3-python
             python3
             from influxdb_client_3 import InfluxDBClient3
