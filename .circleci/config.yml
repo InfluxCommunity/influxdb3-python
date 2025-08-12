@@ -39,7 +39,8 @@ jobs:
     steps:
       - run: "sudo apt update"
 #      - run: "sudo apt -y upgrade"
-      - run: "python3 -v"
+#      - run: "python3 -v"
+      - run: "sudo apt install python3 -y"
       - run: "sudo apt install -y python3-pip"
       - run: "sudo apt install python3-venv -y"
       - run: "sudo python3 -m venv home/my_env"
