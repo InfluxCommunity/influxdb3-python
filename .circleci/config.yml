@@ -44,11 +44,12 @@ jobs:
       - run: "sudo apt install -y python3-pip"
       - run: "sudo apt install python3-venv -y"
       - run: "sudo python3 -m venv home/my_env"
+      - run: "sudo chmod -R a+rwx home/my_env"
       - run:
           name: "Running tests"
           command: |
             source home/my_env/bin/activate
-            sudo pip3 install influxdb3-python
+            pip3 install influxdb3-python
             python3
             from influxdb_client_3 import InfluxDBClient3
 workflows:
