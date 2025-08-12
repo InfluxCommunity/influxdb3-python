@@ -37,8 +37,8 @@ jobs:
       image: ubuntu-2404:2024.11.1
     resource_class: arm.medium
     steps:
-      - run: "apt update"
-      - run: "apt -y upgrade"
+      - run: "sudo apt update"
+      - run: "sudo apt -y upgrade"
       - run: "python3 -v"
 workflows:
   version: 2
