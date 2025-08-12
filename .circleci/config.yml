@@ -38,8 +38,11 @@ jobs:
     resource_class: arm.medium
     steps:
       - run: "sudo apt update"
-      - run: "sudo apt -y upgrade"
+#      - run: "sudo apt -y upgrade"
       - run: "python3 -v"
+      - run: "sudo apt install -y python3-pip"
+      - run: "sudo apt install python3-venv -y"
+      - run: "sudo python3 -m venv home/my_env"
 workflows:
   version: 2
   build:
