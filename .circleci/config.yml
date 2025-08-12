@@ -49,8 +49,8 @@ jobs:
           command: |
             cd home/my_env
             source bin/activate
-            sudo pip3 install influxdb3-python
-            sudo python3
+            pip3 install influxdb3-python
+            python3
             from influxdb_client_3 import InfluxDBClient3
 workflows:
   version: 2
