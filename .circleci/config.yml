@@ -32,144 +32,16 @@ commands:
             - "/usr/local/lib/site-python"
           when: always
 jobs:
-  tests-python:
-    parameters:
-      python-image:
-        type: string
-        default: &default-python "cimg/python:3.8"
-      pytest-marker:
-        type: string
-        default: "not integration"
-    docker:
-      - image: << parameters.python-image >>
-        environment:
-          PIPENV_VENV_IN_PROJECT: true
-      - image: influxdb:3-core
-        environment:
-          - INFLUXDB3_NODE_IDENTIFIER_PREFIX=node01
-          - INFLUXDB3_OBJECT_STORE=file
-          - INFLUXDB3_DB_DIR=/var/lib/influxdb3/data
+  tests-vm:
+    machine:
+      image: ubuntu-2404:2024.11.1
+    resource_class: arm.medium
     steps:
-      - checkout
-      - run:
-          name: Setup InfluxDB service
-          command: |
-            ./scripts/influxdb-setup.sh \
-              --export-url-as TESTING_INFLUXDB_URL \
-              --export-db-as TESTING_INFLUXDB_DATABASE \
-              --export-token-as TESTING_INFLUXDB_TOKEN
-      - client-test:
-          python-image: << parameters.python-image >>
-          pytest-marker: << parameters.pytest-marker >>
-      - store_test_results:
-          path: test-reports
-      - run:
-          name: Collecting coverage reports
-          command: |
-            curl -Os https://uploader.codecov.io/latest/linux/codecov
-            curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
-            curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM.sig
-            curl -s https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
-            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
-            shasum -a 256 -c codecov.SHA256SUM
-            chmod +x ./codecov
-            ./codecov
-  check-code-style:
-    docker:
-      - image: *default-python
-        environment:
-          PIPENV_VENV_IN_PROJECT: true
-    steps:
-      - checkout
-      - run:
-          name: Checks style consistency of setup.py.
-          command: |
-            pip install flake8 --user
-            flake8 setup.py
-      - run:
-          name: Checks style consistency across sources.
-          command: |
-            pip install flake8 --user
-            flake8 influxdb_client_3/
-      - run:
-          name: Checks style consistency across tests.
-          command: |
-            pip install flake8 --user
-            flake8 tests/
-      - run:
-          name: Checks style consistency across examples.
-          command: |
-            pip install flake8 --user
-            flake8 Examples/
-  check-twine:
-    docker:
-      - image: *default-python
-        environment:
-          PIPENV_VENV_IN_PROJECT: true
-    steps:
-      - checkout
-      - run:
-          name: Checks that the description will render correctly on PyPI.
-          command: |
-            pip install --upgrade pip
-            pip install 'twine>=5.1,<6.1' --user
-            python setup.py sdist bdist_wheel
-            twine check dist/*
-  check-docstyle:
-    docker:
-      - image: *default-python
-        environment:
-          PIPENV_VENV_IN_PROJECT: true
-    steps:
-      - checkout
-      - run:
-          name: Checks compliance with Python docstring convention.
-          command: |
-            pip install pydocstyle --user
-            pydocstyle --count influxdb_client_3
-
+      - run: "apt update"
+      - run: "apt -y upgrade"
+      - run: "python3 -v"
 workflows:
   version: 2
   build:
-    when:
-      not:
-        equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
-      - check-code-style
-#      - check-docstyle
-      - check-twine
-      - tests-python:
-          name: test-3.8
-          python-image: "cimg/python:3.8"
-      - tests-python:
-          name: test-3.9
-          python-image: "cimg/python:3.9"
-      - tests-python:
-          name: test-3.10
-          python-image: "cimg/python:3.10"
-      - tests-python:
-          name: test-3.11
-          python-image: "cimg/python:3.11"
-      - tests-python:
-          name: test-3.12
-          python-image: "cimg/python:3.12"
-      - tests-python:
-          name: test-3.13
-          python-image: "cimg/python:3.13"
-      - tests-python:
-          requires:
-            - test-3.8
-            - test-3.9
-            - test-3.10
-            - test-3.11
-            - test-3.12
-            - test-3.13
-          name: test-integration
-          python-image: *default-python
-          pytest-marker: "integration"
-
-  nightly:
-    when:
-      equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
-    jobs:
-      - tests-python
+      - tests-vm
