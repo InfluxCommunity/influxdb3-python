@@ -2,6 +2,10 @@
 
 ## 0.16.0 [unreleased]
 
+### CI
+
+1. [#153](https://github.com/InfluxCommunity/influxdb3-python/pull/153) Add tests for arm64 CircleCI.
+
 ## 0.15.0 [2025-08-12]
 
 ### Features
