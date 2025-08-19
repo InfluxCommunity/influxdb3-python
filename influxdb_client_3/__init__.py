@@ -186,10 +186,10 @@ class InfluxDBClient3:
         :type database: str
         :param token: The authentication token for accessing the InfluxDB server.
         :type token: str
-        :param write_client_options: Function for providing additional arguments for the WriteApi client.
-        :type write_client_options: callable
-        :param flight_client_options: Function for providing additional arguments for the FlightClient.
-        :type flight_client_options: callable
+        :param write_client_options: dictionary for providing additional arguments for the WriteApi client.
+        :type write_client_options: dict[str, any]
+        :param flight_client_options: dictionary for providing additional arguments for the FlightClient.
+        :type flight_client_options: dict[str, any]
         :key auth_scheme: token authentication scheme. Set to "Bearer" for Edge.
         :key bool verify_ssl: Set this to false to skip verifying SSL certificate when calling API from https server.
         :key str ssl_ca_cert: Set this to customize the certificate file to verify the peer.
