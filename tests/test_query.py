@@ -5,7 +5,6 @@ import os
 import json
 from unittest.mock import Mock, ANY
 
-from charset_normalizer import cd
 from pyarrow.flight import (
     FlightClient,
     Ticket
