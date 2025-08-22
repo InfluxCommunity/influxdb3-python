@@ -42,9 +42,15 @@ class WriteService(_BaseService):
                  returns the request thread.
         """  # noqa: E501
         kwargs['_return_http_data_only'] = True
+        print("DEBUG WriteService.post_write()")
         if kwargs.get('async_req'):
-            return self.post_write_with_http_info(org, bucket, body, **kwargs)  # noqa: E501
+            print("   DEBUG making asynchronous request ")
+            thread = self.post_write_with_http_info(org, bucket, body, **kwargs)  # noqa: E501
+            print(f"   DEBUG thread: {thread} ")
+            # return self.post_write_with_http_info(org, bucket, body, **kwargs)  # noqa: E501
+            return thread
         else:
+            print("   DEBUG making synchronous request ")
             (data) = self.post_write_with_http_info(org, bucket, body, **kwargs)  # noqa: E501
             return data
 
@@ -72,9 +78,13 @@ class WriteService(_BaseService):
         :return: None
                  If the method is called asynchronously,
                  returns the request thread.
-        """  # noqa: E501
+        """
+        print("WriteService.post_write_with_http_info()")
+        # noqa: E501
         local_var_params, path, path_params, query_params, header_params, body_params = \
             self._post_write_prepare(org, bucket, body, **kwargs)  # noqa: E501
+
+        print(f"DEBUG local_var_params: {local_var_params}")
 
         try:
             return self.api_client.call_api(
@@ -145,6 +155,8 @@ class WriteService(_BaseService):
 
     def _post_write_prepare(self, org, bucket, body, **kwargs):  # noqa: E501,D401,D403
         local_var_params = dict(locals())
+
+        print(f"DEBUG local_var_params: {local_var_params}")
 
         all_params = ['org', 'bucket', 'body', 'zap_trace_span', 'content_encoding', 'content_type', 'content_length', 'accept', 'org_id', 'precision', 'no_sync']  # noqa: E501
         self._check_operation_params('post_write', all_params, local_var_params)
