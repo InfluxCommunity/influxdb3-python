@@ -357,7 +357,9 @@ class ApiClient(object):
             If parameter async_req is False or missing,
             then the method will return the response directly.
         """
+        print("DEBUG ApiClient.call_api()")
         if not async_req:
+            print("   DEBUG synchronous call")
             return self.__call_api(resource_path, method,
                                    path_params, query_params, header_params,
                                    body, post_params, files,
@@ -365,6 +367,8 @@ class ApiClient(object):
                                    _return_http_data_only, collection_formats,
                                    _preload_content, _request_timeout, urlopen_kw)
         else:
+            # TODO possible refactor - async handler inside package `_sync`?
+            print("   DEBUG asynchronous call")
             thread = self.pool.apply_async(self.__call_api, (resource_path,
                                                              method, path_params, query_params,
                                                              header_params, body,

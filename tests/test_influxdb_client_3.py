@@ -4,7 +4,8 @@ from unittest.mock import patch
 
 from pytest_httpserver import HTTPServer
 
-from influxdb_client_3 import InfluxDBClient3, WritePrecision, DefaultWriteOptions, Point, WriteOptions, WriteType
+from influxdb_client_3 import InfluxDBClient3, WritePrecision, DefaultWriteOptions, Point, WriteOptions, WriteType, \
+    write_client_options
 from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
 from influxdb_client_3.write_client.rest import ApiException
 from tests.util import asyncio_run
@@ -65,6 +66,51 @@ class TestInfluxDBClient3(unittest.TestCase):
             auth_scheme="my_scheme"
         )
         self.assertEqual(client._client.auth_header_value, "my_scheme my_token")
+
+    def test_write_options(self):
+        client = InfluxDBClient3(
+            host="localhost",
+            org="my_org",
+            token="my_token",
+            auth_scheme="my_scheme",
+            write_client_options=write_client_options(
+                success_callback=lambda _: True,
+                error_callback=lambda _: False,
+                extra_arg="ignored",
+                write_options=WriteOptions(write_type=WriteType.synchronous,
+                                           max_retries=0,
+                                           max_retry_time=0,
+                                           max_retry_delay=0,
+                                           timeout=30_000,
+                                           flush_interval=500,))
+        )
+
+        assert isinstance(client._write_client_options["write_options"], WriteOptions)
+        assert client._write_client_options["success_callback"]("an_arg") == True
+        assert client._write_client_options["error_callback"]("an_arg") == False
+        assert client._write_client_options["extra_arg"] == "ignored"
+        assert client._write_client_options["write_options"].timeout == 30_000
+        assert client._write_client_options["write_options"].max_retries == 0
+        assert client._write_client_options["write_options"].max_retry_time == 0
+        assert client._write_client_options["write_options"].max_retry_delay == 0
+        assert client._write_client_options["write_options"].write_type == WriteType.synchronous
+        assert client._write_client_options["write_options"].flush_interval == 500
+        print(f"DEBUG client._client._base._Configuration {client._client.conf.__dict__}")
+        print(f"DEBUG client._client._base._Configuration.timeout {client._client.conf.timeout}")
+
+
+    def test_default_write_options(self):
+        client = InfluxDBClient3(
+            host="localhost",
+            token="my_token",
+            org="my_org",
+            database="my_db",
+        )
+
+        assert client._write_client_options["write_options"].write_type == DefaultWriteOptions.write_type.value
+        assert client._write_client_options["write_options"].no_sync == DefaultWriteOptions.no_sync.value
+        assert client._write_client_options["write_options"].write_precision == DefaultWriteOptions.write_precision.value
+        assert client._write_client_options["write_options"].timeout == DefaultWriteOptions.timeout.value
 
     @asyncio_run
     async def test_query_async(self):

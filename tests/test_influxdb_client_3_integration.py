@@ -7,7 +7,10 @@ import string
 import time
 import unittest
 
-from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions
+from urllib3.exceptions import MaxRetryError, ConnectTimeoutError
+
+from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, SYNCHRONOUS, flight_client_options, \
+    WriteType
 from influxdb_client_3.exceptions import InfluxDBError
 from tests.util import asyncio_run, lp_to_py_object
 
@@ -247,3 +250,110 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
     def test_get_server_version(self):
         version = self.client.get_server_version()
         assert version is not None
+
+    # TODO set sync test, also investigate behavior with batcher and retry
+    # TODO do these need to be run with integration - won't mock suffice?
+    def test_write_timeout_sync(self):
+
+        ErrorRecord = None
+        def set_error_record(error):
+            nonlocal ErrorRecord
+            ErrorRecord = error
+
+        with pytest.raises(ConnectTimeoutError) as e:
+            localClient = InfluxDBClient3(
+                host=self.host,
+                database=self.database,
+                token=self.token,
+                write_client_options=flight_client_options(
+                    error_callback=set_error_record,
+                    write_options=WriteOptions(
+                        max_retry_time=0,
+                        timeout=20,
+                        write_type=WriteType.synchronous
+                    )
+                )
+            )
+
+            localClient.write("test_write_timeout,location=harfa fVal=3.14,iVal=42i")
+
+
+    @pytest.mark.skip(reason="placeholder - partially implemented")
+    @asyncio_run
+    async def test_write_timeout_async(self):
+        # fco = flight_client_options(max_retries=10, timeout=30_000)
+        # print(f"DEBUG fco: {fco}")
+        # TODO ensure API can handle either callback or thrown exception
+        # TODO asserts based on solution
+
+        ErrorRecord = None
+        def set_error_record(error):
+            nonlocal ErrorRecord
+            ErrorRecord = error
+
+
+        localClient = InfluxDBClient3(
+            host=self.host,
+            database=self.database,
+            token=self.token,
+            write_client_options=flight_client_options(
+                error_callback=set_error_record,
+                write_options=WriteOptions(
+                    max_retry_time=0,
+                    timeout=20,
+                    write_type=WriteType.asynchronous
+                )
+            )
+        )
+
+        print(f"DEBUG localClient._write_client_options: {localClient._write_client_options['write_options'].__dict__}")
+        print(f"DEBUG localClient._client._base._Configuration {localClient._client.conf.timeout}")
+
+        applyResult = localClient.write("test_write_timeout,location=harfa fVal=3.14,iVal=42i")
+        print(f"DEBUG applyResult: {applyResult}")
+        result = applyResult.get()
+        print(f"DEBUG result: {result}")
+
+
+    def test_write_timeout_batching(self):
+
+        ErrorResult = {"rt": None, "rd": None, "rx": None}
+
+        def set_error_result(rt, rd, rx):
+            nonlocal ErrorResult
+            ErrorResult = {"rt": rt, "rd": rd, "rx": rx}
+
+        localClient = InfluxDBClient3(
+            host=self.host,
+            database=self.database,
+            token=self.token,
+            write_client_options=flight_client_options(
+                error_callback=set_error_result,
+                write_options=WriteOptions(
+                    max_retry_time=0,
+                    timeout=20,
+                    write_type=WriteType.batching,
+                    max_retries=1,
+                    batch_size=1,
+                )
+            )
+        )
+        lp = "test_write_timeout,location=harfa fVal=3.14,iVal=42i"
+        localClient.write(lp)
+
+        # wait for batcher attempt last write retry
+        time.sleep(0.1)
+
+        assert ErrorResult["rt"] == (self.database, 'default', 'ns')
+        assert ErrorResult["rd"] is not None
+        assert isinstance(ErrorResult["rd"], bytes)
+        assert ErrorResult["rd"].decode('utf-8') == lp
+        assert ErrorResult["rx"] is not None
+        assert isinstance(ErrorResult["rx"], MaxRetryError)
+        mre = ErrorResult["rx"]
+        assert isinstance(mre.reason, ConnectTimeoutError)
+
+    @pytest.mark.skip("place holder")
+    def test_write_timeout_retry(self):
+        # TODO
+        print("DEBUG test_write_timeout_retry")

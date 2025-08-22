@@ -140,6 +140,11 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(headers['X-Influxdb-Request-Id'], requestid)
         self.assertEqual(headers['X-Influxdb-Build'], 'Mock')
 
+    def test_request_timeout_from_config(self):
+        # TODO
+        conf = Configuration()
+        local_client = ApiClient(conf)
+
     def test_should_gzip(self):
         # Test when gzip is disabled
         self.assertFalse(ApiClient.should_gzip("test", enable_gzip=False, gzip_threshold=1))

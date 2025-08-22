@@ -220,11 +220,13 @@ class InfluxDBClient3:
         write_type = DefaultWriteOptions.write_type.value
         write_precision = DefaultWriteOptions.write_precision.value
         write_no_sync = DefaultWriteOptions.no_sync.value
+        write_timeout = DefaultWriteOptions.timeout.value
         if isinstance(write_client_options, dict) and write_client_options.get('write_options') is not None:
             write_opts = write_client_options['write_options']
             write_type = getattr(write_opts, 'write_type', write_type)
             write_precision = getattr(write_opts, 'write_precision', write_precision)
             write_no_sync = getattr(write_opts, 'no_sync', write_no_sync)
+            write_timeout = getattr(write_opts, 'timeout', write_timeout)
 
         write_options = WriteOptions(
             write_type=write_type,
@@ -253,6 +255,7 @@ class InfluxDBClient3:
             url=f"{scheme}://{hostname}:{port}",
             token=self._token,
             org=self._org,
+            timeout=write_timeout,
             **kwargs)
 
         self._write_api = _WriteApi(influxdb_client=self._client, **self._write_client_options)
@@ -344,6 +347,7 @@ class InfluxDBClient3:
         :type database: str
         :param kwargs: Additional arguments to pass to the write API.
         """
+        print(f"DEBUG InfluxDBClient3.write {record}")
         if database is None:
             database = self._database
 

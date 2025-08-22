@@ -25,6 +25,7 @@ from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.rest import _UTF_8_encoding
 
 DEFAULT_WRITE_NO_SYNC = False
+DEFAULT_WRITE_TIMEOUT = 10_000
 
 logger = logging.getLogger('influxdb_client_3.write_client.client.write_api')
 
@@ -45,6 +46,7 @@ class DefaultWriteOptions(Enum):
     write_type = WriteType.synchronous
     write_precision = DEFAULT_WRITE_PRECISION
     no_sync = DEFAULT_WRITE_NO_SYNC
+    timeout = DEFAULT_WRITE_TIMEOUT
 
 
 class WriteOptions(object):
@@ -61,6 +63,7 @@ class WriteOptions(object):
                  max_close_wait=300_000,
                  write_precision=DEFAULT_WRITE_PRECISION,
                  no_sync=DEFAULT_WRITE_NO_SYNC,
+                 timeout=DEFAULT_WRITE_TIMEOUT,
                  write_scheduler=ThreadPoolScheduler(max_workers=1)) -> None:
         """
         Create write api configuration.
@@ -93,6 +96,7 @@ class WriteOptions(object):
         self.write_scheduler = write_scheduler
         self.max_close_wait = max_close_wait
         self.write_precision = write_precision
+        self.timeout = timeout
         self.no_sync = no_sync
 
     def to_retry_strategy(self, **kwargs):
@@ -268,6 +272,8 @@ class WriteApi(_BaseWriteApi):
             # Define Subject that listen incoming data and produces writes into InfluxDB
             self._subject = Subject()
 
+            print(f"DEBUG batching write with subject {self._subject}")
+
             self._disposable = self._subject.pipe(
                 # Split incoming data to windows by batch_size or flush_interval
                 ops.window_with_time_or_count(count=write_options.batch_size,
@@ -372,6 +378,7 @@ You can use native asynchronous version of the client:
 
         """  # noqa: E501
         org = get_org_query_param(org=org, client=self._influxdb_client)
+        print("DEBUG WriteApi.write()")
 
         self._append_default_tags(record)
 
@@ -390,13 +397,21 @@ You can use native asynchronous version of the client:
         _async_req = True if self._write_options.write_type == WriteType.asynchronous else False
 
         def write_payload(payload):
+            print("DEBUG WriteApi.write_payload()")
             final_string = b'\n'.join(payload[1])
-            return self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync)
+            result = self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync)
+            # return self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync)
+            print(f"  DEBUG write_payload() result {result}")
+            return result
 
         results = list(map(write_payload, payloads.items()))
+        print(f"  DEBUG WriteApi.write() results {results}")
         if not _async_req:
+            print(f"     --->DEBUG not async_request")
             return None
         elif len(results) == 1:
+            # TODO if results contains error or exception ensure handled
+            print(f"      --->DEBUG async_request() results {results[0]}")
             return results[0]
         return results
 
@@ -464,11 +479,13 @@ You can use native asynchronous version of the client:
     def _write_batching(self, bucket, org, data,
                         precision=None,
                         **kwargs):
+        print("DEBUG _write_batching()")
         if precision is None:
             precision = self._write_options.write_precision
 
         if isinstance(data, bytes):
             _key = _BatchItemKey(bucket, org, precision)
+            print(f"     DEBUG _write_batching() data bytes {_key}")
             self._subject.on_next(_BatchItem(key=_key, data=data))
 
         elif isinstance(data, str):
@@ -520,6 +537,8 @@ You can use native asynchronous version of the client:
 
     def _http(self, batch_item: _BatchItem):
 
+        print("DEBUG _http()")
+
         logger.debug("Write time series data into InfluxDB: %s", batch_item)
 
         if self._retry_callback:
@@ -540,6 +559,7 @@ You can use native asynchronous version of the client:
         return _BatchResponse(data=batch_item)
 
     def _post_write(self, _async_req, bucket, org, body, precision, no_sync, **kwargs):
+        print("DEBUG write_api._post_write()")
 
         return self._write_service.post_write(org=org, bucket=bucket, body=body, precision=precision,
                                               no_sync=no_sync,
@@ -548,6 +568,8 @@ You can use native asynchronous version of the client:
                                               **kwargs)
 
     def _to_response(self, data: _BatchItem, delay: timedelta):
+
+        print("DEBUG _to_response()")
 
         return rx.of(data).pipe(
             ops.subscribe_on(self._write_options.write_scheduler),

@@ -5,6 +5,7 @@ import os
 import json
 from unittest.mock import Mock, ANY
 
+from charset_normalizer import cd
 from pyarrow.flight import (
     FlightClient,
     Ticket
@@ -429,4 +430,25 @@ Aw==
 
             # fibo ended before query_async
             assert events['query_result'] > events['fibo_end'], (f"query_result: {events['query_result']} should occur "
-                                                                 f"after fibo_end: {events['fibo_end']}")
+                                                                     f"after fibo_end: {events['fibo_end']}")
+
+    @asyncio_run
+    async def test_query_async_timeout(self):
+        # TODO add WriteOption timeout
+        # TODO add asserts
+        with ConstantFlightServer() as server:
+            connection_string = f"grpc://localhost:{server.port}"
+            token = "my_token"
+            database = "my_database"
+            q_api = QueryApi(
+                connection_string=connection_string,
+                token=token,
+                flight_client_options={"generic_options": [('Foo', 'Bar')]},
+                proxy=None,
+                options=None
+            )
+            query = "SELECT * FROM data"
+            table = await q_api.query_async(query, "sql", "", database)
+
+            result_list = table.to_pylist()
+            print(f"DEBUG {result_list}")
