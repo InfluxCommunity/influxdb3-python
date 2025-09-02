@@ -1,8 +1,13 @@
 import json
+import time
 import unittest
 import uuid
+from concurrent.futures import thread
 from unittest import mock
+
+import pytest
 from urllib3 import response
+from urllib3.exceptions import ConnectTimeoutError
 
 from influxdb_client_3.write_client._sync.api_client import ApiClient
 from influxdb_client_3.write_client.configuration import Configuration
@@ -36,8 +41,19 @@ def mock_rest_request(method,
 
     return MockResponse(None, 200)
 
-
 class ApiClientTests(unittest.TestCase):
+
+    received_timeout_total = None
+    def mock_urllib3_timeout_request(method,
+                                     url,
+                                     body,
+                                     headers,
+                                     **urlopen_kw):
+        if urlopen_kw.get('timeout', None) is not None:
+            ApiClientTests.received_timeout_total = urlopen_kw['timeout'].total
+            raise ConnectTimeoutError()
+
+        return response.HTTPResponse(status=200, version=4, reason="OK", decode_content=False, request_url=url)
 
     def test_default_headers(self):
         global _package
@@ -140,10 +156,33 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(headers['X-Influxdb-Request-Id'], requestid)
         self.assertEqual(headers['X-Influxdb-Build'], 'Mock')
 
-    def test_request_timeout_from_config(self):
-        # TODO
+    @mock.patch("urllib3._request_methods.RequestMethods.request",
+                side_effect=mock_urllib3_timeout_request)
+    def test_request_config_timeout(self, mock_request):
         conf = Configuration()
+        conf.host = "http://localhost:8181"
+        conf.timeout = 300
         local_client = ApiClient(conf)
+        service = WriteService(local_client)
+        with pytest.raises(ConnectTimeoutError):
+            service.post_write("TEST_ORG", "TEST_BUCKET", "data,foo=bar val=3.14",
+                              _preload_content=False)
+        self.assertEqual(0.3, self.received_timeout_total)
+        self.received_timeout_total = None
+
+    @mock.patch("urllib3._request_methods.RequestMethods.request",
+                side_effect=mock_urllib3_timeout_request)
+    def test_request_arg_timeout(self, mock_request):
+        conf = Configuration()
+        conf.host = "http://localhost:8181"
+        conf.timeout = 300
+        local_client = ApiClient(conf)
+        service = WriteService(local_client)
+        with pytest.raises(ConnectTimeoutError):
+            service.post_write("TEST_ORG", "TEST_BUCKET", "data,foo=bar val=3.14",
+                               _request_timeout=100, _preload_content=False)
+        self.assertEqual(0.1, self.received_timeout_total)
+        self.received_timeout_total = None
 
     def test_should_gzip(self):
         # Test when gzip is disabled

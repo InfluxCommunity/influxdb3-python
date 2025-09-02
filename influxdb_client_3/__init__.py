@@ -352,7 +352,7 @@ class InfluxDBClient3:
             database = self._database
 
         try:
-            self._write_api.write(bucket=database, record=record, **kwargs)
+            return self._write_api.write(bucket=database, record=record, **kwargs)
         except InfluxDBError as e:
             raise e
 

@@ -7,6 +7,7 @@ import warnings
 from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
+from multiprocessing.pool import ApplyResult
 from random import random
 from time import sleep
 from typing import Union, Any, Iterable, NamedTuple
@@ -264,6 +265,7 @@ class WriteApi(_BaseWriteApi):
         """
         super().__init__(influxdb_client=influxdb_client, point_settings=point_settings)
         self._write_options = write_options
+        # TODO - callbacks seem to be used with batching type only - could they be used with sync or async?
         self._success_callback = kwargs.get('success_callback', None)
         self._error_callback = kwargs.get('error_callback', None)
         self._retry_callback = kwargs.get('retry_callback', None)
@@ -303,6 +305,7 @@ class WriteApi(_BaseWriteApi):
 You can use native asynchronous version of the client:
 - https://influxdb-client.readthedocs.io/en/stable/usage.html#how-to-use-asyncio
         """
+# TODO above message has link to Influxdb2 API __NOT__ Influxdb3 API !!! - illustrates different API
             warnings.warn(message, DeprecationWarning)
 
     def write(self, bucket: str, org: str = None,
