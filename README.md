@@ -162,6 +162,11 @@ table = reader.read_all()
 print(table.to_pandas().to_markdown())
 ```
 
+### gRPC compression
+The Python client supports gRPC response compression.  
+If the server chooses to compress query responses (e.g., with gzip), the client
+will automatically decompress them — no extra configuration is required.
+
 ## Windows Users
 Currently, Windows users require an extra installation when querying via Flight natively. This is due to the fact gRPC cannot locate Windows root certificates. To work around this please follow these steps:
 Install `certifi`
