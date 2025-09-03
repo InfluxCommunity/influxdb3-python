@@ -95,8 +95,6 @@ class TestInfluxDBClient3(unittest.TestCase):
         assert client._write_client_options["write_options"].max_retry_delay == 0
         assert client._write_client_options["write_options"].write_type == WriteType.synchronous
         assert client._write_client_options["write_options"].flush_interval == 500
-        print(f"DEBUG client._client._base._Configuration {client._client.conf.__dict__}")
-        print(f"DEBUG client._client._base._Configuration.timeout {client._client.conf.timeout}")
 
 
     def test_default_write_options(self):

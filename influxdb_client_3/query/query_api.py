@@ -19,7 +19,7 @@ class QueryApiOptions(object):
     proxy (str): URL to a proxy server
     flight_client_options (dict): base set of flight client options passed to internal pyarrow.flight.FlightClient
     """
-    _DEFAULT_TIMEOUT =  300.0
+    _DEFAULT_TIMEOUT = 300.0
     tls_root_certs: bytes = None
     tls_verify: bool = None
     proxy: str = None

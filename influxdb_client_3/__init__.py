@@ -350,7 +350,6 @@ class InfluxDBClient3:
         :type database: str
         :param kwargs: Additional arguments to pass to the write API.
         """
-        print(f"DEBUG InfluxDBClient3.write {record}")
         if database is None:
             database = self._database
 
