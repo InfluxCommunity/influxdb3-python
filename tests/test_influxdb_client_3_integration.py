@@ -391,4 +391,4 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         )
 
         with self.assertRaisesRegex(InfluxDB3ClientQueryError, ".*Deadline Exceeded.*"):
-            localClient.query("SELECT * FROM data", timeout=0.001)
+            localClient.query("SELECT * FROM data", timeout=0.0001)
