@@ -7,9 +7,9 @@ import string
 import time
 import unittest
 
-from urllib3.exceptions import MaxRetryError, ConnectTimeoutError, TimeoutError as Url3TimeoutError
+from urllib3.exceptions import MaxRetryError, TimeoutError as Url3TimeoutError
 
-from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, SYNCHRONOUS, flight_client_options, \
+from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, \
     WriteType, InfluxDB3ClientQueryError
 from influxdb_client_3.exceptions import InfluxDBError
 from tests.util import asyncio_run, lp_to_py_object
@@ -278,9 +278,8 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
                 database=self.database,
                 token=self.token,
                 write_client_options=write_client_options(
-                    # error_callback=set_error_record,
                     write_options=WriteOptions(
-                        max_retry_time=0, # disable retries
+                        max_retry_time=0,  # disable retries
                         timeout=20,
                         write_type=WriteType.asynchronous
                     )
@@ -305,7 +304,7 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
             write_client_options=write_client_options(
                 error_callback=set_error_result,
                 write_options=WriteOptions(
-                    max_retry_time=0, # disable retries
+                    max_retry_time=0,  # disable retries
                     timeout=20,
                     write_type=WriteType.batching,
                     max_retries=0,
@@ -330,11 +329,13 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
     def test_write_timeout_retry(self):
 
         ErrorResult = {"rt": None, "rd": None, "rx": None}
+
         def set_error_result(rt, rd, rx):
             nonlocal ErrorResult
             ErrorResult = {"rt": rt, "rd": rd, "rx": rx}
 
         retry_ct = 0
+
         def retry_cb(args, data, excp):
             nonlocal retry_ct
             retry_ct += 1
@@ -359,7 +360,7 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
 
         lp = "test_write_timeout,location=harfa fVal=3.14,iVal=42i"
         localClient.write(lp)
-        time.sleep(1) # await all retries
+        time.sleep(1)  # await all retries
 
         self.assertEqual(3, retry_ct)
         self.assertEqual((self.database, 'default', 'ns'), ErrorResult["rt"])
@@ -391,4 +392,3 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
 
         with self.assertRaisesRegex(InfluxDB3ClientQueryError, ".*Deadline Exceeded.*"):
             localClient.query("SELECT * FROM data", timeout=0.001)
-

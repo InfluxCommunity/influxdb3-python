@@ -85,17 +85,16 @@ class TestInfluxDBClient3(unittest.TestCase):
                                            flush_interval=500,))
         )
 
-        assert isinstance(client._write_client_options["write_options"], WriteOptions)
-        assert client._write_client_options["success_callback"]("an_arg") == True
-        assert client._write_client_options["error_callback"]("an_arg") == False
-        assert client._write_client_options["extra_arg"] == "ignored"
-        assert client._write_client_options["write_options"].timeout == 30_000
-        assert client._write_client_options["write_options"].max_retries == 0
-        assert client._write_client_options["write_options"].max_retry_time == 0
-        assert client._write_client_options["write_options"].max_retry_delay == 0
-        assert client._write_client_options["write_options"].write_type == WriteType.synchronous
-        assert client._write_client_options["write_options"].flush_interval == 500
-
+        self.assertIsInstance(client._write_client_options["write_options"], WriteOptions)
+        self.assertTrue(client._write_client_options["success_callback"]("an_arg"))
+        self.assertFalse(client._write_client_options["error_callback"]("an_arg"))
+        self.assertEqual("ignored", client._write_client_options["extra_arg"])
+        self.assertEqual(30_000, client._write_client_options["write_options"].timeout)
+        self.assertEqual(0, client._write_client_options["write_options"].max_retries)
+        self.assertEqual(0, client._write_client_options["write_options"].max_retry_time)
+        self.assertEqual(0, client._write_client_options["write_options"].max_retry_delay)
+        self.assertEqual(WriteType.synchronous, client._write_client_options["write_options"].write_type)
+        self.assertEqual(500, client._write_client_options["write_options"].flush_interval)
 
     def test_default_write_options(self):
         client = InfluxDBClient3(
@@ -105,10 +104,12 @@ class TestInfluxDBClient3(unittest.TestCase):
             database="my_db",
         )
 
-        assert client._write_client_options["write_options"].write_type == DefaultWriteOptions.write_type.value
-        assert client._write_client_options["write_options"].no_sync == DefaultWriteOptions.no_sync.value
-        assert client._write_client_options["write_options"].write_precision == DefaultWriteOptions.write_precision.value
-        assert client._write_client_options["write_options"].timeout == DefaultWriteOptions.timeout.value
+        self.assertEqual(DefaultWriteOptions.write_type.value,
+                         client._write_client_options["write_options"].write_type)
+        self.assertEqual(DefaultWriteOptions.no_sync.value, client._write_client_options["write_options"].no_sync)
+        self.assertEqual(DefaultWriteOptions.write_precision.value,
+                         client._write_client_options["write_options"].write_precision)
+        self.assertEqual(DefaultWriteOptions.timeout.value, client._write_client_options["write_options"].timeout)
 
     @asyncio_run
     async def test_query_async(self):

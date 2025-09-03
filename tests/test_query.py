@@ -13,7 +13,7 @@ from pyarrow.flight import (
 )
 
 from influxdb_client_3 import InfluxDBClient3
-from influxdb_client_3.query.query_api import QueryApiOptionsBuilder, QueryApi, QueryApiOptions
+from influxdb_client_3.query.query_api import QueryApiOptionsBuilder, QueryApi
 from influxdb_client_3.version import USER_AGENT
 from tests.util import asyncio_run
 
@@ -431,7 +431,7 @@ Aw==
 
             # fibo ended before query_async
             assert events['query_result'] > events['fibo_end'], (f"query_result: {events['query_result']} should occur "
-                                                                     f"after fibo_end: {events['fibo_end']}")
+                                                                 f"after fibo_end: {events['fibo_end']}")
 
     @asyncio_run
     async def test_query_async_timeout(self):

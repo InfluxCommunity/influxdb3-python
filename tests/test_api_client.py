@@ -1,8 +1,6 @@
 import json
-import time
 import unittest
 import uuid
-from concurrent.futures import thread
 from unittest import mock
 
 import pytest
@@ -41,9 +39,11 @@ def mock_rest_request(method,
 
     return MockResponse(None, 200)
 
+
 class ApiClientTests(unittest.TestCase):
 
     received_timeout_total = None
+
     def mock_urllib3_timeout_request(method,
                                      url,
                                      body,
@@ -166,7 +166,7 @@ class ApiClientTests(unittest.TestCase):
         service = WriteService(local_client)
         with pytest.raises(ConnectTimeoutError):
             service.post_write("TEST_ORG", "TEST_BUCKET", "data,foo=bar val=3.14",
-                              _preload_content=False)
+                               _preload_content=False)
         self.assertEqual(0.3, self.received_timeout_total)
         self.received_timeout_total = None
 

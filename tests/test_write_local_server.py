@@ -23,7 +23,7 @@ class TestWriteLocalServer:
         httpserver.check_assertions()
 
     @staticmethod
-    def delay_response(httpserver, delay = 1.0):
+    def delay_response(httpserver, delay=1.0):
         httpserver.expect_request(re.compile(".*")).respond_with_handler(lambda request: time.sleep(delay))
 
     def test_write_default_params(self, httpserver: HTTPServer):
