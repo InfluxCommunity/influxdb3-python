@@ -5,13 +5,15 @@ import os
 import json
 from unittest.mock import Mock, ANY
 
+import pytest
+from pyarrow._flight import FlightTimedOutError
 from pyarrow.flight import (
     FlightClient,
     Ticket
 )
 
 from influxdb_client_3 import InfluxDBClient3
-from influxdb_client_3.query.query_api import QueryApiOptionsBuilder, QueryApi
+from influxdb_client_3.query.query_api import QueryApiOptionsBuilder, QueryApi, QueryApiOptions
 from influxdb_client_3.version import USER_AGENT
 from tests.util import asyncio_run
 
@@ -433,21 +435,33 @@ Aw==
 
     @asyncio_run
     async def test_query_async_timeout(self):
-        # TODO add WriteOption timeout
-        # TODO add asserts
-        with ConstantFlightServer() as server:
-            connection_string = f"grpc://localhost:{server.port}"
-            token = "my_token"
-            database = "my_database"
-            q_api = QueryApi(
-                connection_string=connection_string,
-                token=token,
-                flight_client_options={"generic_options": [('Foo', 'Bar')]},
-                proxy=None,
-                options=None
-            )
-            query = "SELECT * FROM data"
-            table = await q_api.query_async(query, "sql", "", database)
+        with pytest.raises(FlightTimedOutError):
+            with ConstantFlightServer() as server:
+                connection_string = f"grpc://localhost:{server.port}"
+                token = "my_token"
+                database = "my_database"
+                q_api = QueryApi(
+                    connection_string=connection_string,
+                    token=token,
+                    flight_client_options={"generic_options": [('Foo', 'Bar')]},
+                    proxy=None,
+                    options=QueryApiOptionsBuilder().timeout(0.001).build(),
+                )
+                query = "SELECT * FROM data"
+                await q_api.query_async(query, "sql", "", database)
 
-            result_list = table.to_pylist()
-            print(f"DEBUG {result_list}")
+    def test_query_timeout_per_call_override(self):
+        with pytest.raises(FlightTimedOutError):
+            with ConstantFlightServer() as server:
+                connection_string = f"grpc://localhost:{server.port}"
+                token = "my_token"
+                database = "my_database"
+                q_api = QueryApi(
+                    connection_string=connection_string,
+                    token=token,
+                    flight_client_options={"generic_options": [('Foo', 'Bar')]},
+                    proxy=None,
+                    options=QueryApiOptionsBuilder().timeout(3.14).build(),
+                )
+                query = "SELECT * FROM data"
+                q_api.query(query, "sql", "", database, timeout=0.0001)

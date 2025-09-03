@@ -10,7 +10,7 @@ import unittest
 from urllib3.exceptions import MaxRetryError, ConnectTimeoutError, TimeoutError as Url3TimeoutError
 
 from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, SYNCHRONOUS, flight_client_options, \
-    WriteType
+    WriteType, InfluxDB3ClientQueryError
 from influxdb_client_3.exceptions import InfluxDBError
 from tests.util import asyncio_run, lp_to_py_object
 
@@ -308,7 +308,7 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
                     max_retry_time=0, # disable retries
                     timeout=20,
                     write_type=WriteType.batching,
-                    max_retries=1,
+                    max_retries=0,
                     batch_size=1,
                 )
             )
@@ -319,14 +319,13 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         # wait for batcher attempt last write retry
         time.sleep(0.1)
 
-        assert ErrorResult["rt"] == (self.database, 'default', 'ns')
-        assert ErrorResult["rd"] is not None
-        assert isinstance(ErrorResult["rd"], bytes)
-        assert ErrorResult["rd"].decode('utf-8') == lp
-        assert ErrorResult["rx"] is not None
-        assert isinstance(ErrorResult["rx"], MaxRetryError)
-        mre = ErrorResult["rx"]
-        assert isinstance(mre.reason, Url3TimeoutError)
+        self.assertEqual((self.database, 'default', 'ns'), ErrorResult["rt"])
+        self.assertIsNotNone(ErrorResult["rd"])
+        self.assertIsInstance(ErrorResult["rd"], bytes)
+        self.assertEqual(lp, ErrorResult["rd"].decode('utf-8'))
+        self.assertIsNotNone(ErrorResult["rx"])
+        self.assertIsInstance(ErrorResult["rx"], MaxRetryError)
+        self.assertIsInstance(ErrorResult["rx"].reason, Url3TimeoutError)
 
     def test_write_timeout_retry(self):
 
@@ -362,12 +361,34 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         localClient.write(lp)
         time.sleep(1) # await all retries
 
-        assert retry_ct == 3
-        assert ErrorResult["rt"] == (self.database, 'default', 'ns')
-        assert ErrorResult["rd"] is not None
-        assert isinstance(ErrorResult["rd"], bytes)
-        assert ErrorResult["rd"].decode('utf-8') == lp
-        assert ErrorResult["rx"] is not None
-        assert isinstance(ErrorResult["rx"], MaxRetryError)
-        mre = ErrorResult["rx"]
-        assert isinstance(mre.reason, Url3TimeoutError)
+        self.assertEqual(3, retry_ct)
+        self.assertEqual((self.database, 'default', 'ns'), ErrorResult["rt"])
+        self.assertIsNotNone(ErrorResult["rd"])
+        self.assertIsInstance(ErrorResult["rd"], bytes)
+        self.assertEqual(lp, ErrorResult["rd"].decode('utf-8'))
+        self.assertIsNotNone(ErrorResult["rx"])
+        self.assertIsInstance(ErrorResult["rx"], MaxRetryError)
+        self.assertIsInstance(ErrorResult["rx"].reason, Url3TimeoutError)
+
+    def test_query_timeout(self):
+        localClient = InfluxDBClient3(
+            host=self.host,
+            token=self.token,
+            database=self.database,
+            query_timeout=0.001,
+        )
+
+        with self.assertRaisesRegex(InfluxDB3ClientQueryError, ".*Deadline Exceeded.*"):
+            localClient.query("SELECT * FROM data")
+
+    def test_query_timeout_per_call_override(self):
+        localClient = InfluxDBClient3(
+            host=self.host,
+            token=self.token,
+            database=self.database,
+            query_timeout=3.0,
+        )
+
+        with self.assertRaisesRegex(InfluxDB3ClientQueryError, ".*Deadline Exceeded.*"):
+            localClient.query("SELECT * FROM data", timeout=0.001)
+

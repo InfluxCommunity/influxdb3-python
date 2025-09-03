@@ -211,6 +211,7 @@ class InfluxDBClient3:
                               (defaults to false, don't set to true when talking to InfluxDB 2)
         :key str username: ``username`` to authenticate via username and password credentials to the InfluxDB 2.x
         :key str password: ``password`` to authenticate via username and password credentials to the InfluxDB 2.x
+        :key str query_timeout: float value used to set the client query API timeout in seconds.
         :key list[str] profilers: list of enabled Flux profilers
         """
         self._org = org if org is not None else "default"
@@ -275,6 +276,8 @@ class InfluxDBClient3:
             q_opts_builder.tls_verify(kwargs.get('verify_ssl', True))
         if kw_keys.__contains__('proxy'):
             q_opts_builder.proxy(kwargs.get('proxy', None))
+        if kw_keys.__contains__('query_timeout'):
+            q_opts_builder.timeout(kwargs.get('query_timeout', None))
         self._query_api = _QueryApi(connection_string=connection_string, token=token,
                                     flight_client_options=flight_client_options,
                                     proxy=kwargs.get("proxy", None), options=q_opts_builder.build())
