@@ -274,6 +274,26 @@ class TestInfluxDBClient3(unittest.TestCase):
         write_options = client._write_client_options.get("write_options")
         self.assertEqual(write_options.no_sync, False)
 
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_WRITE_TIMEOUT': '6789'})
+    def test_parse_valid_write_timeout(self):
+        client = InfluxDBClient3.from_env()
+        self.assertIsInstance(client, InfluxDBClient3)
+        write_options = client._write_client_options.get("write_options")
+        self.assertEqual(6789, write_options.timeout)
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_WRITE_TIMEOUT': 'foo'})
+    def test_parse_invalid_write_timeout_domain(self):
+        with self.assertRaisesRegex(ValueError, ".*Must be a number.*"):
+            InfluxDBClient3.from_env()
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_WRITE_TIMEOUT': '-42'})
+    def test_parse_invalid_write_timeout_range(self):
+        with self.assertRaisesRegex(ValueError, ".*Must be non-negative.*"):
+            InfluxDBClient3.from_env()
+
     def test_query_with_arrow_error(self):
         f = ErrorFlightServer()
         with InfluxDBClient3(f"http://localhost:{f.port}", "my_org", "my_db", "my_token") as c:
