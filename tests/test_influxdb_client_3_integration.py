@@ -251,6 +251,22 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         version = self.client.get_server_version()
         assert version is not None
 
+    def test_write_timeout(self):
+        with pytest.raises(Url3TimeoutError):
+            InfluxDBClient3(
+                host=self.host,
+                database=self.database,
+                token=self.token,
+                write_timeout=30,
+                write_client_options=write_client_options(
+                    write_options=WriteOptions(
+                        max_retry_time=0,
+                        timeout=20,
+                        write_type=WriteType.synchronous
+                    )
+                )
+            ).write("test_write_timeout,location=harfa fVal=3.14,iVal=42i")
+
     def test_write_timeout_sync(self):
 
         with pytest.raises(Url3TimeoutError):
@@ -376,7 +392,7 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
             host=self.host,
             token=self.token,
             database=self.database,
-            query_timeout=0.001,
+            query_timeout=1,
         )
 
         with self.assertRaisesRegex(InfluxDB3ClientQueryError, ".*Deadline Exceeded.*"):
@@ -387,7 +403,7 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
             host=self.host,
             token=self.token,
             database=self.database,
-            query_timeout=3.0,
+            query_timeout=3,
         )
 
         with self.assertRaisesRegex(InfluxDB3ClientQueryError, ".*Deadline Exceeded.*"):

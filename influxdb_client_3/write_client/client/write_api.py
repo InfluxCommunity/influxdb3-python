@@ -82,6 +82,7 @@ class WriteOptions(object):
         :param max_close_wait: the maximum time to wait for writes to be flushed if close() is called
         :param write_precision: precision to use when writing points to InfluxDB
         :param no_sync: skip waiting for WAL persistence on write
+        :param timeout: timeout to use when writing to the database in milliseconds. Default is 10_000
         :param write_scheduler:
         """
         self.write_type = write_type
@@ -397,9 +398,7 @@ You can use native asynchronous version of the client:
 
         def write_payload(payload):
             final_string = b'\n'.join(payload[1])
-            result = self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync)
-            # return self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync)
-            return result
+            return self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync)
 
         results = list(map(write_payload, payloads.items()))
         if not _async_req:

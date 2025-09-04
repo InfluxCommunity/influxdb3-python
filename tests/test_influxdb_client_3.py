@@ -187,7 +187,8 @@ class TestInfluxDBClient3(unittest.TestCase):
     @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
                                'INFLUX_DATABASE': 'test_db', 'INFLUX_ORG': 'test_org',
                                'INFLUX_PRECISION': WritePrecision.MS, 'INFLUX_AUTH_SCHEME': 'custom_scheme',
-                               'INFLUX_GZIP_THRESHOLD': '2000', 'INFLUX_WRITE_NO_SYNC': 'true'})
+                               'INFLUX_GZIP_THRESHOLD': '2000', 'INFLUX_WRITE_NO_SYNC': 'true',
+                               'INFLUX_WRITE_TIMEOUT': '1234', 'INFLUX_QUERY_TIMEOUT': '5678'})
     def test_from_env_all_env_vars_set(self):
         client = InfluxDBClient3.from_env()
         self.assertIsInstance(client, InfluxDBClient3)
@@ -201,6 +202,8 @@ class TestInfluxDBClient3(unittest.TestCase):
         write_options = client._write_client_options.get("write_options")
         self.assertEqual(write_options.write_precision, WritePrecision.MS)
         self.assertEqual(write_options.no_sync, True)
+        self.assertEqual(1234, write_options.timeout)
+        self.assertEqual(5.678, client._query_api._default_timeout)
 
         client._write_api._point_settings = {}
 

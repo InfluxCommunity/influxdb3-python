@@ -134,7 +134,7 @@ class TestWriteLocalServer:
             query_string={"org": "ORG", "db": "DB", "precision": "microsecond", "no_sync": "true"},
             headers={"Content-Encoding": "gzip"}, ))
 
-    def test_write_with_timeout(self, httpserver: HTTPServer):
+    def test_write_with_timeout_in_write_options(self, httpserver: HTTPServer):
         self.delay_response(httpserver, 0.5)
 
         with pytest.raises(urllib3_TimeoutError):
@@ -146,6 +146,23 @@ class TestWriteLocalServer:
                         write_precision=WritePrecision.US,
                         timeout=30,
                         no_sync=True
+                    )
+                ),
+                enable_gzip=True
+            ).write(self.SAMPLE_RECORD)
+
+    def test_write_with_write_timeout(self, httpserver: HTTPServer):
+        self.delay_response(httpserver, 0.5)
+
+        with pytest.raises(urllib3_TimeoutError):
+            InfluxDBClient3(
+                host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN",
+                write_timeout=30,
+                write_client_options=write_client_options(
+                    write_options=WriteOptions(
+                        write_type=WriteType.synchronous,
+                        write_precision=WritePrecision.US,
+                        no_sync=True,
                     )
                 ),
                 enable_gzip=True
