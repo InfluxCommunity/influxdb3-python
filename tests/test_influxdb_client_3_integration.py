@@ -387,6 +387,32 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         self.assertIsInstance(ErrorResult["rx"], MaxRetryError)
         self.assertIsInstance(ErrorResult["rx"].reason, Url3TimeoutError)
 
+    def test_write_timeout_argument(self):
+        with self.assertRaises(Url3TimeoutError):
+            localClient = InfluxDBClient3(
+                host=self.host,
+                database=self.database,
+                token=self.token,
+                write_client_options=write_client_options(
+                    # error_callback=set_error_result,
+                    # retry_callback=retry_cb,
+                    # write_options=WriteOptions(
+                    #    max_retry_time=10000,
+                    #    max_retry_delay=0,
+                    #    retry_interval=0,
+                    #    timeout=20,
+                    #    max_retries=0,
+                    #    batch_size=1,
+                    #  )
+                )
+            )
+
+            print(f"DEBUG client.write_options {localClient._write_client_options['write_options'].__dict__}")
+
+            lp = "test_write_timeout,location=harfa fVal=3.14,iVal=42i"
+            # TODO investigate how the kwarg below can work with WriteType.batching...
+            localClient.write(lp, _request_timeout=1)
+
     @pytest.mark.skip(reason="flaky in CircleCI - server often responds in less than 1 millisecond.")
     def test_query_timeout(self):
         localClient = InfluxDBClient3(

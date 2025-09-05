@@ -378,6 +378,8 @@ You can use native asynchronous version of the client:
                 data_frame.index = pd.to_datetime(data_frame.index, unit='s')
 
         """  # noqa: E501
+        print("DEBUG WriteApi.write")
+        print(f"DEBUG kwargs {kwargs}")
         org = get_org_query_param(org=org, client=self._influxdb_client)
 
         self._append_default_tags(record)
@@ -398,7 +400,7 @@ You can use native asynchronous version of the client:
 
         def write_payload(payload):
             final_string = b'\n'.join(payload[1])
-            return self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync)
+            return self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync, **kwargs)
 
         results = list(map(write_payload, payloads.items()))
         if not _async_req:
@@ -527,6 +529,7 @@ You can use native asynchronous version of the client:
 
     def _http(self, batch_item: _BatchItem):
         logger.debug("Write time series data into InfluxDB: %s", batch_item)
+        print("DEBUG _http")
 
         if self._retry_callback:
             def _retry_callback_delegate(exception):
@@ -546,6 +549,8 @@ You can use native asynchronous version of the client:
         return _BatchResponse(data=batch_item)
 
     def _post_write(self, _async_req, bucket, org, body, precision, no_sync, **kwargs):
+        print("DEBUG WriteApi._post_write")
+        print(f"DEBUG kwargs {kwargs} ")
         return self._write_service.post_write(org=org, bucket=bucket, body=body, precision=precision,
                                               no_sync=no_sync,
                                               async_req=_async_req,

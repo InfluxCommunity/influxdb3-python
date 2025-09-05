@@ -167,3 +167,19 @@ class TestWriteLocalServer:
                 ),
                 enable_gzip=True
             ).write(self.SAMPLE_RECORD)
+
+    def test_write_with_timeout_arg(self, httpserver: HTTPServer):
+        self.set_response_status(httpserver, 200)
+
+        with pytest.raises(urllib3_TimeoutError):
+            InfluxDBClient3(
+                host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN",
+                write_client_options=write_client_options(
+                    write_options=WriteOptions(
+                        write_type=WriteType.synchronous,
+                        write_precision=WritePrecision.US,
+                        no_sync=True,
+                    )
+                ),
+                enable_gzip=True
+            ).write(self.SAMPLE_RECORD, _request_timeout=1)
