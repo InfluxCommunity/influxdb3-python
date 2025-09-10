@@ -200,8 +200,7 @@ print(table.to_pandas())
 ```
 You may also include your own root certificate via this manor aswell.
 
-If connecting to influxdb fails when using domain name, example `www.mydomain.com`.
-Try to set environment variable `GRPC_DNS_RESOLVER=native` to see if it works.
+If connecting to InfluxDB fails with error `DNS resolution failed` when using domain name, example `www.mydomain.com`, then try to set environment variable `GRPC_DNS_RESOLVER=native` to see if it works.
 
 # Contributing
 
