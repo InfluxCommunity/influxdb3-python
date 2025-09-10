@@ -23,7 +23,7 @@ class TestWriteLocalServer:
         httpserver.check_assertions()
 
     @staticmethod
-    def delay_response(httpserver, delay=1.0):
+    def delay_response(httpserver: HTTPServer, delay=1.0):
         httpserver.expect_request(re.compile(".*")).respond_with_handler(lambda request: time.sleep(delay))
 
     def test_write_default_params(self, httpserver: HTTPServer):
@@ -169,7 +169,7 @@ class TestWriteLocalServer:
             ).write(self.SAMPLE_RECORD)
 
     def test_write_with_timeout_arg(self, httpserver: HTTPServer):
-        self.set_response_status(httpserver, 200)
+        self.delay_response(httpserver, 0.5)
 
         with pytest.raises(urllib3_TimeoutError):
             InfluxDBClient3(

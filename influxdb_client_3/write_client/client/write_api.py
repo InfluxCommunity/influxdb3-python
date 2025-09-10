@@ -164,10 +164,11 @@ class PointSettings(object):
 
 
 class _BatchItemKey(object):
-    def __init__(self, bucket, org, precision=DEFAULT_WRITE_PRECISION) -> None:
+    def __init__(self, bucket, org, precision=DEFAULT_WRITE_PRECISION, **kwargs) -> None:
         self.bucket = bucket
         self.org = org
         self.precision = precision
+        self.kwargs = kwargs
         pass
 
     def __hash__(self) -> int:
@@ -178,8 +179,8 @@ class _BatchItemKey(object):
             and self.bucket == o.bucket and self.org == o.org and self.precision == o.precision
 
     def __str__(self) -> str:
-        return '_BatchItemKey[bucket:\'{}\', org:\'{}\', precision:\'{}\']' \
-            .format(str(self.bucket), str(self.org), str(self.precision))
+        return '_BatchItemKey[bucket:\'{}\', org:\'{}\', precision:\'{}\', kwargs: \'{}\']' \
+            .format(str(self.bucket), str(self.org), str(self.precision), str(self.kwargs))
 
 
 class _BatchItem(object):
@@ -378,8 +379,6 @@ You can use native asynchronous version of the client:
                 data_frame.index = pd.to_datetime(data_frame.index, unit='s')
 
         """  # noqa: E501
-        print("DEBUG WriteApi.write")
-        print(f"DEBUG kwargs {kwargs}")
         org = get_org_query_param(org=org, client=self._influxdb_client)
 
         self._append_default_tags(record)
@@ -477,7 +476,7 @@ You can use native asynchronous version of the client:
             precision = self._write_options.write_precision
 
         if isinstance(data, bytes):
-            _key = _BatchItemKey(bucket, org, precision)
+            _key = _BatchItemKey(bucket, org, precision, **kwargs)
             self._subject.on_next(_BatchItem(key=_key, data=data))
 
         elif isinstance(data, str):
@@ -527,9 +526,8 @@ You can use native asynchronous version of the client:
 
         return None
 
-    def _http(self, batch_item: _BatchItem):
+    def _http(self, batch_item: _BatchItem, **kwargs):
         logger.debug("Write time series data into InfluxDB: %s", batch_item)
-        print("DEBUG _http")
 
         if self._retry_callback:
             def _retry_callback_delegate(exception):
@@ -542,20 +540,19 @@ You can use native asynchronous version of the client:
         retry = self._write_options.to_retry_strategy(retry_callback=_retry_callback_delegate)
 
         self._post_write(False, batch_item.key.bucket, batch_item.key.org, batch_item.data,
-                         batch_item.key.precision, no_sync, urlopen_kw={'retries': retry})
+                         batch_item.key.precision, no_sync, urlopen_kw={'retries': retry}, **kwargs)
 
         logger.debug("Write request finished %s", batch_item)
 
         return _BatchResponse(data=batch_item)
 
     def _post_write(self, _async_req, bucket, org, body, precision, no_sync, **kwargs):
-        print("DEBUG WriteApi._post_write")
-        print(f"DEBUG kwargs {kwargs} ")
-        return self._write_service.post_write(org=org, bucket=bucket, body=body, precision=precision,
+            return self._write_service.post_write(org=org, bucket=bucket, body=body, precision=precision,
                                               no_sync=no_sync,
                                               async_req=_async_req,
                                               content_type="text/plain; charset=utf-8",
                                               **kwargs)
+
 
     def _to_response(self, data: _BatchItem, delay: timedelta):
 
@@ -564,7 +561,7 @@ You can use native asynchronous version of the client:
             # use delay if its specified
             ops.delay(duetime=delay, scheduler=self._write_options.write_scheduler),
             # invoke http call
-            ops.map(lambda x: self._http(x)),
+            ops.map(lambda x: self._http(x, **x.key.kwargs)),
             # catch exception to fail batch response
             ops.catch(handler=lambda exception, source: rx.just(_BatchResponse(exception=exception, data=data))),
         )

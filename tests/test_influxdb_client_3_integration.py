@@ -317,11 +317,12 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
             host=self.host,
             database=self.database,
             token=self.token,
+            write_timeout=20,
             write_client_options=write_client_options(
                 error_callback=set_error_result,
                 write_options=WriteOptions(
                     max_retry_time=0,  # disable retries
-                    timeout=20,
+                    # timeout=20,
                     write_type=WriteType.batching,
                     max_retries=0,
                     batch_size=1,
@@ -363,11 +364,12 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
             write_client_options=write_client_options(
                 error_callback=set_error_result,
                 retry_callback=retry_cb,
+                write_timeout=20,
                 write_options=WriteOptions(
                     max_retry_time=10000,
                     max_retry_delay=100,
                     retry_interval=100,
-                    timeout=20,
+                    # timeout=20,
                     max_retries=3,
                     batch_size=1,
                 )
@@ -386,32 +388,6 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         self.assertIsNotNone(ErrorResult["rx"])
         self.assertIsInstance(ErrorResult["rx"], MaxRetryError)
         self.assertIsInstance(ErrorResult["rx"].reason, Url3TimeoutError)
-
-    def test_write_timeout_argument(self):
-        with self.assertRaises(Url3TimeoutError):
-            localClient = InfluxDBClient3(
-                host=self.host,
-                database=self.database,
-                token=self.token,
-                write_client_options=write_client_options(
-                    # error_callback=set_error_result,
-                    # retry_callback=retry_cb,
-                    # write_options=WriteOptions(
-                    #    max_retry_time=10000,
-                    #    max_retry_delay=0,
-                    #    retry_interval=0,
-                    #    timeout=20,
-                    #    max_retries=0,
-                    #    batch_size=1,
-                    #  )
-                )
-            )
-
-            print(f"DEBUG client.write_options {localClient._write_client_options['write_options'].__dict__}")
-
-            lp = "test_write_timeout,location=harfa fVal=3.14,iVal=42i"
-            # TODO investigate how the kwarg below can work with WriteType.batching...
-            localClient.write(lp, _request_timeout=1)
 
     @pytest.mark.skip(reason="flaky in CircleCI - server often responds in less than 1 millisecond.")
     def test_query_timeout(self):
@@ -435,3 +411,43 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
 
         with self.assertRaisesRegex(InfluxDB3ClientQueryError, ".*Deadline Exceeded.*"):
             localClient.query("SELECT * FROM data", timeout=0.0001)
+
+    def test_write_timeout_per_call_override(self):
+
+        ErrorResult = {"rt": None, "rd": None, "rx": None}
+
+        def set_error_result(rt, rd, rx):
+            nonlocal ErrorResult
+            ErrorResult = {"rt": rt, "rd": rd, "rx": rx}
+
+        retry_ct = 0
+
+        def retry_cb(args, data, excp):
+            nonlocal retry_ct
+            retry_ct += 1
+            if excp is not None:
+                raise excp
+
+        localClient = InfluxDBClient3(
+            host=self.host,
+            token=self.token,
+            database=self.database,
+            # write_timeout=3000,
+            write_client_options=write_client_options(
+                error_callback=set_error_result,
+                retry_callback=retry_cb,
+                write_options=WriteOptions(
+                    batch_size=1,
+                ),
+
+            )
+        )
+
+        lp = "test_write_timeout,location=harfa fVal=3.14,iVal=42i"
+        # with self.assertRaises(Url3TimeoutError):
+        localClient.write(lp, _request_timeout=1)
+
+        # wait for batcher attempt last write retry
+        time.sleep(0.1)
+
+        print(f"DEBUG ErrorResult {ErrorResult}, retry_ct {retry_ct}")

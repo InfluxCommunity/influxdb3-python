@@ -42,9 +42,6 @@ class WriteService(_BaseService):
                  returns the request thread.
         """  # noqa: E501
 
-        print("DEBUG WriteService.post_write")
-        print(f"DEBUG kwargs {kwargs}")
-
         kwargs['_return_http_data_only'] = True
         if kwargs.get('async_req'):
             thread = self.post_write_with_http_info(org, bucket, body, **kwargs)  # noqa: E501
@@ -139,8 +136,6 @@ class WriteService(_BaseService):
                  If the method is called asynchronously,
                  returns the request thread.
         """  # noqa: E501
-        print("DEBUG WriteService.post_write_with_http_info()")
-        print(f"DEBUG kwargs {kwargs}")
         # noqa: E501
         local_var_params, path, path_params, query_params, header_params, body_params = \
             self._post_write_prepare(org, bucket, body, **kwargs)  # noqa: E501
