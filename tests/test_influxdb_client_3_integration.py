@@ -361,15 +361,14 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
             host=self.host,
             database=self.database,
             token=self.token,
+            write_timeout=1,
             write_client_options=write_client_options(
                 error_callback=set_error_result,
                 retry_callback=retry_cb,
-                write_timeout=20,
                 write_options=WriteOptions(
                     max_retry_time=10000,
                     max_retry_delay=100,
                     retry_interval=100,
-                    # timeout=20,
                     max_retries=3,
                     batch_size=1,
                 )

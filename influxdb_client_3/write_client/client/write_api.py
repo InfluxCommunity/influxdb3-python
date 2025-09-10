@@ -547,12 +547,11 @@ You can use native asynchronous version of the client:
         return _BatchResponse(data=batch_item)
 
     def _post_write(self, _async_req, bucket, org, body, precision, no_sync, **kwargs):
-            return self._write_service.post_write(org=org, bucket=bucket, body=body, precision=precision,
+        return self._write_service.post_write(org=org, bucket=bucket, body=body, precision=precision,
                                               no_sync=no_sync,
                                               async_req=_async_req,
                                               content_type="text/plain; charset=utf-8",
                                               **kwargs)
-
 
     def _to_response(self, data: _BatchItem, delay: timedelta):
 
