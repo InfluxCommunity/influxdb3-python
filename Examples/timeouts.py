@@ -2,8 +2,7 @@
 import sys
 import time
 
-from influxdb_client_3 import InfluxDBClient3
-
+from influxdb_client_3 import InfluxDBClient3, write_client_options
 
 """
 This example shows how to set query and write timeouts.
@@ -23,6 +22,10 @@ DEFAULT_TOKEN = 'my-token'
 DEFAULT_DATABASE = 'test-data'
 
 
+def handle_write_error_cb(rd, rt, rx):
+    print(f"Got a write error: {rd}, {rt}, {rx}")
+
+
 def main(w_to: int, q_to: int) -> None:
     print(f"main {w_to}, {q_to}")
     lp_data = "timeout_example,location=terra fVal=3.14,iVal=42i"
@@ -31,7 +34,10 @@ def main(w_to: int, q_to: int) -> None:
         token=DEFAULT_TOKEN,
         database=DEFAULT_DATABASE,
         write_timeout=w_to,
-        query_timeout=q_to
+        query_timeout=q_to,
+        write_client_options=write_client_options(
+            error_handler=handle_write_error_cb
+        )
     ) as client:
 
         try:
@@ -64,6 +70,7 @@ def main(w_to: int, q_to: int) -> None:
             print(f"Got exception on query: {e}")
 
 
+# To force timeout errors supply the corresponding command line arguments
 if __name__ == "__main__":
     w_ct = DEFAULT_WRITE_TIMEOUT
     q_ct = DEFAULT_QUERY_TIMEOUT
