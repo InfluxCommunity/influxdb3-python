@@ -443,10 +443,15 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         )
 
         lp = "test_write_timeout,location=harfa fVal=3.14,iVal=42i"
-        # with self.assertRaises(Url3TimeoutError):
         localClient.write(lp, _request_timeout=1)
 
         # wait for batcher attempt last write retry
         time.sleep(0.1)
 
-        print(f"DEBUG ErrorResult {ErrorResult}, retry_ct {retry_ct}")
+        self.assertEqual(retry_ct, 1)
+        self.assertEqual((self.database, 'default', 'ns'), ErrorResult["rt"])
+        self.assertIsNotNone(ErrorResult["rd"])
+        self.assertIsInstance(ErrorResult["rd"], bytes)
+        self.assertEqual(lp, ErrorResult["rd"].decode('utf-8'))
+        self.assertIsNotNone(ErrorResult["rx"])
+        self.assertIsInstance(ErrorResult["rx"], Url3TimeoutError)
