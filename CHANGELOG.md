@@ -4,6 +4,17 @@
 
 ## 0.16.0 [2025-09-15]
 
+### Features
+
+1. [#158](https://github.com/InfluxCommunity/influxdb3-python/pull/158)  Improved parameters for setting timeouts
+   - `InfluxDB3Client()` constructor now directly specifies
+      - `write_timeout` - timeout in milliseconds to be used when writing data.
+      - `query_timeout` - timeout in milliseconds to be used when querying data.
+   - Timeouts can be specifically overridden in direct method calls.
+      - `client.write()` now propagates the argument  `_request_timeout` as an `int` in milliseconds on the call stack 
+         even in batching mode.
+      - `client.query()` now propagates the argument `timeout` as a `float` in seconds on the call stack.
+
 ### CI
 
 1. [#153](https://github.com/InfluxCommunity/influxdb3-python/pull/153) Add tests for arm64 CircleCI.

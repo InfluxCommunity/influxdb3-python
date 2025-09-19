@@ -18,13 +18,20 @@ class QueryApiOptions(object):
     tls_verify (bool): whether to verify SSL certificates or not
     proxy (str): URL to a proxy server
     flight_client_options (dict): base set of flight client options passed to internal pyarrow.flight.FlightClient
+    timeout(float): timeout in seconds to wait for a response
     """
+    _DEFAULT_TIMEOUT = 300.0
     tls_root_certs: bytes = None
     tls_verify: bool = None
     proxy: str = None
     flight_client_options: dict = None
+    timeout: float = None
 
-    def __init__(self, root_certs_path, verify, proxy, flight_client_options):
+    def __init__(self, root_certs_path: str,
+                 verify: bool,
+                 proxy: str,
+                 flight_client_options: dict,
+                 timeout: float = _DEFAULT_TIMEOUT):
         """
         Initialize a set of QueryApiOptions
 
@@ -33,14 +40,16 @@ class QueryApiOptions(object):
         :param proxy: URL of a proxy server, if required.
         :param flight_client_options: set of flight_client_options
                to be passed to internal pyarrow.flight.FlightClient.
+        :param timeout: timeout in seconds to wait for a response.
         """
         if root_certs_path:
             self.tls_root_certs = self._read_certs(root_certs_path)
         self.tls_verify = verify
         self.proxy = proxy
         self.flight_client_options = flight_client_options
+        self.timeout = timeout
 
-    def _read_certs(self, path):
+    def _read_certs(self, path: str) -> bytes:
         with open(path, "rb") as certs_file:
             return certs_file.read()
 
@@ -61,34 +70,40 @@ class QueryApiOptionsBuilder(object):
 
         client = QueryApi(connection, token, None, None, options)
     """
-    _root_certs_path = None
-    _tls_verify = True
-    _proxy = None
-    _flight_client_options = None
+    _root_certs_path: str = None
+    _tls_verify: bool = True
+    _proxy: str = None
+    _flight_client_options: dict = None
+    _timeout: float = None
 
-    def root_certs(self, path):
+    def root_certs(self, path: str):
         self._root_certs_path = path
         return self
 
-    def tls_verify(self, verify):
+    def tls_verify(self, verify: bool):
         self._tls_verify = verify
         return self
 
-    def proxy(self, proxy):
+    def proxy(self, proxy: str):
         self._proxy = proxy
         return self
 
-    def flight_client_options(self, flight_client_options):
+    def flight_client_options(self, flight_client_options: dict):
         self._flight_client_options = flight_client_options
         return self
 
-    def build(self):
+    def timeout(self, timeout: float):
+        self._timeout = timeout
+        return self
+
+    def build(self) -> QueryApiOptions:
         """Build a QueryApiOptions object with previously set values"""
         return QueryApiOptions(
             root_certs_path=self._root_certs_path,
             verify=self._tls_verify,
             proxy=self._proxy,
-            flight_client_options=self._flight_client_options
+            flight_client_options=self._flight_client_options,
+            timeout=self._timeout,
         )
 
 
@@ -122,6 +137,7 @@ class QueryApi(object):
         """
         self._token = token
         self._flight_client_options = flight_client_options or {}
+        self._default_timeout = None
         default_user_agent = ("grpc.secondary_user_agent", USER_AGENT)
         if "generic_options" in self._flight_client_options:
             if "grpc.secondary_user_agent" not in dict(self._flight_client_options["generic_options"]).keys():
@@ -144,6 +160,8 @@ class QueryApi(object):
                 self._proxy = options.proxy
             if options.tls_verify is not None:
                 self._flight_client_options["disable_server_verification"] = not options.tls_verify
+            if options.timeout is not None:
+                self._default_timeout = options.timeout
         if self._proxy:
             self._flight_client_options["generic_options"].append(("grpc.http_proxy", self._proxy))
         self._flight_client = FlightClient(connection_string, **self._flight_client_options)
@@ -216,7 +234,7 @@ class QueryApi(object):
         # Create an authorization header
         optargs = {
             "headers": [(b"authorization", f"Bearer {self._token}".encode('utf-8'))],
-            "timeout": 300
+            "timeout": self._default_timeout or QueryApiOptions._DEFAULT_TIMEOUT,
         }
         opts = merge_options(optargs, exclude_keys=['query_parameters'], custom=kwargs)
         _options = FlightCallOptions(**opts)

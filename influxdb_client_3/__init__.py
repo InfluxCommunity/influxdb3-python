@@ -25,6 +25,8 @@ INFLUX_PRECISION = "INFLUX_PRECISION"
 INFLUX_AUTH_SCHEME = "INFLUX_AUTH_SCHEME"
 INFLUX_GZIP_THRESHOLD = "INFLUX_GZIP_THRESHOLD"
 INFLUX_WRITE_NO_SYNC = "INFLUX_WRITE_NO_SYNC"
+INFLUX_WRITE_TIMEOUT = "INFLUX_WRITE_TIMEOUT"
+INFLUX_QUERY_TIMEOUT = "INFLUX_QUERY_TIMEOUT"
 
 
 def write_client_options(**kwargs):
@@ -97,7 +99,7 @@ def _merge_options(defaults, exclude_keys=None, custom=None):
     return _deep_merge(defaults, {key: value for key, value in custom.items() if key not in exclude_keys})
 
 
-def _parse_precision(precision):
+def _parse_precision(precision: str) -> WritePrecision:
     """
     Parses the precision value and ensures it is valid.
 
@@ -124,7 +126,7 @@ def _parse_precision(precision):
     raise ValueError(f"Invalid precision value: {precision}")
 
 
-def _parse_gzip_threshold(threshold):
+def _parse_gzip_threshold(threshold: str) -> int:
     """
     Parses and validates the provided threshold value.
 
@@ -148,7 +150,7 @@ def _parse_gzip_threshold(threshold):
     return threshold
 
 
-def _parse_write_no_sync(write_no_sync):
+def _parse_write_no_sync(write_no_sync: str):
     """
     Parses and validates the provided write no sync value.
 
@@ -161,6 +163,16 @@ def _parse_write_no_sync(write_no_sync):
     :rtype: bool
     """
     return write_no_sync.strip().lower() in ['true', '1', 't', 'y', 'yes']
+
+
+def _parse_timeout(to: str) -> int:
+    try:
+        timeout = int(to)
+    except (TypeError, ValueError):
+        raise ValueError(f"Invalid timeout value: {to}. Must be a number.")
+    if timeout < 0:
+        raise ValueError(f"Invalid timeout value: {to}. Must be non-negative.")
+    return timeout
 
 
 class InfluxDBClient3:
@@ -186,10 +198,10 @@ class InfluxDBClient3:
         :type database: str
         :param token: The authentication token for accessing the InfluxDB server.
         :type token: str
-        :param write_client_options: Function for providing additional arguments for the WriteApi client.
-        :type write_client_options: callable
-        :param flight_client_options: Function for providing additional arguments for the FlightClient.
-        :type flight_client_options: callable
+        :param write_client_options: dictionary for providing additional arguments for the WriteApi client.
+        :type write_client_options: dict[str, any]
+        :param flight_client_options: dictionary for providing additional arguments for the FlightClient.
+        :type flight_client_options: dict[str, any]
         :key auth_scheme: token authentication scheme. Set to "Bearer" for Edge.
         :key bool verify_ssl: Set this to false to skip verifying SSL certificate when calling API from https server.
         :key str ssl_ca_cert: Set this to customize the certificate file to verify the peer.
@@ -211,20 +223,29 @@ class InfluxDBClient3:
                               (defaults to false, don't set to true when talking to InfluxDB 2)
         :key str username: ``username`` to authenticate via username and password credentials to the InfluxDB 2.x
         :key str password: ``password`` to authenticate via username and password credentials to the InfluxDB 2.x
+        :key str query_timeout: int value used to set the client query API timeout in milliseconds.
+        :key str write_timeout: int value used to set the client write API timeout in milliseconds.
         :key list[str] profilers: list of enabled Flux profilers
         """
         self._org = org if org is not None else "default"
         self._database = database
         self._token = token
+        kw_keys = kwargs.keys()
 
         write_type = DefaultWriteOptions.write_type.value
         write_precision = DefaultWriteOptions.write_precision.value
         write_no_sync = DefaultWriteOptions.no_sync.value
+        write_timeout = DefaultWriteOptions.timeout.value
+
         if isinstance(write_client_options, dict) and write_client_options.get('write_options') is not None:
             write_opts = write_client_options['write_options']
             write_type = getattr(write_opts, 'write_type', write_type)
             write_precision = getattr(write_opts, 'write_precision', write_precision)
             write_no_sync = getattr(write_opts, 'no_sync', write_no_sync)
+            write_timeout = getattr(write_opts, 'timeout', write_timeout)
+
+        if kw_keys.__contains__('write_timeout'):
+            write_timeout = kwargs.get('write_timeout')
 
         write_options = WriteOptions(
             write_type=write_type,
@@ -253,6 +274,7 @@ class InfluxDBClient3:
             url=f"{scheme}://{hostname}:{port}",
             token=self._token,
             org=self._org,
+            timeout=write_timeout,
             **kwargs)
 
         self._write_api = _WriteApi(influxdb_client=self._client, **self._write_client_options)
@@ -265,13 +287,15 @@ class InfluxDBClient3:
             connection_string = f"grpc+tcp://{hostname}:{port}"
 
         q_opts_builder = QueryApiOptionsBuilder()
-        kw_keys = kwargs.keys()
         if kw_keys.__contains__('ssl_ca_cert'):
             q_opts_builder.root_certs(kwargs.get('ssl_ca_cert', None))
         if kw_keys.__contains__('verify_ssl'):
             q_opts_builder.tls_verify(kwargs.get('verify_ssl', True))
         if kw_keys.__contains__('proxy'):
             q_opts_builder.proxy(kwargs.get('proxy', None))
+        if kw_keys.__contains__('query_timeout'):
+            query_timeout_float = float(kwargs.get('query_timeout'))
+            q_opts_builder.timeout(query_timeout_float / 1000.0)
         self._query_api = _QueryApi(connection_string=connection_string, token=token,
                                     flight_client_options=flight_client_options,
                                     proxy=kwargs.get("proxy", None), options=q_opts_builder.build())
@@ -319,6 +343,15 @@ class InfluxDBClient3:
         if precision is not None:
             write_options.write_precision = _parse_precision(precision)
 
+        write_timeout = os.getenv(INFLUX_WRITE_TIMEOUT)
+        if write_timeout is not None:
+            # N.B. write_options value has precedent over kwargs['write_timeout'] above
+            write_options.timeout = _parse_timeout(write_timeout)
+
+        query_timeout = os.getenv(INFLUX_QUERY_TIMEOUT)
+        if query_timeout is not None:
+            kwargs['query_timeout'] = _parse_timeout(query_timeout)
+
         write_client_option = {'write_options': write_options}
 
         if os.getenv(INFLUX_AUTH_SCHEME) is not None:
@@ -348,7 +381,7 @@ class InfluxDBClient3:
             database = self._database
 
         try:
-            self._write_api.write(bucket=database, record=record, **kwargs)
+            return self._write_api.write(bucket=database, record=record, **kwargs)
         except InfluxDBError as e:
             raise e
 

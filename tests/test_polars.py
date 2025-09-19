@@ -96,4 +96,6 @@ class TestWritePolars(unittest.TestCase):
             async_req=ANY,
             content_type=ANY,
             urlopen_kw=ANY,
+            data_frame_measurement_name='measurement',
+            data_frame_timestamp_column='time',
             body=b'measurement temperature=22.4 1722470400000000000\nmeasurement temperature=21.8 1722474000000000000')

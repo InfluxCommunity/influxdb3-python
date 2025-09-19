@@ -365,6 +365,7 @@ class ApiClient(object):
                                    _return_http_data_only, collection_formats,
                                    _preload_content, _request_timeout, urlopen_kw)
         else:
+            # TODO possible refactor - async handler inside package `_sync`?
             thread = self.pool.apply_async(self.__call_api, (resource_path,
                                                              method, path_params, query_params,
                                                              header_params, body,
