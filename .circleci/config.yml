@@ -101,7 +101,9 @@ jobs:
       pytest-marker:
         type: string
         default: "not integration"
-    executor: << parameters.exe >>
+    executor:
+      name: << parameters.exe >>
+      python-image: << parameters.python-image >>
     steps:
       - checkout
       - run:
