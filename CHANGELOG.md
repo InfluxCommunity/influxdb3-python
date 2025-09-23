@@ -2,6 +2,10 @@
 
 # 0.17.0 [unreleased]
 
+### CI
+
+1. [#164](https://github.com/InfluxCommunity/influxdb3-python/pull/164): Fix pipelines not downloading the correct python images.
+
 ## 0.16.0 [2025-09-15]
 
 ### Features

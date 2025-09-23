@@ -8,11 +8,11 @@ parameters:
 executors:
   docker-amd64-image:
     parameters:
-      maven-image:
+      python-image:
         type: string
         default: << pipeline.parameters.default-python-image >>
     docker:
-      - image: <<parameters.maven-image>>
+      - image: <<parameters.python-image>>
       - image: influxdb:3-core
         environment:
           - INFLUXDB3_NODE_IDENTIFIER_PREFIX=node01
@@ -20,11 +20,11 @@ executors:
           - INFLUXDB3_DB_DIR=/var/lib/influxdb3/data
   docker-arm64-image:
     parameters:
-      maven-image:
+      python-image:
         type: string
         default: << pipeline.parameters.default-python-image >>
     docker:
-      - image: <<parameters.maven-image>>
+      - image: <<parameters.python-image>>
       - image: influxdb:3-core
         environment:
           - INFLUXDB3_NODE_IDENTIFIER_PREFIX=node01
@@ -96,20 +96,14 @@ jobs:
         type: string
         default: <<pipeline.parameters.default-python-image>>>>
       exe:
-        type: executor
+        type: string
         default: docker-amd64-image
       pytest-marker:
         type: string
         default: "not integration"
-    docker:
-      - image: << parameters.python-image >>
-        environment:
-          PIPENV_VENV_IN_PROJECT: true
-      - image: influxdb:3-core
-        environment:
-          - INFLUXDB3_NODE_IDENTIFIER_PREFIX=node01
-          - INFLUXDB3_OBJECT_STORE=file
-          - INFLUXDB3_DB_DIR=/var/lib/influxdb3/data
+    executor:
+      name: << parameters.exe >>
+      python-image: << parameters.python-image >>
     steps:
       - checkout
       - run:
