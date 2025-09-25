@@ -1,5 +1,37 @@
 version: 2.1
 
+parameters:
+  default-python-image:
+    type: string
+    default: "cimg/python:3.8"
+
+executors:
+  docker-amd64-image:
+    parameters:
+      python-image:
+        type: string
+        default: << pipeline.parameters.default-python-image >>
+    docker:
+      - image: <<parameters.python-image>>
+      - image: influxdb:3-core
+        environment:
+          - INFLUXDB3_NODE_IDENTIFIER_PREFIX=node01
+          - INFLUXDB3_OBJECT_STORE=file
+          - INFLUXDB3_DB_DIR=/var/lib/influxdb3/data
+  docker-arm64-image:
+    parameters:
+      python-image:
+        type: string
+        default: << pipeline.parameters.default-python-image >>
+    docker:
+      - image: <<parameters.python-image>>
+      - image: influxdb:3-core
+        environment:
+          - INFLUXDB3_NODE_IDENTIFIER_PREFIX=node01
+          - INFLUXDB3_OBJECT_STORE=file
+          - INFLUXDB3_DB_DIR=/var/lib/influxdb3/data
+    resource_class: arm.medium
+
 commands:
   client-test:
     description: "Run tests"
@@ -31,26 +63,8 @@ commands:
             - "~/.cache/pip"
             - "/usr/local/lib/site-python"
           when: always
-jobs:
-  tests-python:
-    parameters:
-      python-image:
-        type: string
-        default: &default-python "cimg/python:3.8"
-      pytest-marker:
-        type: string
-        default: "not integration"
-    docker:
-      - image: << parameters.python-image >>
-        environment:
-          PIPENV_VENV_IN_PROJECT: true
+  upload-codecov-amd64:
     steps:
-      - checkout
-      - client-test:
-          python-image: << parameters.python-image >>
-          pytest-marker: << parameters.pytest-marker >>
-      - store_test_results:
-          path: test-reports
       - run:
           name: Collecting coverage reports
           command: |
@@ -62,9 +76,61 @@ jobs:
             shasum -a 256 -c codecov.SHA256SUM
             chmod +x ./codecov
             ./codecov
+  upload-codecov-arm64:
+    steps:
+      - run:
+          name: Collecting coverage reports
+          command: |
+            curl -k https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import
+            curl -Os https://uploader.codecov.io/v0.8.0/aarch64/codecov
+            curl -Os https://uploader.codecov.io/v0.8.0/aarch64/codecov.SHA256SUM
+            curl -Os https://uploader.codecov.io/v0.8.0/aarch64/codecov.SHA256SUM.sig
+            gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+            shasum -a 256 -c codecov.SHA256SUM
+            sudo chmod +x codecov        
+
+jobs:
+  tests-python:
+    parameters:
+      python-image:
+        type: string
+        default: <<pipeline.parameters.default-python-image>>>>
+      exe:
+        type: string
+        default: docker-amd64-image
+      pytest-marker:
+        type: string
+        default: "not integration"
+    executor:
+      name: << parameters.exe >>
+      python-image: << parameters.python-image >>
+    steps:
+      - checkout
+      - run:
+          name: Setup InfluxDB service
+          command: |
+            ./scripts/influxdb-setup.sh \
+              --export-url-as TESTING_INFLUXDB_URL \
+              --export-db-as TESTING_INFLUXDB_DATABASE \
+              --export-token-as TESTING_INFLUXDB_TOKEN
+      - client-test:
+          python-image: << parameters.python-image >>
+          pytest-marker: << parameters.pytest-marker >>
+      - store_test_results:
+          path: test-reports
+      - when:
+          condition:
+            equal: [ docker-amd64-image, << parameters.exe >> ]
+          steps:
+            - upload-codecov-amd64
+      - when:
+          condition:
+            equal: [ docker-arm64-image, << parameters.exe >> ]
+          steps:
+            - upload-codecov-arm64
   check-code-style:
     docker:
-      - image: *default-python
+      - image: <<pipeline.parameters.default-python-image>>
         environment:
           PIPENV_VENV_IN_PROJECT: true
     steps:
@@ -91,7 +157,7 @@ jobs:
             flake8 Examples/
   check-twine:
     docker:
-      - image: *default-python
+      - image: <<pipeline.parameters.default-python-image>>
         environment:
           PIPENV_VENV_IN_PROJECT: true
     steps:
@@ -105,7 +171,7 @@ jobs:
             twine check dist/*
   check-docstyle:
     docker:
-      - image: *default-python
+      - image: <<pipeline.parameters.default-python-image>>
         environment:
           PIPENV_VENV_IN_PROJECT: true
     steps:
@@ -116,6 +182,7 @@ jobs:
             pip install pydocstyle --user
             pydocstyle --count influxdb_client_3
 
+
 workflows:
   version: 2
   build:
@@ -124,36 +191,18 @@ workflows:
         equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
       - check-code-style
-#      - check-docstyle
+      #      - check-docstyle
       - check-twine
       - tests-python:
-          name: test-3.8
-          python-image: "cimg/python:3.8"
-      - tests-python:
-          name: test-3.9
-          python-image: "cimg/python:3.9"
-      - tests-python:
-          name: test-3.10
-          python-image: "cimg/python:3.10"
-      - tests-python:
-          name: test-3.11
-          python-image: "cimg/python:3.11"
-      - tests-python:
-          name: test-3.12
-          python-image: "cimg/python:3.12"
-      - tests-python:
-          name: test-3.13
-          python-image: "cimg/python:3.13"
+          matrix:
+            parameters:
+              exe: [ docker-amd64-image, docker-arm64-image ]
+              python-image: [ << pipeline.parameters.default-python-image >>, "cimg/python:3.9", "cimg/python:3.10", "cimg/python:3.11", "cimg/python:3.12", cimg/python:3.13 ]
       - tests-python:
           requires:
-            - test-3.8
-            - test-3.9
-            - test-3.10
-            - test-3.11
-            - test-3.12
-            - test-3.13
+            - tests-python
           name: test-integration
-          python-image: *default-python
+          python-image: <<pipeline.parameters.default-python-image>>
           pytest-marker: "integration"
 
   nightly:

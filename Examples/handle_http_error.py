@@ -18,7 +18,6 @@ def main() -> None:
     client = InfluxDBClient3.InfluxDBClient3(
         host=config.host,
         token=config.token,
-        org=config.org,
         database=config.database
     )
 

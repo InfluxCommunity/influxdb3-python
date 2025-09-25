@@ -1,7 +1,57 @@
 # Change Log
 
-## 0.13.0 [unreleased]
+# 0.17.0 [unreleased]
 
+### CI
+
+1. [#164](https://github.com/InfluxCommunity/influxdb3-python/pull/164): Fix pipelines not downloading the correct python images.
+
+## 0.16.0 [2025-09-15]
+
+### Features
+
+1. [#158](https://github.com/InfluxCommunity/influxdb3-python/pull/158)  Improved parameters for setting timeouts
+   - `InfluxDB3Client()` constructor now directly specifies
+      - `write_timeout` - timeout in milliseconds to be used when writing data.
+      - `query_timeout` - timeout in milliseconds to be used when querying data.
+   - Timeouts can be specifically overridden in direct method calls.
+      - `client.write()` now propagates the argument  `_request_timeout` as an `int` in milliseconds on the call stack 
+         even in batching mode.
+      - `client.query()` now propagates the argument `timeout` as a `float` in seconds on the call stack.
+
+### CI
+
+1. [#153](https://github.com/InfluxCommunity/influxdb3-python/pull/153) Add tests for arm64 CircleCI.
+
+## 0.15.0 [2025-08-12]
+
+### Features
+
+1. [#146](https://github.com/InfluxCommunity/influxdb3-python/pull/146): Add function to get InfluxDB version.
+2. [#149](https://github.com/InfluxCommunity/influxdb3-python/pull/149): Run integration tests against a locally started InfluxDB 3 Core server.
+
+## 0.14.0 [2025-06-18]
+
+### Features
+
+1. [#141](https://github.com/InfluxCommunity/influxdb3-python/pull/141) Move "setuptools" package to build dependency.
+2. [#142](https://github.com/InfluxCommunity/influxdb3-python/pull/142):  Support fast writes without waiting for WAL
+   persistence:
+   - New write option (`WriteOptions.no_sync`) added: `True` value means faster write but without the confirmation that
+     the data was persisted. Default value: `False`.
+   - **Supported by self-managed InfluxDB 3 Core and Enterprise servers only!**
+   - Also configurable via environment variable (`INFLUX_WRITE_NO_SYNC`).
+   - Long precision string values added from v3 HTTP API: `"nanosecond"`, `"microsecond"`, `"millisecond"`,
+     `"second"` (     in addition to the existing `"ns"`, `"us"`, `"ms"`, `"s"`).
+3. [#145](https://github.com/InfluxCommunity/influxdb3-python/pull/145): Improve the document wording for README.md
+
+## 0.13.0 [2025-05-20]
+
+### Features
+
+1. [#130](https://github.com/InfluxCommunity/influxdb3-python/pull/130): Remove org parameters from the example code because It is not mandatory in Influxdb3
+2. [#139](https://github.com/InfluxCommunity/influxdb3-python/pull/139): Supports environment variables with the same name as other clients
+3. [#140](https://github.com/InfluxCommunity/influxdb3-python/pull/140): Query api will throw `InfluxdbClientQueryError` when receiving `ArrowException` from gRPC servers
 
 ## 0.12.0 [2025-03-26] 
 

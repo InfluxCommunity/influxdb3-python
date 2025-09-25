@@ -6,7 +6,6 @@ requires = [
     'reactivex >= 4.0.4',
     'certifi >= 14.05.14',
     'python_dateutil >= 2.5.3',
-    'setuptools >= 21.0.0',
     'urllib3 >= 1.26.0',
     'pyarrow >= 8.0.0'
 ]
@@ -52,7 +51,7 @@ setup(
         'pandas': ['pandas'],
         'polars': ['polars'],
         'dataframe': ['pandas', 'polars'],
-        'test': ['pytest', 'pytest-cov']
+        'test': ['pytest', 'pytest-cov', 'pytest-httpserver']
     },
     install_requires=requires,
     python_requires='>=3.8',

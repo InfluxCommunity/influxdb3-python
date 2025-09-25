@@ -9,7 +9,7 @@ from typing import Callable
 from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError, ResponseError
 
-from influxdb_client_3.write_client.client.exceptions import InfluxDBError
+from influxdb_client_3.exceptions import InfluxDBError
 
 logger = logging.getLogger('influxdb_client.client.write.retry')
 

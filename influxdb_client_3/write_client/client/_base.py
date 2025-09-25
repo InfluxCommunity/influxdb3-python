@@ -7,6 +7,8 @@ import logging
 import os
 from typing import Iterable
 
+from typing_extensions import deprecated
+
 from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
 from influxdb_client_3.write_client.configuration import Configuration
 from influxdb_client_3.write_client.rest import _UTF_8_encoding
@@ -47,6 +49,7 @@ class _BaseClient(object):
         else:
             self.conf.host = self.url
         self.conf.enable_gzip = enable_gzip
+        self.conf.gzip_threshold = kwargs.get('gzip_threshold', None)
         self.conf.verify_ssl = kwargs.get('verify_ssl', True)
         self.conf.ssl_ca_cert = kwargs.get('ssl_ca_cert', None)
         self.conf.cert_file = kwargs.get('cert_file', None)
@@ -173,6 +176,7 @@ class _BaseClient(object):
                    profilers=profilers, proxy=proxy, **kwargs)
 
     @classmethod
+    @deprecated('Use InfluxDBClient3.from_env() instead.')
     def _from_env_properties(cls, debug=None, enable_gzip=False, **kwargs):
         url = os.getenv('INFLUXDB_V2_URL', "http://localhost:8086")
         token = os.getenv('INFLUXDB_V2_TOKEN', "my-token")
@@ -274,11 +278,11 @@ class _Configuration(Configuration):
         self.username = None
         self.password = None
 
-    def update_request_header_params(self, path: str, params: dict):
-        super().update_request_header_params(path, params)
-        if self.enable_gzip:
+    def update_request_header_params(self, path: str, params: dict, should_gzip: bool = False):
+        super().update_request_header_params(path, params, should_gzip)
+        if should_gzip:
             # GZIP Request
-            if path == '/api/v2/write':
+            if path == '/api/v2/write' or path == '/api/v3/write_lp':
                 params["Content-Encoding"] = "gzip"
                 params["Accept-Encoding"] = "identity"
                 pass
@@ -290,11 +294,11 @@ class _Configuration(Configuration):
             pass
         pass
 
-    def update_request_body(self, path: str, body):
-        _body = super().update_request_body(path, body)
-        if self.enable_gzip:
+    def update_request_body(self, path: str, body, should_gzip: bool = False):
+        _body = super().update_request_body(path, body, should_gzip)
+        if should_gzip:
             # GZIP Request
-            if path == '/api/v2/write':
+            if path == '/api/v2/write' or path == '/api/v3/write_lp':
                 import gzip
                 if isinstance(_body, bytes):
                     return gzip.compress(data=_body)

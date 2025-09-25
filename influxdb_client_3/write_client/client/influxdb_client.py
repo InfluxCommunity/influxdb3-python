@@ -4,6 +4,8 @@ from __future__ import absolute_import
 
 import logging
 
+from typing_extensions import deprecated
+
 from influxdb_client_3.write_client.client._base import _BaseClient
 from influxdb_client_3.write_client.client.write_api import WriteApi, WriteOptions, PointSettings
 
@@ -14,7 +16,7 @@ class InfluxDBClient(_BaseClient):
     """InfluxDBClient is client for InfluxDB v2."""
 
     def __init__(self, url, token: str = None, debug=None, timeout=10_000, enable_gzip=False, org: str = None,
-                 default_tags: dict = None, **kwargs) -> None:
+                 default_tags: dict = None, gzip_threshold=None, **kwargs) -> None:
         """
         Initialize defaults.
 
@@ -50,7 +52,8 @@ class InfluxDBClient(_BaseClient):
         :key str password: ``password`` to authenticate via username and password credentials to the InfluxDB 2.x
         :key list[str] profilers: list of enabled Flux profilers
         """
-        super().__init__(url=url, token=token, debug=debug, timeout=timeout, enable_gzip=enable_gzip, org=org,
+        super().__init__(url=url, token=token, debug=debug, timeout=timeout, enable_gzip=enable_gzip,
+                         gzip_threshold=gzip_threshold, org=org,
                          default_tags=default_tags, http_client_logger="urllib3", **kwargs)
 
         from influxdb_client_3.write_client._sync.api_client import ApiClient
@@ -167,6 +170,7 @@ class InfluxDBClient(_BaseClient):
         return InfluxDBClient._from_config_file(config_file=config_file, debug=debug, enable_gzip=enable_gzip, **kwargs)
 
     @classmethod
+    @deprecated('Use InfluxDBClient3.from_env() instead.')
     def from_env_properties(cls, debug=None, enable_gzip=False, **kwargs):
         """
         Configure client via environment properties.
@@ -212,7 +216,7 @@ class InfluxDBClient(_BaseClient):
 
 
                 # Initialize SYNCHRONOUS instance of WriteApi
-                with InfluxDBClient(url="http://localhost:8086", token="my-token", org="my-org") as client:
+                with InfluxDBClient(url="http://localhost:8086", token="my-token") as client:
                     write_api = client.write_api(write_options=SYNCHRONOUS)
 
         If you would like to use a **background batching**, you have to configure client like this:
@@ -222,7 +226,7 @@ class InfluxDBClient(_BaseClient):
             from influxdb_client import InfluxDBClient
 
             # Initialize background batching instance of WriteApi
-            with InfluxDBClient(url="http://localhost:8086", token="my-token", org="my-org") as client:
+            with InfluxDBClient(url="http://localhost:8086", token="my-token") as client:
                 with client.write_api() as write_api:
                     pass
 
@@ -246,7 +250,7 @@ class InfluxDBClient(_BaseClient):
                     print(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
 
 
-            with InfluxDBClient(url="http://localhost:8086", token="my-token", org="my-org") as client:
+            with InfluxDBClient(url="http://localhost:8086", token="my-token") as client:
                 callback = BatchingCallback()
                 with client.write_api(success_callback=callback.success,
                                       error_callback=callback.error,
