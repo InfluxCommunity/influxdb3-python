@@ -2,10 +2,6 @@
 
 # 0.17.0 [unreleased]
 
-### Bug Fixes
-
-1. [#132](https://github.com/InfluxCommunity/influxdb3-python/pull/132): Fixes support for IPv6 addresses in the `host` parameter of the client. The client now correctly handles IPv6 addresses by enclosing them in square brackets.
-
 ### CI
 
 1. [#164](https://github.com/InfluxCommunity/influxdb3-python/pull/164): Fix pipelines not downloading the correct python images.

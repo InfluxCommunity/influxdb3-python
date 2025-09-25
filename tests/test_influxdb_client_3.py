@@ -135,30 +135,6 @@ class TestInfluxDBClient3(unittest.TestCase):
             assert {'data': 'sql_query', 'reference': query, 'value': -1.0} in result_list
             assert {'data': 'query_type', 'reference': 'sql', 'value': -1.0} in result_list
 
-    @asyncio_run
-    async def test_query_async_ipv6(self):
-        with ConstantFlightServer() as server:
-            client = InfluxDBClient3(
-                host=f"http://[::1]:{server.port}",
-                org="my_org",
-                database="my_db",
-                token="my_token",
-            )
-
-            query = "SELECT * FROM my_data"
-
-            table = await client.query_async(query=query, language="sql")
-
-            result_list = table.to_pylist()
-
-            cd = ConstantData()
-            for item in cd.to_list():
-                assert item in result_list
-
-            assert {'data': 'database', 'reference': 'my_db', 'value': -1.0} in result_list
-            assert {'data': 'sql_query', 'reference': query, 'value': -1.0} in result_list
-            assert {'data': 'query_type', 'reference': 'sql', 'value': -1.0} in result_list
-
     def test_write_api_custom_options_no_error(self):
         write_options = WriteOptions(write_type=WriteType.batching)
         write_client_option = {'write_options': write_options}
@@ -375,6 +351,7 @@ class TestInfluxDBClient3(unittest.TestCase):
             InfluxDBClient3(
                 host=f'http://{server.host}:{server.port}', org="ORG", database="DB", token="TOKEN"
             ).get_server_version()
+
 
 if __name__ == '__main__':
     unittest.main()
