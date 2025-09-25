@@ -5,6 +5,8 @@ import os
 import json
 from unittest.mock import Mock, ANY
 
+import pytest
+from pyarrow._flight import FlightTimedOutError
 from pyarrow.flight import (
     FlightClient,
     Ticket
@@ -430,3 +432,36 @@ Aw==
             # fibo ended before query_async
             assert events['query_result'] > events['fibo_end'], (f"query_result: {events['query_result']} should occur "
                                                                  f"after fibo_end: {events['fibo_end']}")
+
+    @asyncio_run
+    async def test_query_async_timeout(self):
+        with pytest.raises(FlightTimedOutError):
+            with ConstantFlightServer() as server:
+                connection_string = f"grpc://localhost:{server.port}"
+                token = "my_token"
+                database = "my_database"
+                q_api = QueryApi(
+                    connection_string=connection_string,
+                    token=token,
+                    flight_client_options={"generic_options": [('Foo', 'Bar')]},
+                    proxy=None,
+                    options=QueryApiOptionsBuilder().timeout(0.0001).build(),
+                )
+                query = "SELECT * FROM data"
+                await q_api.query_async(query, "sql", "", database)
+
+    def test_query_timeout_per_call_override(self):
+        with pytest.raises(FlightTimedOutError):
+            with ConstantFlightServer() as server:
+                connection_string = f"grpc://localhost:{server.port}"
+                token = "my_token"
+                database = "my_database"
+                q_api = QueryApi(
+                    connection_string=connection_string,
+                    token=token,
+                    flight_client_options={"generic_options": [('Foo', 'Bar')]},
+                    proxy=None,
+                    options=QueryApiOptionsBuilder().timeout(3.14).build(),
+                )
+                query = "SELECT * FROM data"
+                q_api.query(query, "sql", "", database, timeout=0.0001)

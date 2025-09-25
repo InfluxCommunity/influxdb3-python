@@ -1,18 +1,34 @@
-import urllib.parse
-import pyarrow as pa
 import importlib.util
+import os
+import urllib.parse
+from typing import Any
 
+import pyarrow as pa
+from pyarrow import ArrowException
+
+from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
+from influxdb_client_3.exceptions import InfluxDBError
 from influxdb_client_3.query.query_api import QueryApi as _QueryApi, QueryApiOptionsBuilder
 from influxdb_client_3.read_file import UploadFile
 from influxdb_client_3.write_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
-from influxdb_client_3.write_client.client.exceptions import InfluxDBError
 from influxdb_client_3.write_client.client.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, \
-    PointSettings
+    PointSettings, DefaultWriteOptions, WriteType
 from influxdb_client_3.write_client.domain.write_precision import WritePrecision
 
 from ipaddress import IPv6Address, AddressValueError
 
 polars = importlib.util.find_spec("polars") is not None
+
+INFLUX_HOST = "INFLUX_HOST"
+INFLUX_TOKEN = "INFLUX_TOKEN"
+INFLUX_DATABASE = "INFLUX_DATABASE"
+INFLUX_ORG = "INFLUX_ORG"
+INFLUX_PRECISION = "INFLUX_PRECISION"
+INFLUX_AUTH_SCHEME = "INFLUX_AUTH_SCHEME"
+INFLUX_GZIP_THRESHOLD = "INFLUX_GZIP_THRESHOLD"
+INFLUX_WRITE_NO_SYNC = "INFLUX_WRITE_NO_SYNC"
+INFLUX_WRITE_TIMEOUT = "INFLUX_WRITE_TIMEOUT"
+INFLUX_QUERY_TIMEOUT = "INFLUX_QUERY_TIMEOUT"
 
 
 def write_client_options(**kwargs):
@@ -85,6 +101,82 @@ def _merge_options(defaults, exclude_keys=None, custom=None):
     return _deep_merge(defaults, {key: value for key, value in custom.items() if key not in exclude_keys})
 
 
+def _parse_precision(precision: str) -> WritePrecision:
+    """
+    Parses the precision value and ensures it is valid.
+
+    This function checks that the given `precision` is one of the allowed
+    values defined in `WritePrecision`. If the precision is invalid, it
+    raises a `ValueError`. The function returns the valid precision value
+    if it passes validation.
+
+    :param precision: The precision value to be validated.
+                      Must be one of WritePrecision.NS, WritePrecision.MS,
+                      WritePrecision.S, or WritePrecision.US.
+    :return: The valid precision value.
+    :rtype: WritePrecision
+    :raises ValueError: If the provided precision is not valid.
+    """
+    if precision == WritePrecision.NS or precision == "nanosecond":
+        return WritePrecision.NS
+    if precision == WritePrecision.US or precision == "microsecond":
+        return WritePrecision.US
+    if precision == WritePrecision.MS or precision == "millisecond":
+        return WritePrecision.MS
+    if precision == WritePrecision.S or precision == "second":
+        return WritePrecision.S
+    raise ValueError(f"Invalid precision value: {precision}")
+
+
+def _parse_gzip_threshold(threshold: str) -> int:
+    """
+    Parses and validates the provided threshold value.
+
+    This function ensures that the given threshold is a valid integer value,
+    and it raises an appropriate error if the threshold is not valid. It also
+    enforces that the threshold value is non-negative.
+
+    :param threshold: The input threshold value to be parsed and validated.
+    :type threshold: Any
+    :return: The validated threshold value as an integer.
+    :rtype: int
+    :raises ValueError: If the provided threshold is not an integer or if it is
+        negative.
+    """
+    try:
+        threshold = int(threshold)
+    except (TypeError, ValueError):
+        raise ValueError(f"Invalid threshold value: {threshold}. Must be integer.")
+    if threshold < 0:
+        raise ValueError(f"Invalid threshold value: {threshold}. Must be non-negative.")
+    return threshold
+
+
+def _parse_write_no_sync(write_no_sync: str):
+    """
+    Parses and validates the provided write no sync value.
+
+    This function ensures that the given value is a valid boolean,
+    and it raises an appropriate error if the value is not valid.
+
+    :param write_no_sync: The input value to be parsed and validated.
+    :type write_no_sync: Any
+    :return: The validated write no sync value as an boolean.
+    :rtype: bool
+    """
+    return write_no_sync.strip().lower() in ['true', '1', 't', 'y', 'yes']
+
+
+def _parse_timeout(to: str) -> int:
+    try:
+        timeout = int(to)
+    except (TypeError, ValueError):
+        raise ValueError(f"Invalid timeout value: {to}. Must be a number.")
+    if timeout < 0:
+        raise ValueError(f"Invalid timeout value: {to}. Must be non-negative.")
+    return timeout
+
+
 class InfluxDBClient3:
     def __init__(
             self,
@@ -108,10 +200,10 @@ class InfluxDBClient3:
         :type database: str
         :param token: The authentication token for accessing the InfluxDB server.
         :type token: str
-        :param write_client_options: Function for providing additional arguments for the WriteApi client.
-        :type write_client_options: callable
-        :param flight_client_options: Function for providing additional arguments for the FlightClient.
-        :type flight_client_options: callable
+        :param write_client_options: dictionary for providing additional arguments for the WriteApi client.
+        :type write_client_options: dict[str, any]
+        :param flight_client_options: dictionary for providing additional arguments for the FlightClient.
+        :type flight_client_options: dict[str, any]
         :key auth_scheme: token authentication scheme. Set to "Bearer" for Edge.
         :key bool verify_ssl: Set this to false to skip verifying SSL certificate when calling API from https server.
         :key str ssl_ca_cert: Set this to customize the certificate file to verify the peer.
@@ -133,13 +225,40 @@ class InfluxDBClient3:
                               (defaults to false, don't set to true when talking to InfluxDB 2)
         :key str username: ``username`` to authenticate via username and password credentials to the InfluxDB 2.x
         :key str password: ``password`` to authenticate via username and password credentials to the InfluxDB 2.x
+        :key str query_timeout: int value used to set the client query API timeout in milliseconds.
+        :key str write_timeout: int value used to set the client write API timeout in milliseconds.
         :key list[str] profilers: list of enabled Flux profilers
         """
         self._org = org if org is not None else "default"
         self._database = database
         self._token = token
-        self._write_client_options = write_client_options if write_client_options is not None \
-            else default_client_options(write_options=SYNCHRONOUS)
+        kw_keys = kwargs.keys()
+
+        write_type = DefaultWriteOptions.write_type.value
+        write_precision = DefaultWriteOptions.write_precision.value
+        write_no_sync = DefaultWriteOptions.no_sync.value
+        write_timeout = DefaultWriteOptions.timeout.value
+
+        if isinstance(write_client_options, dict) and write_client_options.get('write_options') is not None:
+            write_opts = write_client_options['write_options']
+            write_type = getattr(write_opts, 'write_type', write_type)
+            write_precision = getattr(write_opts, 'write_precision', write_precision)
+            write_no_sync = getattr(write_opts, 'no_sync', write_no_sync)
+            write_timeout = getattr(write_opts, 'timeout', write_timeout)
+
+        if kw_keys.__contains__('write_timeout'):
+            write_timeout = kwargs.get('write_timeout')
+
+        write_options = WriteOptions(
+            write_type=write_type,
+            write_precision=write_precision,
+            no_sync=write_no_sync,
+        )
+
+        self._write_client_options = {
+            "write_options": write_options,
+            **(write_client_options or {})
+        }
 
         # Parse the host input
         parsed_url = urllib.parse.urlparse(host)
@@ -163,6 +282,7 @@ class InfluxDBClient3:
             url=f"{scheme}://{hostname}:{port}",
             token=self._token,
             org=self._org,
+            timeout=write_timeout,
             **kwargs)
 
         self._write_api = _WriteApi(influxdb_client=self._client, **self._write_client_options)
@@ -175,16 +295,85 @@ class InfluxDBClient3:
             connection_string = f"grpc+tcp://{hostname}:{port}"
 
         q_opts_builder = QueryApiOptionsBuilder()
-        kw_keys = kwargs.keys()
         if kw_keys.__contains__('ssl_ca_cert'):
             q_opts_builder.root_certs(kwargs.get('ssl_ca_cert', None))
         if kw_keys.__contains__('verify_ssl'):
             q_opts_builder.tls_verify(kwargs.get('verify_ssl', True))
         if kw_keys.__contains__('proxy'):
             q_opts_builder.proxy(kwargs.get('proxy', None))
+        if kw_keys.__contains__('query_timeout'):
+            query_timeout_float = float(kwargs.get('query_timeout'))
+            q_opts_builder.timeout(query_timeout_float / 1000.0)
         self._query_api = _QueryApi(connection_string=connection_string, token=token,
                                     flight_client_options=flight_client_options,
                                     proxy=kwargs.get("proxy", None), options=q_opts_builder.build())
+
+    @classmethod
+    def from_env(cls, **kwargs: Any) -> 'InfluxDBClient3':
+        """
+        Creates an instance of the ``InfluxDBClient3`` class using environment
+        variables for configuration. This method simplifies client creation by
+        automatically reading required information from the system environment.
+
+        It verifies the presence of required environment variables such as host,
+        token, and database. If any of these variables are missing or empty,
+        a ``ValueError`` will be raised. Optional parameters such as precision and
+        authentication scheme will also be extracted from the environment when
+        present, allowing further customization of the client.
+
+        :param kwargs: Additional parameters that are passed to the client constructor.
+        :type kwargs: Any
+        :raises ValueError: If any required environment variables are missing or empty.
+        :return: An initialized client object of type ``InfluxDBClient3``.
+        :rtype: InfluxDBClient3
+        """
+        required_vars = {
+            INFLUX_HOST: os.getenv(INFLUX_HOST),
+            INFLUX_TOKEN: os.getenv(INFLUX_TOKEN),
+            INFLUX_DATABASE: os.getenv(INFLUX_DATABASE)
+        }
+        missing_vars = [var for var, value in required_vars.items() if value is None or value == ""]
+        if missing_vars:
+            raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+
+        write_options = WriteOptions(write_type=WriteType.synchronous)
+
+        gzip_threshold = os.getenv(INFLUX_GZIP_THRESHOLD)
+        if gzip_threshold is not None:
+            kwargs['gzip_threshold'] = _parse_gzip_threshold(gzip_threshold)
+            kwargs['enable_gzip'] = True
+
+        write_no_sync = os.getenv(INFLUX_WRITE_NO_SYNC)
+        if write_no_sync is not None:
+            write_options.no_sync = _parse_write_no_sync(write_no_sync)
+
+        precision = os.getenv(INFLUX_PRECISION)
+        if precision is not None:
+            write_options.write_precision = _parse_precision(precision)
+
+        write_timeout = os.getenv(INFLUX_WRITE_TIMEOUT)
+        if write_timeout is not None:
+            # N.B. write_options value has precedent over kwargs['write_timeout'] above
+            write_options.timeout = _parse_timeout(write_timeout)
+
+        query_timeout = os.getenv(INFLUX_QUERY_TIMEOUT)
+        if query_timeout is not None:
+            kwargs['query_timeout'] = _parse_timeout(query_timeout)
+
+        write_client_option = {'write_options': write_options}
+
+        if os.getenv(INFLUX_AUTH_SCHEME) is not None:
+            kwargs['auth_scheme'] = os.getenv(INFLUX_AUTH_SCHEME)
+
+        org = os.getenv(INFLUX_ORG, "default")
+        return InfluxDBClient3(
+            host=required_vars[INFLUX_HOST],
+            token=required_vars[INFLUX_TOKEN],
+            database=required_vars[INFLUX_DATABASE],
+            write_client_options=write_client_option,
+            org=org,
+            **kwargs
+        )
 
     def write(self, record=None, database=None, **kwargs):
         """
@@ -200,7 +389,7 @@ class InfluxDBClient3:
             database = self._database
 
         try:
-            self._write_api.write(bucket=database, record=record, **kwargs)
+            return self._write_api.write(bucket=database, record=record, **kwargs)
         except InfluxDBError as e:
             raise e
 
@@ -283,8 +472,8 @@ class InfluxDBClient3:
 
         try:
             return self._query_api.query(query=query, language=language, mode=mode, database=database, **kwargs)
-        except InfluxDBError as e:
-            raise e
+        except ArrowException as e:
+            raise InfluxDB3ClientQueryError(f"Error while executing query: {e}")
 
     async def query_async(self, query: str, language: str = "sql", mode: str = "all", database: str = None, **kwargs):
         """Query data from InfluxDB asynchronously.
@@ -316,8 +505,35 @@ class InfluxDBClient3:
                                                      mode=mode,
                                                      database=database,
                                                      **kwargs)
-        except InfluxDBError as e:
-            raise e
+        except ArrowException as e:
+            raise InfluxDB3ClientQueryError(f"Error while executing query: {e}")
+
+    def get_server_version(self) -> str:
+        """
+        Get the version of the connected InfluxDB server.
+
+        This method makes a ping request to the server and extracts the version information
+        from either the response headers or response body.
+
+        :return: The version string of the InfluxDB server.
+        :rtype: str
+        """
+        version = None
+        (resp_body, _, header) = self._client.api_client.call_api(
+            resource_path="/ping",
+            method="GET",
+            response_type=object
+        )
+
+        for key, value in header.items():
+            if key.lower() == "x-influxdb-version":
+                version = value
+                break
+
+        if version is None and isinstance(resp_body, dict):
+            version = resp_body['version']
+
+        return version
 
     def close(self):
         """Close the client and clean up resources."""

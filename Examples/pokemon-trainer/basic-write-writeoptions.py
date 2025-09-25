@@ -7,7 +7,6 @@ wco = write_client_options(write_options=SYNCHRONOUS)
 with InfluxDBClient3(
         token="",
         host="eu-central-1-1.aws.cloud2.influxdata.com",
-        org="6a841c0c08328fb1",
         database="pokemon-codex",
         write_client_options=wco,
         debug=True) as client:

@@ -5,7 +5,6 @@ from influxdb_client_3 import InfluxDBClient3, Point
 client = InfluxDBClient3(
     token="mGbL-OJ2kxYqvbIL9jQOOg2VJLhf16hh-xn-XJe3RUKrI5cewOAy80L5cVIzG0vh7dLLckZkpYfvExgoMBXLFA==",
     host="eu-central-1-1.aws.cloud2.influxdata.com",
-    org="6a841c0c08328fb1",
     database="pokemon-codex")
 
 now = datetime.datetime.now(datetime.timezone.utc)

@@ -16,13 +16,16 @@ from reactivex import operators as ops, Observable
 from reactivex.scheduler import ThreadPoolScheduler
 from reactivex.subject import Subject
 
-from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.client._base import _BaseWriteApi, _HAS_DATACLASS
 from influxdb_client_3.write_client.client.util.helpers import get_org_query_param
 from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
 from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION
 from influxdb_client_3.write_client.client.write.retry import WritesRetry
+from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.rest import _UTF_8_encoding
+
+DEFAULT_WRITE_NO_SYNC = False
+DEFAULT_WRITE_TIMEOUT = 10_000
 
 logger = logging.getLogger('influxdb_client_3.write_client.client.write_api')
 
@@ -39,6 +42,13 @@ class WriteType(Enum):
     synchronous = 3
 
 
+class DefaultWriteOptions(Enum):
+    write_type = WriteType.synchronous
+    write_precision = DEFAULT_WRITE_PRECISION
+    no_sync = DEFAULT_WRITE_NO_SYNC
+    timeout = DEFAULT_WRITE_TIMEOUT
+
+
 class WriteOptions(object):
     """Write configuration."""
 
@@ -51,6 +61,9 @@ class WriteOptions(object):
                  max_retry_time=180_000,
                  exponential_base=2,
                  max_close_wait=300_000,
+                 write_precision=DEFAULT_WRITE_PRECISION,
+                 no_sync=DEFAULT_WRITE_NO_SYNC,
+                 timeout=DEFAULT_WRITE_TIMEOUT,
                  write_scheduler=ThreadPoolScheduler(max_workers=1)) -> None:
         """
         Create write api configuration.
@@ -66,7 +79,10 @@ class WriteOptions(object):
         :param max_retry_delay: the maximum delay between each retry attempt in milliseconds
         :param max_retry_time: total timeout for all retry attempts in milliseconds, if 0 retry is disabled
         :param exponential_base: base for the exponential retry delay
-        :parama max_close_wait: the maximum time to wait for writes to be flushed if close() is called
+        :param max_close_wait: the maximum time to wait for writes to be flushed if close() is called
+        :param write_precision: precision to use when writing points to InfluxDB
+        :param no_sync: skip waiting for WAL persistence on write
+        :param timeout: timeout to use when writing to the database in milliseconds. Default is 10_000
         :param write_scheduler:
         """
         self.write_type = write_type
@@ -80,6 +96,9 @@ class WriteOptions(object):
         self.exponential_base = exponential_base
         self.write_scheduler = write_scheduler
         self.max_close_wait = max_close_wait
+        self.write_precision = write_precision
+        self.timeout = timeout
+        self.no_sync = no_sync
 
     def to_retry_strategy(self, **kwargs):
         """
@@ -145,10 +164,11 @@ class PointSettings(object):
 
 
 class _BatchItemKey(object):
-    def __init__(self, bucket, org, precision=DEFAULT_WRITE_PRECISION) -> None:
+    def __init__(self, bucket, org, precision=DEFAULT_WRITE_PRECISION, **kwargs) -> None:
         self.bucket = bucket
         self.org = org
         self.precision = precision
+        self.kwargs = kwargs
         pass
 
     def __hash__(self) -> int:
@@ -159,8 +179,8 @@ class _BatchItemKey(object):
             and self.bucket == o.bucket and self.org == o.org and self.precision == o.precision
 
     def __str__(self) -> str:
-        return '_BatchItemKey[bucket:\'{}\', org:\'{}\', precision:\'{}\']' \
-            .format(str(self.bucket), str(self.org), str(self.precision))
+        return '_BatchItemKey[bucket:\'{}\', org:\'{}\', precision:\'{}\', kwargs: \'{}\']' \
+            .format(str(self.bucket), str(self.org), str(self.precision), str(self.kwargs))
 
 
 class _BatchItem(object):
@@ -195,7 +215,7 @@ def _body_reduce(batch_items):
 
 class WriteApi(_BaseWriteApi):
     """
-    Implementation for '/api/v2/write' endpoint.
+    Implementation for '/api/v2/write' and '/api/v3/write_lp' endpoint.
 
     Example:
         .. code-block:: python
@@ -246,6 +266,7 @@ class WriteApi(_BaseWriteApi):
         """
         super().__init__(influxdb_client=influxdb_client, point_settings=point_settings)
         self._write_options = write_options
+        # TODO - callbacks seem to be used with batching type only - could they be used with sync or async?
         self._success_callback = kwargs.get('success_callback', None)
         self._error_callback = kwargs.get('error_callback', None)
         self._retry_callback = kwargs.get('retry_callback', None)
@@ -283,6 +304,7 @@ class WriteApi(_BaseWriteApi):
 You can use native asynchronous version of the client:
 - https://influxdb-client.readthedocs.io/en/stable/usage.html#how-to-use-asyncio
         """
+# TODO above message has link to Influxdb2 API __NOT__ Influxdb3 API !!! - illustrates different API
             warnings.warn(message, DeprecationWarning)
 
     def write(self, bucket: str, org: str = None,
@@ -290,7 +312,7 @@ You can use native asynchronous version of the client:
                   str, Iterable['str'], Point, Iterable['Point'], dict, Iterable['dict'], bytes, Iterable['bytes'],
                   Observable, NamedTuple, Iterable['NamedTuple'], 'dataclass', Iterable['dataclass']
               ] = None,
-              write_precision: WritePrecision = DEFAULT_WRITE_PRECISION, **kwargs) -> Any:
+              write_precision: WritePrecision = None, **kwargs) -> Any:
         """
         Write time-series data into InfluxDB.
 
@@ -361,9 +383,14 @@ You can use native asynchronous version of the client:
 
         self._append_default_tags(record)
 
+        if write_precision is None:
+            write_precision = self._write_options.write_precision
+
         if self._write_options.write_type is WriteType.batching:
             return self._write_batching(bucket, org, record,
                                         write_precision, **kwargs)
+
+        no_sync = self._write_options.no_sync
 
         payloads = defaultdict(list)
         self._serialize(record, write_precision, payloads, **kwargs)
@@ -372,7 +399,7 @@ You can use native asynchronous version of the client:
 
         def write_payload(payload):
             final_string = b'\n'.join(payload[1])
-            return self._post_write(_async_req, bucket, org, final_string, payload[0])
+            return self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync, **kwargs)
 
         results = list(map(write_payload, payloads.items()))
         if not _async_req:
@@ -443,10 +470,13 @@ You can use native asynchronous version of the client:
         pass
 
     def _write_batching(self, bucket, org, data,
-                        precision=DEFAULT_WRITE_PRECISION,
+                        precision=None,
                         **kwargs):
+        if precision is None:
+            precision = self._write_options.write_precision
+
         if isinstance(data, bytes):
-            _key = _BatchItemKey(bucket, org, precision)
+            _key = _BatchItemKey(bucket, org, precision, **kwargs)
             self._subject.on_next(_BatchItem(key=_key, data=data))
 
         elif isinstance(data, str):
@@ -496,8 +526,7 @@ You can use native asynchronous version of the client:
 
         return None
 
-    def _http(self, batch_item: _BatchItem):
-
+    def _http(self, batch_item: _BatchItem, **kwargs):
         logger.debug("Write time series data into InfluxDB: %s", batch_item)
 
         if self._retry_callback:
@@ -506,18 +535,20 @@ You can use native asynchronous version of the client:
         else:
             _retry_callback_delegate = None
 
+        no_sync = self._write_options.no_sync
+
         retry = self._write_options.to_retry_strategy(retry_callback=_retry_callback_delegate)
 
         self._post_write(False, batch_item.key.bucket, batch_item.key.org, batch_item.data,
-                         batch_item.key.precision, urlopen_kw={'retries': retry})
+                         batch_item.key.precision, no_sync, urlopen_kw={'retries': retry}, **kwargs)
 
         logger.debug("Write request finished %s", batch_item)
 
         return _BatchResponse(data=batch_item)
 
-    def _post_write(self, _async_req, bucket, org, body, precision, **kwargs):
-
+    def _post_write(self, _async_req, bucket, org, body, precision, no_sync, **kwargs):
         return self._write_service.post_write(org=org, bucket=bucket, body=body, precision=precision,
+                                              no_sync=no_sync,
                                               async_req=_async_req,
                                               content_type="text/plain; charset=utf-8",
                                               **kwargs)
@@ -529,7 +560,7 @@ You can use native asynchronous version of the client:
             # use delay if its specified
             ops.delay(duetime=delay, scheduler=self._write_options.write_scheduler),
             # invoke http call
-            ops.map(lambda x: self._http(x)),
+            ops.map(lambda x: self._http(x, **x.key.kwargs)),
             # catch exception to fail batch response
             ops.catch(handler=lambda exception, source: rx.just(_BatchResponse(exception=exception, data=data))),
         )

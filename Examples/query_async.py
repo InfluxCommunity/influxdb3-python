@@ -72,7 +72,6 @@ async def main():
         host=config.host,
         token=config.token,
         database=config.database,
-        org=config.org
     )
     measurement = 'example_uav'
     write_data(client, measurement)

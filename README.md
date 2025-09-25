@@ -1,3 +1,4 @@
+<!--home-start-->
 <p align="center">
     <img src="https://github.com/InfluxCommunity/influxdb3-python/blob/main/python-logo.png?raw=true" alt="Your Image" width="150px">
 </p>
@@ -48,7 +49,7 @@ Note: This does not include Pandas support. If you would like to use key feature
 *Note: Please make sure you are using 3.6 or above. For the best performance use 3.11+*
 
 # Usage
-One of the easiest ways to get started is to checkout the ["Pokemon Trainer Cookbook"](Examples/pokemon-trainer/cookbook.ipynb). This scenario takes you through the basics of both the client library and Pyarrow.
+One of the easiest ways to get started is to checkout the ["Pokemon Trainer Cookbook"](https://github.com/InfluxCommunity/influxdb3-python/blob/main/Examples/pokemon-trainer/cookbook.ipynb). This scenario takes you through the basics of both the client library and Pyarrow.
 
 ## Importing the Module
 ```python
@@ -57,13 +58,11 @@ from influxdb_client_3 import InfluxDBClient3, Point
 
 ## Initialization
 If you are using InfluxDB Cloud, then you should note that:
-1. You will need to supply your org id, this is not necessary for InfluxDB Dedicated.
-2. Use bucket name for the `database` argument.
+1. Use bucket name for `database` or `bucket` in function argument.
 
 ```python
 client = InfluxDBClient3(token="your-token",
                          host="your-host",
-                         org="your-org",
                          database="your-database")
 ```
 
@@ -124,7 +123,6 @@ wco = write_client_options(success_callback=callback.success,
 with  InfluxDBClient3.InfluxDBClient3(
     token="INSERT_TOKEN",
     host="eu-central-1-1.aws.cloud2.influxdata.com",
-    org="6a841c0c08328fb1",
     database="python", write_client_options=wco) as client:
 
 
@@ -164,6 +162,11 @@ table = reader.read_all()
 print(table.to_pandas().to_markdown())
 ```
 
+### gRPC compression
+The Python client supports gRPC response compression.  
+If the server chooses to compress query responses (e.g., with gzip), the client
+will automatically decompress them — no extra configuration is required.
+
 ## Windows Users
 Currently, Windows users require an extra installation when querying via Flight natively. This is due to the fact gRPC cannot locate Windows root certificates. To work around this please follow these steps:
 Install `certifi`
@@ -171,26 +174,23 @@ Install `certifi`
 pip install certifi
 ```
 Next include certifi within the flight client options:
+
 ```python
-import influxdb_client_3 as InfluxDBClient3
-import pandas as pd
-import numpy as np
-from influxdb_client_3 import flight_client_options
 import certifi
+
+import influxdb_client_3 as InfluxDBClient3
+from influxdb_client_3 import flight_client_options
 
 fh = open(certifi.where(), "r")
 cert = fh.read()
 fh.close()
 
-
 client = InfluxDBClient3.InfluxDBClient3(
     token="",
     host="b0c7cce5-8dbc-428e-98c6-7f996fb96467.a.influxdb.io",
-    org="6a841c0c08328fb1",
     database="flightdemo",
     flight_client_options=flight_client_options(
         tls_root_certs=cert))
-
 
 table = client.query(
     query="SELECT * FROM flight WHERE time > now() - 4h",
@@ -198,4 +198,28 @@ table = client.query(
 
 print(table.to_pandas())
 ```
-You may also include your own root certificate via this manor aswell.
+
+You may include your own root certificate in this manner as well.
+
+If connecting to InfluxDB fails with error `DNS resolution failed` when using domain name, example `www.mydomain.com`, then try to set environment variable `GRPC_DNS_RESOLVER=native` to see if it works.
+
+# Contributing
+
+Tests are run using `pytest`.
+
+```bash
+# Clone the repository
+git clone https://github.com/InfluxCommunity/influxdb3-python
+cd influxdb3-python
+
+# Create a virtual environment and activate it
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install the package and its dependencies
+pip install -e .[pandas,polars,dataframe,test]
+
+# Run the tests
+python -m pytest .
+```
+<!--home-end-->
