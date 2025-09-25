@@ -198,7 +198,8 @@ table = client.query(
 
 print(table.to_pandas())
 ```
-You may also include your own root certificate via this manor aswell.
+
+You may include your own root certificate in this manner as well.
 
 If connecting to InfluxDB fails with error `DNS resolution failed` when using domain name, example `www.mydomain.com`, then try to set environment variable `GRPC_DNS_RESOLVER=native` to see if it works.
 
