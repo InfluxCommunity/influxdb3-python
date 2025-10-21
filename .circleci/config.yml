@@ -12,7 +12,7 @@ executors:
         type: string
         default: << pipeline.parameters.default-python-image >>
     docker:
-      - image: <<parameters.python-image>>
+      - image: << parameters.python-image >>
       - image: influxdb:3-core
         environment:
           - INFLUXDB3_NODE_IDENTIFIER_PREFIX=node01
@@ -24,7 +24,7 @@ executors:
         type: string
         default: << pipeline.parameters.default-python-image >>
     docker:
-      - image: <<parameters.python-image>>
+      - image: << parameters.python-image >>
       - image: influxdb:3-core
         environment:
           - INFLUXDB3_NODE_IDENTIFIER_PREFIX=node01
@@ -94,7 +94,7 @@ jobs:
     parameters:
       python-image:
         type: string
-        default: <<pipeline.parameters.default-python-image>>>>
+        default: << pipeline.parameters.default-python-image >>
       exe:
         type: string
         default: docker-amd64-image
@@ -130,7 +130,7 @@ jobs:
             - upload-codecov-arm64
   check-code-style:
     docker:
-      - image: <<pipeline.parameters.default-python-image>>
+      - image: << pipeline.parameters.default-python-image >>
         environment:
           PIPENV_VENV_IN_PROJECT: true
     steps:
@@ -157,7 +157,7 @@ jobs:
             flake8 Examples/
   check-twine:
     docker:
-      - image: <<pipeline.parameters.default-python-image>>
+      - image: << pipeline.parameters.default-python-image >>
         environment:
           PIPENV_VENV_IN_PROJECT: true
     steps:
@@ -171,7 +171,7 @@ jobs:
             twine check dist/*
   check-docstyle:
     docker:
-      - image: <<pipeline.parameters.default-python-image>>
+      - image: << pipeline.parameters.default-python-image >>
         environment:
           PIPENV_VENV_IN_PROJECT: true
     steps:
@@ -202,7 +202,7 @@ workflows:
           requires:
             - tests-python
           name: test-integration
-          python-image: <<pipeline.parameters.default-python-image>>
+          python-image: << pipeline.parameters.default-python-image >>
           pytest-marker: "integration"
 
   nightly:
