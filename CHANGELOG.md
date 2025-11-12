@@ -2,6 +2,10 @@
 
 # 0.17.0 [unreleased]
 
+### Features
+
+1. [#173](https://github.com/InfluxCommunity/influxdb3-python/pull/173): Supporting URL with path prefix.
+
 ### CI
 
 1. [#164](https://github.com/InfluxCommunity/influxdb3-python/pull/164): Fix pipelines not downloading the correct python images.
