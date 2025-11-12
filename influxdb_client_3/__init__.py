@@ -266,12 +266,16 @@ class InfluxDBClient3:
         hostname = parsed_url.hostname if parsed_url.hostname else host
         port = parsed_url.port if parsed_url.port else 443
 
+        path = ""
+        if parsed_url.scheme is not None and parsed_url.hostname is not None and parsed_url.port is not None:
+            path = parsed_url.path
+
         # Construct the clients using the parsed values
         if write_port_overwrite is not None:
             port = write_port_overwrite
 
         self._client = _InfluxDBClient(
-            url=f"{scheme}://{hostname}:{port}",
+            url=f"{scheme}://{hostname}:{port}{path}",
             token=self._token,
             org=self._org,
             timeout=write_timeout,
