@@ -138,7 +138,7 @@ Aw==
         )
 
         assert client._query_api._proxy == test_proxy
-        assert ('grpc.http_proxy', test_proxy) in\
+        assert ('grpc.http_proxy', test_proxy) in \
                client._query_api._flight_client_options.get('generic_options')
 
     def create_cert_file(self, file_name):
@@ -154,9 +154,9 @@ Aw==
         cert_file = "cert_test.pem"
         self.create_cert_file(cert_file)
         builder = QueryApiOptionsBuilder()
-        options = builder.proxy(proxy_name)\
-            .root_certs(cert_file)\
-            .tls_verify(False)\
+        options = builder.proxy(proxy_name) \
+            .root_certs(cert_file) \
+            .tls_verify(False) \
             .build()
 
         try:
@@ -175,7 +175,7 @@ Aw==
         cert_chain = 'mTLS_explicit_chain'
         self.create_cert_file(cert_file)
         test_flight_client_options = {'private_key': private_key, 'cert_chain': cert_chain}
-        options = QueryApiOptionsBuilder()\
+        options = QueryApiOptionsBuilder() \
             .proxy(proxy_name) \
             .root_certs(cert_file) \
             .tls_verify(False) \
@@ -436,7 +436,7 @@ Aw==
     @asyncio_run
     async def test_query_async_timeout(self):
         with pytest.raises(FlightTimedOutError):
-            with ConstantFlightServer() as server:
+            with ConstantFlightServerDelayed(delay=1) as server:
                 connection_string = f"grpc://localhost:{server.port}"
                 token = "my_token"
                 database = "my_database"
@@ -452,7 +452,7 @@ Aw==
 
     def test_query_timeout_per_call_override(self):
         with pytest.raises(FlightTimedOutError):
-            with ConstantFlightServer() as server:
+            with ConstantFlightServerDelayed(delay=1) as server:
                 connection_string = f"grpc://localhost:{server.port}"
                 token = "my_token"
                 database = "my_database"
