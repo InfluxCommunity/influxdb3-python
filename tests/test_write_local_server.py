@@ -45,12 +45,13 @@ class TestWriteLocalServer:
         httpserver.start()
         httpserver.expect_request("/prefix/prefix1/api/v2/write").respond_with_data(status=200)
 
-        InfluxDBClient3(
-            host=(httpserver.url_for("/prefix/prefix1")), org="ORG", database="DB", token="TOKEN",
-            write_client_options=write_client_options(
-                write_options=WriteOptions(write_type=WriteType.synchronous)
-            )
-        ).write(self.SAMPLE_RECORD)
+        with InfluxDBClient3(
+                host=(httpserver.url_for("/prefix/prefix1")), org="ORG", database="DB", token="TOKEN",
+                write_client_options=write_client_options(
+                    write_options=WriteOptions(write_type=WriteType.synchronous)
+                )
+        ) as client:
+            client.write(self.SAMPLE_RECORD)
 
         self.assert_request_made(httpserver, RequestMatcher(
             method="POST", uri="/prefix/prefix1/api/v2/write",

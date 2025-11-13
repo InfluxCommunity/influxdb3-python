@@ -357,28 +357,27 @@ class TestInfluxDBClient3(unittest.TestCase):
         server.expect_request('/prefix/prefix1/ping').respond_with_json(
             response_json={"version": "3.0"},
         )
-        version = InfluxDBClient3(
+        with InfluxDBClient3(
             host=f'http://{server.host}:{server.port}/prefix/prefix1',
             org="ORG",
             database="DB",
             token="TOKEN"
-        ).get_server_version()
-        assert version == "3.0"
+        ) as client:
+            assert client.get_server_version() == "3.0"
 
     def test_url_error_without_path_prefix(self):
         server = self.http_server
         server.expect_request('/prefix/ping').respond_with_json(
             response_json={"version": "3.0"},
         )
-        try:
-            InfluxDBClient3(
+        with InfluxDBClient3(
                 host=f'http://{server.host}:{server.port}',
                 org="ORG",
                 database="DB",
                 token="TOKEN"
-            ).get_server_version()
-        except ApiException:
-            self.assertRaises(ApiException)
+        ) as client:
+            with self.assertRaises(ApiException):
+                client.get_server_version()
 
 
 if __name__ == '__main__':
