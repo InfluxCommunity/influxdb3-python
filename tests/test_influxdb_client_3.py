@@ -67,6 +67,14 @@ class TestInfluxDBClient3(unittest.TestCase):
         )
         self.assertEqual(client._client.auth_header_value, "my_scheme my_token")
 
+    def test_write_port_overwrite(self):
+        with InfluxDBClient3(
+                host="http://localhost:8080",
+                write_port_overwrite=8086,
+                token="my_token",
+        ) as client:
+            self.assertEqual(client._client.url,"http://localhost:8086")
+
     def test_write_options(self):
         client = InfluxDBClient3(
             host="localhost",
