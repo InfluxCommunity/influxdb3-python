@@ -365,7 +365,7 @@ class TestInfluxDBClient3(unittest.TestCase):
         ).get_server_version()
         assert version == "3.0"
 
-    def test_url_lack_path_prefix(self):
+    def test_url_error_without_path_prefix(self):
         server = self.http_server
         server.expect_request('/prefix/ping').respond_with_json(
             response_json={"version": "3.0"},
