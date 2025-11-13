@@ -436,7 +436,7 @@ Aw==
     @asyncio_run
     async def test_query_async_timeout(self):
         with pytest.raises(FlightTimedOutError):
-            with ConstantFlightServer() as server:
+            with ConstantFlightServerDelayed(delay=1) as server:
                 connection_string = f"grpc://localhost:{server.port}"
                 token = "my_token"
                 database = "my_database"
@@ -445,14 +445,14 @@ Aw==
                     token=token,
                     flight_client_options={"generic_options": [('Foo', 'Bar')]},
                     proxy=None,
-                    options=QueryApiOptionsBuilder().timeout(0.000000001).build(),
+                    options=QueryApiOptionsBuilder().timeout(0.0001).build(),
                 )
                 query = "SELECT * FROM data"
                 await q_api.query_async(query, "sql", "", database)
 
     def test_query_timeout_per_call_override(self):
         with pytest.raises(FlightTimedOutError):
-            with ConstantFlightServer() as server:
+            with ConstantFlightServerDelayed(delay=1) as server:
                 connection_string = f"grpc://localhost:{server.port}"
                 token = "my_token"
                 database = "my_database"
