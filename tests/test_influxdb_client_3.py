@@ -354,11 +354,11 @@ class TestInfluxDBClient3(unittest.TestCase):
 
     def test_url_with_path_prefix(self):
         server = self.http_server
-        server.expect_request('/prefix/ping').respond_with_json(
+        server.expect_request('/prefix/prefix1/ping').respond_with_json(
             response_json={"version": "3.0"},
         )
         version = InfluxDBClient3(
-            host=f'http://{server.host}:{server.port}/prefix',
+            host=f'http://{server.host}:{server.port}/prefix/prefix1',
             org="ORG",
             database="DB",
             token="TOKEN"
