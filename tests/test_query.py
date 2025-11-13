@@ -445,7 +445,7 @@ Aw==
                     token=token,
                     flight_client_options={"generic_options": [('Foo', 'Bar')]},
                     proxy=None,
-                    options=QueryApiOptionsBuilder().timeout(0).build(),
+                    options=QueryApiOptionsBuilder().timeout(0.0001).build(),
                 )
                 query = "SELECT * FROM data"
                 await q_api.query_async(query, "sql", "", database)
@@ -461,7 +461,7 @@ Aw==
                     token=token,
                     flight_client_options={"generic_options": [('Foo', 'Bar')]},
                     proxy=None,
-                    options=QueryApiOptionsBuilder().timeout(0).build(),
+                    options=QueryApiOptionsBuilder().timeout(3.14).build(),
                 )
                 query = "SELECT * FROM data"
                 q_api.query(query, "sql", "", database, timeout=0.0001)
