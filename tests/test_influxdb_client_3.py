@@ -380,5 +380,6 @@ class TestInfluxDBClient3(unittest.TestCase):
         except ApiException:
             self.assertRaises(ApiException)
 
+
 if __name__ == '__main__':
     unittest.main()
