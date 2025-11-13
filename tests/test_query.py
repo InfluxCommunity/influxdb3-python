@@ -445,7 +445,7 @@ Aw==
                     token=token,
                     flight_client_options={"generic_options": [('Foo', 'Bar')]},
                     proxy=None,
-                    options=QueryApiOptionsBuilder().timeout(0.0000000001).build(),
+                    options=QueryApiOptionsBuilder().timeout(0.000000001).build(),
                 )
                 query = "SELECT * FROM data"
                 await q_api.query_async(query, "sql", "", database)
