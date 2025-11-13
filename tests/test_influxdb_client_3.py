@@ -67,6 +67,14 @@ class TestInfluxDBClient3(unittest.TestCase):
         )
         self.assertEqual(client._client.auth_header_value, "my_scheme my_token")
 
+    def test_write_port_overwrite(self):
+        with InfluxDBClient3(
+                host="http://localhost:8080",
+                write_port_overwrite=8086,
+                token="my_token",
+        ) as client:
+            self.assertEqual(client._client.url, "http://localhost:8086")
+
     def test_write_options(self):
         client = InfluxDBClient3(
             host="localhost",
@@ -351,6 +359,33 @@ class TestInfluxDBClient3(unittest.TestCase):
             InfluxDBClient3(
                 host=f'http://{server.host}:{server.port}', org="ORG", database="DB", token="TOKEN"
             ).get_server_version()
+
+    def test_url_with_path_prefix(self):
+        server = self.http_server
+        server.expect_request('/prefix/prefix1/ping').respond_with_json(
+            response_json={"version": "3.0"},
+        )
+        with InfluxDBClient3(
+            host=f'http://{server.host}:{server.port}/prefix/prefix1',
+            org="ORG",
+            database="DB",
+            token="TOKEN"
+        ) as client:
+            assert client.get_server_version() == "3.0"
+
+    def test_url_error_without_path_prefix(self):
+        server = self.http_server
+        server.expect_request('/prefix/ping').respond_with_json(
+            response_json={"version": "3.0"},
+        )
+        with InfluxDBClient3(
+                host=f'http://{server.host}:{server.port}',
+                org="ORG",
+                database="DB",
+                token="TOKEN"
+        ) as client:
+            with self.assertRaises(ApiException):
+                client.get_server_version()
 
 
 if __name__ == '__main__':
