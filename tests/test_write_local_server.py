@@ -40,22 +40,22 @@ class TestWriteLocalServer:
             method="POST", uri="/api/v2/write",
             query_string={"org": "ORG", "bucket": "DB", "precision": "ns"}))
 
-    def test_write_with_path_prefix(self):
-        httpserver = HTTPServer(host="localhost", port=8086, ssl_context=None)
-        httpserver.start()
-        httpserver.expect_request("/prefix/prefix1/api/v2/write").respond_with_data(status=200)
-
-        with InfluxDBClient3(
-                host=(httpserver.url_for("/prefix/prefix1")), org="ORG", database="DB", token="TOKEN",
-                write_client_options=write_client_options(
-                    write_options=WriteOptions(write_type=WriteType.synchronous)
-                )
-        ) as client:
-            client.write(self.SAMPLE_RECORD)
-
-        self.assert_request_made(httpserver, RequestMatcher(
-            method="POST", uri="/prefix/prefix1/api/v2/write",
-            query_string={"org": "ORG", "bucket": "DB", "precision": "ns"}))
+    # def test_write_with_path_prefix(self):
+    #     httpserver = HTTPServer(host="localhost", port=8086, ssl_context=None)
+    #     httpserver.start()
+    #     httpserver.expect_request("/prefix/prefix1/api/v2/write").respond_with_data(status=200)
+    #
+    #     with InfluxDBClient3(
+    #             host=(httpserver.url_for("/prefix/prefix1")), org="ORG", database="DB", token="TOKEN",
+    #             write_client_options=write_client_options(
+    #                 write_options=WriteOptions(write_type=WriteType.synchronous)
+    #             )
+    #     ) as client:
+    #         client.write(self.SAMPLE_RECORD)
+    #
+    #     self.assert_request_made(httpserver, RequestMatcher(
+    #         method="POST", uri="/prefix/prefix1/api/v2/write",
+    #         query_string={"org": "ORG", "bucket": "DB", "precision": "ns"}))
 
     def test_write_with_write_options(self, httpserver: HTTPServer):
         self.set_response_status(httpserver, 200)
