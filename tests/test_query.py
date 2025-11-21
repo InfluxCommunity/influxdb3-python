@@ -436,7 +436,7 @@ Aw==
     @asyncio_run
     async def test_query_async_timeout(self):
         with pytest.raises(FlightTimedOutError):
-            with ConstantFlightServer() as server:
+            with ConstantFlightServerDelayed() as server:
                 connection_string = f"grpc://localhost:{server.port}"
                 token = "my_token"
                 database = "my_database"
@@ -452,7 +452,7 @@ Aw==
 
     def test_query_timeout_per_call_override(self):
         with pytest.raises(FlightTimedOutError):
-            with ConstantFlightServer() as server:
+            with ConstantFlightServerDelayed() as server:
                 connection_string = f"grpc://localhost:{server.port}"
                 token = "my_token"
                 database = "my_database"
