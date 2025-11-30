@@ -2,6 +2,17 @@
 
 # 0.17.0 [unreleased]
 
+### Features
+
+1. [#177](https://github.com/InfluxCommunity/influxdb3-python/pull/177): Add dedicated DataFrame methods for improved usability and type safety:
+   - `write_dataframe()`: New method for writing pandas and polars DataFrames with explicit parameters (`measurement`, `timestamp_column`, `tags`, `timestamp_timezone`).
+   - `query_dataframe()`: New method for querying data directly to a pandas or polars DataFrame via the `frame_type` parameter.
+   - Updated README with clear examples for DataFrame operations.
+
+### Bug Fixes
+
+1. [#177](https://github.com/InfluxCommunity/influxdb3-python/pull/177): Fix `TypeError` when writing DataFrames. Serializer-specific kwargs (e.g., `data_frame_measurement_name`) are now filtered before being passed to the HTTP layer.
+
 ### CI
 
 1. [#164](https://github.com/InfluxCommunity/influxdb3-python/pull/164): Fix pipelines not downloading the correct python images.

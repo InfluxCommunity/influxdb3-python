@@ -2,6 +2,7 @@ import re
 import time
 from http import HTTPStatus
 
+import pandas as pd
 import pytest
 from pytest_httpserver import HTTPServer, RequestMatcher
 from urllib3.exceptions import TimeoutError as urllib3_TimeoutError
@@ -183,3 +184,32 @@ class TestWriteLocalServer:
                 ),
                 enable_gzip=True
             ).write(self.SAMPLE_RECORD, _request_timeout=1)
+
+    def test_write_dataframe_does_not_raise_type_error(self, httpserver: HTTPServer):
+        """
+        Regression test: writing a DataFrame should not raise TypeError.
+
+        Before the fix, serializer kwargs were passed to post_write(), causing a TypeError.
+        """
+        self.set_response_status(httpserver, 200)
+
+        df = pd.DataFrame({
+            'time': pd.to_datetime(['2024-01-01', '2024-01-02']),
+            'city': ['London', 'Paris'],
+            'temperature': [15.0, 18.0]
+        })
+
+        try:
+            InfluxDBClient3(
+                host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN",
+                write_client_options=write_client_options(
+                    write_options=WriteOptions(write_type=WriteType.synchronous)
+                )
+            ).write_dataframe(
+                df,
+                measurement='weather',
+                timestamp_column='time',
+                tags=['city']
+            )
+        except TypeError as e:
+            pytest.fail(f"write_dataframe raised TypeError: {e}")
