@@ -134,14 +134,46 @@ print(f'DONE writing from csv in {callback.write_count} batch(es)')
 
 ```
 
-### Pandas DF
+### Pandas DataFrame
 ```python
-client._write_api.write(bucket="pokemon-codex", record=pd_df, data_frame_measurement_name='caught', data_frame_tag_columns=['trainer', 'id', 'num'], data_frame_timestamp_column='timestamp')
+import pandas as pd
+
+# Create a DataFrame with a timestamp column
+df = pd.DataFrame({
+    'time': pd.to_datetime(['2024-01-01', '2024-01-02', '2024-01-03']),
+    'trainer': ['Ash', 'Misty', 'Brock'],
+    'pokemon_id': [25, 120, 74],
+    'pokemon_name': ['Pikachu', 'Staryu', 'Geodude']
+})
+
+# Write the DataFrame - timestamp_column is required for consistency
+client.write_dataframe(
+    df,
+    measurement='caught',
+    timestamp_column='time',
+    tags=['trainer', 'pokemon_id']
+)
 ```
 
-### Polars DF
+### Polars DataFrame
 ```python
-client._write_api.write(bucket="pokemon-codex", record=pl_df, data_frame_measurement_name='caught', data_frame_tag_columns=['trainer', 'id', 'num'], data_frame_timestamp_column='timestamp')
+import polars as pl
+
+# Create a DataFrame with a timestamp column
+df = pl.DataFrame({
+    'time': ['2024-01-01T00:00:00Z', '2024-01-02T00:00:00Z'],
+    'trainer': ['Ash', 'Misty'],
+    'pokemon_id': [25, 120],
+    'pokemon_name': ['Pikachu', 'Staryu']
+})
+
+# Write the DataFrame - same API works for both pandas and polars
+client.write_dataframe(
+    df,
+    measurement='caught',
+    timestamp_column='time',
+    tags=['trainer', 'pokemon_id']
+)
 ```
 
 ## Querying
@@ -152,6 +184,15 @@ query = "select * from measurement"
 reader = client.query(query=query, language="sql")
 table = reader.read_all()
 print(table.to_pandas().to_markdown())
+```
+
+### Querying to DataFrame
+```python
+# Query directly to a pandas DataFrame (default)
+df = client.query_dataframe("SELECT * FROM caught WHERE trainer = 'Ash'")
+
+# Query to a polars DataFrame
+df = client.query_dataframe("SELECT * FROM caught", frame_type="polars")
 ```
 
 ### Querying with influxql

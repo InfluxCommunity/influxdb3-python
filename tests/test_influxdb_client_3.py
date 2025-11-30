@@ -1,6 +1,6 @@
 import re
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from pytest_httpserver import HTTPServer
 
@@ -10,6 +10,14 @@ from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
 from influxdb_client_3.write_client.rest import ApiException
 from tests.util import asyncio_run
 from tests.util.mocks import ConstantFlightServer, ConstantData, ErrorFlightServer
+
+import pandas as pd
+
+try:
+    import polars as pl
+    HAS_POLARS = True
+except ImportError:
+    HAS_POLARS = False
 
 
 def http_server():
@@ -351,6 +359,186 @@ class TestInfluxDBClient3(unittest.TestCase):
             InfluxDBClient3(
                 host=f'http://{server.host}:{server.port}', org="ORG", database="DB", token="TOKEN"
             ).get_server_version()
+
+
+class TestWriteDataFrame(unittest.TestCase):
+    """Tests for the write_dataframe() method."""
+
+    @patch('influxdb_client_3._InfluxDBClient')
+    @patch('influxdb_client_3._WriteApi')
+    @patch('influxdb_client_3._QueryApi')
+    def setUp(self, mock_query_api, mock_write_api, mock_influx_db_client):
+        self.mock_write_api = mock_write_api
+        self.client = InfluxDBClient3(
+            host="localhost",
+            org="my_org",
+            database="my_db",
+            token="my_token"
+        )
+
+    def test_write_dataframe_with_pandas(self):
+        """Test write_dataframe() with a pandas DataFrame."""
+        df = pd.DataFrame({
+            'time': pd.to_datetime(['2024-01-01', '2024-01-02']),
+            'city': ['London', 'Paris'],
+            'temperature': [15.0, 18.0]
+        })
+
+        self.client.write_dataframe(
+            df,
+            measurement='weather',
+            timestamp_column='time',
+            tags=['city']
+        )
+
+        # Verify _write_api.write was called with correct parameters
+        self.client._write_api.write.assert_called_once()
+        call_kwargs = self.client._write_api.write.call_args[1]
+        self.assertEqual(call_kwargs['bucket'], 'my_db')
+        self.assertEqual(call_kwargs['data_frame_measurement_name'], 'weather')
+        self.assertEqual(call_kwargs['data_frame_tag_columns'], ['city'])
+        self.assertEqual(call_kwargs['data_frame_timestamp_column'], 'time')
+
+    def test_write_dataframe_with_custom_database(self):
+        """Test write_dataframe() with a custom database."""
+        df = pd.DataFrame({
+            'time': pd.to_datetime(['2024-01-01']),
+            'value': [42.0]
+        })
+
+        self.client.write_dataframe(
+            df,
+            measurement='test',
+            timestamp_column='time',
+            database='other_db'
+        )
+
+        call_kwargs = self.client._write_api.write.call_args[1]
+        self.assertEqual(call_kwargs['bucket'], 'other_db')
+
+    def test_write_dataframe_with_timezone(self):
+        """Test write_dataframe() with timestamp timezone."""
+        df = pd.DataFrame({
+            'time': pd.to_datetime(['2024-01-01']),
+            'value': [42.0]
+        })
+
+        self.client.write_dataframe(
+            df,
+            measurement='test',
+            timestamp_column='time',
+            timestamp_timezone='UTC'
+        )
+
+        call_kwargs = self.client._write_api.write.call_args[1]
+        self.assertEqual(call_kwargs['data_frame_timestamp_timezone'], 'UTC')
+
+    def test_write_dataframe_raises_type_error_for_invalid_input(self):
+        """Test write_dataframe() raises TypeError for non-DataFrame input."""
+        with self.assertRaises(TypeError) as context:
+            self.client.write_dataframe(
+                [1, 2, 3],  # A list, not a DataFrame
+                measurement='test',
+                timestamp_column='time'
+            )
+        self.assertIn("Expected a pandas or polars DataFrame", str(context.exception))
+        self.assertIn("list", str(context.exception))
+
+    def test_write_dataframe_raises_type_error_for_dict(self):
+        """Test write_dataframe() raises TypeError for dict input."""
+        with self.assertRaises(TypeError) as context:
+            self.client.write_dataframe(
+                {'time': [1, 2], 'value': [10, 20]},
+                measurement='test',
+                timestamp_column='time'
+            )
+        self.assertIn("Expected a pandas or polars DataFrame", str(context.exception))
+
+    @unittest.skipUnless(HAS_POLARS, "Polars not installed")
+    def test_write_dataframe_with_polars(self):
+        """Test write_dataframe() with a polars DataFrame."""
+        df = pl.DataFrame({
+            'time': ['2024-01-01', '2024-01-02'],
+            'city': ['London', 'Paris'],
+            'temperature': [15.0, 18.0]
+        })
+
+        self.client.write_dataframe(
+            df,
+            measurement='weather',
+            timestamp_column='time',
+            tags=['city']
+        )
+
+        # Verify _write_api.write was called with correct parameters
+        self.client._write_api.write.assert_called_once()
+        call_kwargs = self.client._write_api.write.call_args[1]
+        self.assertEqual(call_kwargs['data_frame_measurement_name'], 'weather')
+        self.assertEqual(call_kwargs['data_frame_tag_columns'], ['city'])
+
+
+class TestQueryDataFrame(unittest.TestCase):
+    """Tests for the query_dataframe() method."""
+
+    def test_query_dataframe_returns_pandas_by_default(self):
+        """Test query_dataframe() returns pandas DataFrame by default."""
+        with ConstantFlightServer() as server:
+            client = InfluxDBClient3(
+                host=f"http://localhost:{server.port}",
+                org="my_org",
+                database="my_db",
+                token="my_token",
+            )
+
+            result = client.query_dataframe("SELECT * FROM test")
+
+            # Should return a pandas DataFrame
+            self.assertIsInstance(result, pd.DataFrame)
+
+    def test_query_dataframe_with_sql_language(self):
+        """Test query_dataframe() with explicit SQL language."""
+        with ConstantFlightServer() as server:
+            client = InfluxDBClient3(
+                host=f"http://localhost:{server.port}",
+                org="my_org",
+                database="my_db",
+                token="my_token",
+            )
+
+            result = client.query_dataframe("SELECT * FROM test", language="sql")
+            self.assertIsInstance(result, pd.DataFrame)
+
+    @unittest.skipUnless(HAS_POLARS, "Polars not installed")
+    def test_query_dataframe_returns_polars_when_requested(self):
+        """Test query_dataframe() returns polars DataFrame when frame_type='polars'."""
+        with ConstantFlightServer() as server:
+            client = InfluxDBClient3(
+                host=f"http://localhost:{server.port}",
+                org="my_org",
+                database="my_db",
+                token="my_token",
+            )
+
+            result = client.query_dataframe("SELECT * FROM test", frame_type="polars")
+
+            # Should return a polars DataFrame
+            self.assertIsInstance(result, pl.DataFrame)
+
+    @patch('influxdb_client_3.polars', False)
+    def test_query_dataframe_raises_import_error_for_polars_when_not_installed(self):
+        """Test query_dataframe() raises ImportError when polars is requested but not installed."""
+        with ConstantFlightServer() as server:
+            client = InfluxDBClient3(
+                host=f"http://localhost:{server.port}",
+                org="my_org",
+                database="my_db",
+                token="my_token",
+            )
+
+            with self.assertRaises(ImportError) as context:
+                client.query_dataframe("SELECT * FROM test", frame_type="polars")
+            self.assertIn("Polars is not installed", str(context.exception))
+            self.assertIn("pip install polars", str(context.exception))
 
 
 if __name__ == '__main__':

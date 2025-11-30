@@ -1,9 +1,13 @@
 import importlib.util
 import os
 import urllib.parse
-from typing import Any
+from typing import Any, List, Literal, Optional, TYPE_CHECKING
 
 import pyarrow as pa
+
+if TYPE_CHECKING:
+    import pandas as pd
+    import polars as pl
 from pyarrow import ArrowException
 
 from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
@@ -385,6 +389,77 @@ class InfluxDBClient3:
         except InfluxDBError as e:
             raise e
 
+    def write_dataframe(
+        self,
+        df: "pd.DataFrame | pl.DataFrame",
+        measurement: str,
+        timestamp_column: str,
+        tags: Optional[List[str]] = None,
+        timestamp_timezone: Optional[str] = None,
+        database: Optional[str] = None,
+        **kwargs
+    ):
+        """
+        Write a DataFrame to InfluxDB.
+
+        This method supports both pandas and polars DataFrames, automatically detecting
+        the DataFrame type and using the appropriate serializer.
+
+        :param df: The DataFrame to write. Can be a pandas or polars DataFrame.
+        :type df: pandas.DataFrame or polars.DataFrame
+        :param measurement: The name of the measurement to write to.
+        :type measurement: str
+        :param timestamp_column: The name of the column containing timestamps.
+                                 This parameter is required for consistency between pandas and polars.
+        :type timestamp_column: str
+        :param tags: List of column names to use as tags. Remaining columns will be fields.
+        :type tags: list[str], optional
+        :param timestamp_timezone: Timezone for the timestamp column (e.g., 'UTC', 'America/New_York').
+        :type timestamp_timezone: str, optional
+        :param database: The database to write to. If not provided, uses the database from initialization.
+        :type database: str, optional
+        :param kwargs: Additional arguments to pass to the write API.
+        :raises TypeError: If df is not a pandas or polars DataFrame.
+        :raises InfluxDBError: If there is an error writing to the database.
+
+        Example:
+            >>> import pandas as pd
+            >>> df = pd.DataFrame({
+            ...     'time': pd.to_datetime(['2024-01-01', '2024-01-02']),
+            ...     'city': ['London', 'Paris'],
+            ...     'temperature': [15.0, 18.0]
+            ... })
+            >>> client.write_dataframe(
+            ...     df,
+            ...     measurement='weather',
+            ...     timestamp_column='time',
+            ...     tags=['city']
+            ... )
+        """
+        if database is None:
+            database = self._database
+
+        # Detect DataFrame type
+        df_type = str(type(df))
+        if 'pandas' not in df_type and 'polars' not in df_type:
+            raise TypeError(
+                f"Expected a pandas or polars DataFrame, but got {type(df).__name__}. "
+                "Please pass a valid DataFrame object."
+            )
+
+        try:
+            return self._write_api.write(
+                bucket=database,
+                record=df,
+                data_frame_measurement_name=measurement,
+                data_frame_tag_columns=tags or [],
+                data_frame_timestamp_column=timestamp_column,
+                data_frame_timestamp_timezone=timestamp_timezone,
+                **kwargs
+            )
+        except InfluxDBError as e:
+            raise e
+
     def write_file(self, file, measurement_name=None, tag_columns=None, timestamp_column='time', database=None,
                    file_parser_options=None, **kwargs):
         """
@@ -466,6 +541,51 @@ class InfluxDBClient3:
             return self._query_api.query(query=query, language=language, mode=mode, database=database, **kwargs)
         except ArrowException as e:
             raise InfluxDB3ClientQueryError(f"Error while executing query: {e}")
+
+    def query_dataframe(
+        self,
+        query: str,
+        language: str = "sql",
+        database: Optional[str] = None,
+        frame_type: Literal["pandas", "polars"] = "pandas",
+        **kwargs
+    ) -> "pd.DataFrame | pl.DataFrame":
+        """
+        Query data from InfluxDB and return as a DataFrame.
+
+        This is a convenience method that wraps query() and returns the result
+        directly as a pandas or polars DataFrame.
+
+        :param query: The query to execute on the database.
+        :type query: str
+        :param language: The query language to use. Should be "sql" or "influxql". Defaults to "sql".
+        :type language: str
+        :param database: The database to query from. If not provided, uses the database from initialization.
+        :type database: str, optional
+        :param frame_type: The type of DataFrame to return. Either "pandas" or "polars". Defaults to "pandas".
+        :type frame_type: Literal["pandas", "polars"]
+        :param kwargs: Additional arguments to pass to the query API.
+        :keyword query_parameters: Query parameters as a dictionary of key-value pairs.
+        :return: Query result as a pandas or polars DataFrame.
+        :rtype: pandas.DataFrame or polars.DataFrame
+        :raises ImportError: If polars is requested but not installed.
+
+        Example:
+            >>> # Query and get a pandas DataFrame
+            >>> df = client.query_dataframe("SELECT * FROM weather WHERE city = 'London'")
+            >>>
+            >>> # Query and get a polars DataFrame
+            >>> df = client.query_dataframe(
+            ...     "SELECT * FROM weather",
+            ...     frame_type="polars"
+            ... )
+        """
+        if frame_type == "polars" and polars is False:
+            raise ImportError(
+                "Polars is not installed. Please install it with `pip install polars`."
+            )
+
+        return self.query(query=query, language=language, mode=frame_type, database=database, **kwargs)
 
     async def query_async(self, query: str, language: str = "sql", mode: str = "all", database: str = None, **kwargs):
         """Query data from InfluxDB asynchronously.
