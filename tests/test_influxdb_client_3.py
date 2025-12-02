@@ -1,6 +1,6 @@
 import re
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from pytest_httpserver import HTTPServer
 
