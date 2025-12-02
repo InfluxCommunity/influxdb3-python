@@ -27,6 +27,21 @@ from influxdb_client_3.write_client.rest import _UTF_8_encoding
 DEFAULT_WRITE_NO_SYNC = False
 DEFAULT_WRITE_TIMEOUT = 10_000
 
+# Kwargs consumed during serialization that should not be passed to _post_write
+SERIALIZER_KWARGS = {
+    # DataFrame-specific kwargs
+    'data_frame_measurement_name',
+    'data_frame_tag_columns',
+    'data_frame_timestamp_column',
+    'data_frame_timestamp_timezone',
+    # Record-specific kwargs (dict, NamedTuple, dataclass)
+    'record_measurement_key',
+    'record_measurement_name',
+    'record_time_key',
+    'record_tag_keys',
+    'record_field_keys',
+}
+
 logger = logging.getLogger('influxdb_client_3.write_client.client.write_api')
 
 if _HAS_DATACLASS:
@@ -397,9 +412,12 @@ You can use native asynchronous version of the client:
 
         _async_req = True if self._write_options.write_type == WriteType.asynchronous else False
 
+        # Filter out serializer-specific kwargs before passing to _post_write
+        http_kwargs = {k: v for k, v in kwargs.items() if k not in SERIALIZER_KWARGS}
+
         def write_payload(payload):
             final_string = b'\n'.join(payload[1])
-            return self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync, **kwargs)
+            return self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync, **http_kwargs)
 
         results = list(map(write_payload, payloads.items()))
         if not _async_req:
