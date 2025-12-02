@@ -4,6 +4,7 @@ import pyarrow
 import pytest
 import random
 import string
+import sys
 import time
 import unittest
 
@@ -455,3 +456,115 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         self.assertEqual(lp, ErrorResult["rd"].decode('utf-8'))
         self.assertIsNotNone(ErrorResult["rx"])
         self.assertIsInstance(ErrorResult["rx"], Url3TimeoutError)
+
+    def test_disable_grpc_compression(self):
+        """
+        Test that disable_grpc_compression parameter controls query response compression.
+
+        On Python 3.10+: Uses mitmproxy to intercept and verify request+response headers.
+        On Python <3.10: Only verifies data integrity (mitmproxy not available).
+        """
+        # Test cases
+        test_cases = [
+            {
+                'name': 'default',
+                'disable_grpc_compression': None,
+                'expected_req_encoding': 'identity, deflate, gzip',
+                'expected_resp_encoding': 'gzip',
+            },
+            {
+                'name': 'disabled=False',
+                'disable_grpc_compression': False,
+                'expected_req_encoding': 'identity, deflate, gzip',
+                'expected_resp_encoding': 'gzip',
+            },
+            {
+                'name': 'disabled=True',
+                'disable_grpc_compression': True,
+                'expected_req_encoding': 'identity',
+                'expected_resp_encoding': None,
+            },
+        ]
+
+        # Check if mitmproxy is available (Python 3.10+ only)
+        mitmproxy_available = sys.version_info >= (3, 10)
+        proxy = None
+        proxy_url = None
+
+        if mitmproxy_available:
+            try:
+                from tests.util.mitmproxy import MitmproxyServer
+                proxy = MitmproxyServer()
+                proxy.__enter__()
+                proxy_url = proxy.url
+            except ImportError as e:
+                logging.error(f"mitmproxy not available: {e}")
+                mitmproxy_available = False
+
+        try:
+            test_id = time.time_ns()
+            measurement = f'grpc_compression_test_{random_hex(6)}'
+
+            # Write test data points
+            num_points = 10
+            lines = [
+                f'{measurement},type=test value={i}.0,counter={i}i,test_id={test_id}i {test_id + i * 1000000}'
+                for i in range(num_points)
+            ]
+            self.client.write('\n'.join(lines))
+
+            test_query = f"SELECT * FROM \"{measurement}\" WHERE test_id = {test_id} ORDER BY counter"
+
+            # Wait for data to be available
+            result = None
+            start = time.time()
+            while time.time() - start < 10:
+                result = self.client.query(test_query, mode="all")
+                if len(result) >= num_points:
+                    break
+                time.sleep(0.5)
+            self.assertEqual(len(result), num_points, "Data not available after write")
+
+            for tc in test_cases:
+                name = tc['name']
+
+                # Build client kwargs
+                client_kwargs = {
+                    'host': self.host,
+                    'database': self.database,
+                    'token': self.token,
+                    'proxy': proxy_url,
+                    'verify_ssl': False if proxy_url else True,
+                }
+                if tc['disable_grpc_compression'] is not None:
+                    client_kwargs['disable_grpc_compression'] = tc['disable_grpc_compression']
+
+                client = InfluxDBClient3(**client_kwargs)
+                try:
+                    result = client.query(test_query, mode="all")
+                    self.assertEqual(len(result), num_points, f"[{name}] Should return {num_points} rows")
+                finally:
+                    client.close()
+
+                # Verify headers (Python 3.10+ only)
+                if mitmproxy_available and proxy:
+                    req_encoding = proxy.capture.get_last_request_header('grpc-accept-encoding')
+                    resp_encoding = proxy.capture.get_last_response_header('grpc-encoding')
+
+                    print(f"\n[{name}] Request grpc-accept-encoding: {req_encoding}")
+                    print(f"[{name}] Response grpc-encoding: {resp_encoding}")
+
+                    self.assertEqual(req_encoding, tc['expected_req_encoding'],
+                                     f"[{name}] Unexpected request encoding")
+
+                    if tc['expected_resp_encoding']:
+                        self.assertEqual(resp_encoding, tc['expected_resp_encoding'],
+                                         f"[{name}] Unexpected response encoding")
+                    else:
+                        self.assertTrue(resp_encoding is None or resp_encoding == 'identity',
+                                        f"[{name}] Expected no compression, got: {resp_encoding}")
+
+                    proxy.capture.clear()
+        finally:
+            if proxy:
+                proxy.__exit__(None, None, None)

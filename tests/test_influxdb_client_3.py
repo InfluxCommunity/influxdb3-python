@@ -302,6 +302,74 @@ class TestInfluxDBClient3(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, ".*Must be non-negative.*"):
             InfluxDBClient3.from_env()
 
+    def assertGrpcCompressionDisabled(self, client, disabled):
+        """Assert whether gRPC compression is disabled for the client."""
+        self.assertIsInstance(client, InfluxDBClient3)
+        generic_options = dict(client._query_api._flight_client_options['generic_options'])
+        if disabled:
+            self.assertEqual(generic_options.get('grpc.compression_enabled_algorithms_bitset'), 1)
+        else:
+            self.assertIsNone(generic_options.get('grpc.compression_enabled_algorithms_bitset'))
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_DISABLE_GRPC_COMPRESSION': 'true'})
+    def test_from_env_disable_grpc_compression_true(self):
+        client = InfluxDBClient3.from_env()
+        self.assertGrpcCompressionDisabled(client, True)
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_DISABLE_GRPC_COMPRESSION': 'TrUe'})
+    def test_from_env_disable_grpc_compression_true_mixed_case(self):
+        client = InfluxDBClient3.from_env()
+        self.assertGrpcCompressionDisabled(client, True)
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_DISABLE_GRPC_COMPRESSION': '1'})
+    def test_from_env_disable_grpc_compression_one(self):
+        client = InfluxDBClient3.from_env()
+        self.assertGrpcCompressionDisabled(client, True)
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_DISABLE_GRPC_COMPRESSION': 'false'})
+    def test_from_env_disable_grpc_compression_false(self):
+        client = InfluxDBClient3.from_env()
+        self.assertGrpcCompressionDisabled(client, False)
+
+    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
+                               'INFLUX_DATABASE': 'test_db', 'INFLUX_DISABLE_GRPC_COMPRESSION': 'anything-else'})
+    def test_from_env_disable_grpc_compression_anything_else_is_false(self):
+        client = InfluxDBClient3.from_env()
+        self.assertGrpcCompressionDisabled(client, False)
+
+    def test_disable_grpc_compression_parameter_true(self):
+        client = InfluxDBClient3(
+            host="localhost",
+            org="my_org",
+            database="my_db",
+            token="my_token",
+            disable_grpc_compression=True
+        )
+        self.assertGrpcCompressionDisabled(client, True)
+
+    def test_disable_grpc_compression_parameter_false(self):
+        client = InfluxDBClient3(
+            host="localhost",
+            org="my_org",
+            database="my_db",
+            token="my_token",
+            disable_grpc_compression=False
+        )
+        self.assertGrpcCompressionDisabled(client, False)
+
+    def test_disable_grpc_compression_default_is_false(self):
+        client = InfluxDBClient3(
+            host="localhost",
+            org="my_org",
+            database="my_db",
+            token="my_token",
+        )
+        self.assertGrpcCompressionDisabled(client, False)
+
     def test_query_with_arrow_error(self):
         f = ErrorFlightServer()
         with InfluxDBClient3(f"http://localhost:{f.port}", "my_org", "my_db", "my_token") as c:

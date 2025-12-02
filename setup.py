@@ -51,7 +51,12 @@ setup(
         'pandas': ['pandas'],
         'polars': ['polars'],
         'dataframe': ['pandas', 'polars'],
-        'test': ['pytest', 'pytest-cov', 'pytest-httpserver']
+        'test': [
+            'pytest',
+            'pytest-cov',
+            'pytest-httpserver',
+            'mitmproxy>=11.0.0,<12.0.0; python_version>="3.10"',
+        ]
     },
     install_requires=requires,
     python_requires='>=3.8',
