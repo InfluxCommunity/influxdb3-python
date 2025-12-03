@@ -464,7 +464,7 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         Supports both h2c (cleartext) and h2 (TLS) connections.
         """
         from urllib.parse import urlparse
-        from tests.util.h2c_proxy import H2HeaderProxy
+        from tests.util.h2_proxy import H2HeaderProxy
 
         # Test cases
         test_cases = [
