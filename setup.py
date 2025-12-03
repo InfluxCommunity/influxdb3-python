@@ -55,7 +55,8 @@ setup(
             'pytest',
             'pytest-cov',
             'pytest-httpserver',
-            'mitmproxy>=11.0.0,<12.0.0; python_version>="3.10"',
+            'h2>=4.0.0,<5.0.0',
+            'cryptography>=3.4.0',
         ]
     },
     install_requires=requires,
