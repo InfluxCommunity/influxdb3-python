@@ -244,6 +244,7 @@ class H2HeaderProxy:
             # Wrap upstream with TLS if enabled
             if self.upstream_tls:
                 upstream_ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                upstream_ssl_ctx.minimum_version = ssl.TLSVersion.TLSv1_2
                 upstream_ssl_ctx.set_alpn_protocols(['h2'])
                 upstream_ssl_ctx.check_hostname = False
                 upstream_ssl_ctx.verify_mode = ssl.CERT_NONE
