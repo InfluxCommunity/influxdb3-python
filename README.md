@@ -204,9 +204,32 @@ print(table.to_pandas().to_markdown())
 ```
 
 ### gRPC compression
-The Python client supports gRPC response compression.  
-If the server chooses to compress query responses (e.g., with gzip), the client
-will automatically decompress them — no extra configuration is required.
+
+#### Request compression
+
+Request compression is not supported by InfluxDB 3 — the client sends uncompressed requests.
+
+#### Response compression
+
+Response compression is enabled by default. The client sends the `grpc-accept-encoding: identity, deflate, gzip`
+header, and the server returns gzip-compressed responses (if supported). The client automatically
+decompresses them — no configuration required.
+
+To **disable response compression**:
+
+```python
+# Via constructor parameter
+client = InfluxDBClient3(
+    host="your-host",
+    token="your-token",
+    database="your-database",
+    disable_grpc_compression=True
+)
+
+# Or via environment variable
+# INFLUX_DISABLE_GRPC_COMPRESSION=true
+client = InfluxDBClient3.from_env()
+```
 
 ## Windows Users
 Currently, Windows users require an extra installation when querying via Flight natively. This is due to the fact gRPC cannot locate Windows root certificates. To work around this please follow these steps:

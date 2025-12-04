@@ -8,6 +8,10 @@
    - `write_dataframe()`: New method for writing pandas and polars DataFrames with explicit parameters (`measurement`, `timestamp_column`, `tags`, `timestamp_timezone`).
    - `query_dataframe()`: New method for querying data directly to a pandas or polars DataFrame via the `frame_type` parameter.
    - Updated README with clear examples for DataFrame operations.
+1. [#179](https://github.com/InfluxCommunity/influxdb3-python/pull/179): Add option to disable gRPC response
+   compression for Flight queries:
+    - `disable_grpc_compression` parameter in `InfluxDBClient3` constructor
+    - `INFLUX_DISABLE_GRPC_COMPRESSION` environment variable support in `from_env()`
 
 ### Bug Fixes
 

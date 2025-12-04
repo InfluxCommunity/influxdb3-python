@@ -31,6 +31,7 @@ INFLUX_GZIP_THRESHOLD = "INFLUX_GZIP_THRESHOLD"
 INFLUX_WRITE_NO_SYNC = "INFLUX_WRITE_NO_SYNC"
 INFLUX_WRITE_TIMEOUT = "INFLUX_WRITE_TIMEOUT"
 INFLUX_QUERY_TIMEOUT = "INFLUX_QUERY_TIMEOUT"
+INFLUX_DISABLE_GRPC_COMPRESSION = "INFLUX_DISABLE_GRPC_COMPRESSION"
 
 
 def write_client_options(**kwargs):
@@ -190,6 +191,7 @@ class InfluxDBClient3:
             flight_client_options=None,
             write_port_overwrite=None,
             query_port_overwrite=None,
+            disable_grpc_compression=False,
             **kwargs):
         """
         Initialize an InfluxDB client.
@@ -206,6 +208,8 @@ class InfluxDBClient3:
         :type write_client_options: dict[str, any]
         :param flight_client_options: dictionary for providing additional arguments for the FlightClient.
         :type flight_client_options: dict[str, any]
+        :param disable_grpc_compression: Disable gRPC compression for Flight query responses. Default is False.
+        :type disable_grpc_compression: bool
         :key auth_scheme: token authentication scheme. Set to "Bearer" for Edge.
         :key bool verify_ssl: Set this to false to skip verifying SSL certificate when calling API from https server.
         :key str ssl_ca_cert: Set this to customize the certificate file to verify the peer.
@@ -291,6 +295,8 @@ class InfluxDBClient3:
             connection_string = f"grpc+tcp://{hostname}:{port}"
 
         q_opts_builder = QueryApiOptionsBuilder()
+        if disable_grpc_compression:
+            q_opts_builder.disable_grpc_compression(True)
         if kw_keys.__contains__('ssl_ca_cert'):
             q_opts_builder.root_certs(kwargs.get('ssl_ca_cert', None))
         if kw_keys.__contains__('verify_ssl'):
@@ -361,6 +367,12 @@ class InfluxDBClient3:
         if os.getenv(INFLUX_AUTH_SCHEME) is not None:
             kwargs['auth_scheme'] = os.getenv(INFLUX_AUTH_SCHEME)
 
+        disable_grpc_compression = os.getenv(INFLUX_DISABLE_GRPC_COMPRESSION)
+        if disable_grpc_compression is not None:
+            disable_grpc_compression = disable_grpc_compression.strip().lower() in ['true', '1', 't', 'y', 'yes']
+        else:
+            disable_grpc_compression = False
+
         org = os.getenv(INFLUX_ORG, "default")
         return InfluxDBClient3(
             host=required_vars[INFLUX_HOST],
@@ -368,6 +380,7 @@ class InfluxDBClient3:
             database=required_vars[INFLUX_DATABASE],
             write_client_options=write_client_option,
             org=org,
+            disable_grpc_compression=disable_grpc_compression,
             **kwargs
         )
 

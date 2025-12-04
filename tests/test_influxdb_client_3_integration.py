@@ -455,3 +455,130 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         self.assertEqual(lp, ErrorResult["rd"].decode('utf-8'))
         self.assertIsNotNone(ErrorResult["rx"])
         self.assertIsInstance(ErrorResult["rx"], Url3TimeoutError)
+
+    def test_disable_grpc_compression(self):
+        """
+        Test that disable_grpc_compression parameter controls query response compression.
+
+        Uses H2HeaderProxy to intercept and verify gRPC headers over HTTP/2.
+        Supports both h2c (cleartext) and h2 (TLS) connections.
+        """
+        from urllib.parse import urlparse
+        from tests.util.h2_proxy import H2HeaderProxy
+
+        # Test cases
+        test_cases = [
+            {
+                'name': 'default',
+                'disable_grpc_compression': None,
+                'expected_req_encoding': 'identity, deflate, gzip',
+                'expected_resp_encoding': 'gzip',
+            },
+            {
+                'name': 'disabled=False',
+                'disable_grpc_compression': False,
+                'expected_req_encoding': 'identity, deflate, gzip',
+                'expected_resp_encoding': 'gzip',
+            },
+            {
+                'name': 'disabled=True',
+                'disable_grpc_compression': True,
+                'expected_req_encoding': 'identity',
+                'expected_resp_encoding': None,
+            },
+        ]
+
+        # Parse upstream host/port from test URL
+        parsed = urlparse(self.host)
+        upstream_host = parsed.hostname or '127.0.0.1'
+        upstream_port = parsed.port or (443 if parsed.scheme == 'https' else 80)
+        use_tls = parsed.scheme == 'https'
+
+        test_id = time.time_ns()
+        measurement = f'grpc_compression_test_{random_hex(6)}'
+
+        # Write test data points
+        num_points = 10
+        lines = [
+            f'{measurement},type=test value={i}.0,counter={i}i,test_id={test_id}i {test_id + i * 1000000}'
+            for i in range(num_points)
+        ]
+        self.client.write('\n'.join(lines))
+
+        test_query = f"SELECT * FROM \"{measurement}\" WHERE test_id = {test_id} ORDER BY counter"
+
+        # Wait for data to be available
+        result = None
+        start = time.time()
+        while time.time() - start < 10:
+            result = self.client.query(test_query, mode="all")
+            if len(result) >= num_points:
+                break
+            time.sleep(0.5)
+        self.assertEqual(len(result), num_points, "Data not available after write")
+
+        for tc in test_cases:
+            name = tc['name']
+            proxy = None
+
+            try:
+                # Start proxy - supports both h2c (cleartext) and h2 (TLS)
+                proxy = H2HeaderProxy(
+                    upstream_host=upstream_host,
+                    upstream_port=upstream_port,
+                    tls=use_tls,
+                    upstream_tls=use_tls
+                )
+                proxy.start()
+
+                # Build client kwargs
+                client_kwargs = {
+                    'host': proxy.url,
+                    'database': self.database,
+                    'token': self.token,
+                    'verify_ssl': False,  # Accept proxy's self-signed cert
+                }
+                if tc['disable_grpc_compression'] is not None:
+                    client_kwargs['disable_grpc_compression'] = tc['disable_grpc_compression']
+
+                client = InfluxDBClient3(**client_kwargs)
+                try:
+                    result = client.query(test_query, mode="all")
+                    self.assertEqual(len(result), num_points, f"[{name}] Should return {num_points} rows")
+                finally:
+                    client.close()
+
+                # Verify headers
+                req_encoding = proxy.get_last_request_header('grpc-accept-encoding')
+                resp_encoding = proxy.get_last_response_header('grpc-encoding')
+
+                print(f"\n[{name}] Request grpc-accept-encoding: {req_encoding}")
+                expected_resp = tc['expected_resp_encoding']
+                if expected_resp and resp_encoding != expected_resp:
+                    print(f"[{name}] Response grpc-encoding: {resp_encoding} "
+                          f"(expected: {expected_resp})")
+                else:
+                    print(f"[{name}] Response grpc-encoding: {resp_encoding}")
+
+                self.assertEqual(req_encoding, tc['expected_req_encoding'],
+                                 f"[{name}] Unexpected request encoding")
+
+                if tc['expected_resp_encoding']:
+                    # Note: InfluxDB 3 Core may not compress responses even when client
+                    # advertises gzip support. Per gRPC spec, servers may choose not to
+                    # compress regardless of client settings. InfluxDB Cloud typically
+                    # compresses, but Core may not. We warn instead of failing.
+                    # See: https://grpc.io/docs/guides/compression/
+                    if resp_encoding != tc['expected_resp_encoding']:
+                        import warnings
+                        warnings.warn(
+                            f"[{name}] Server returned '{resp_encoding}' instead of "
+                            f"'{tc['expected_resp_encoding']}'. This is normal for "
+                            f"InfluxDB 3 Core which may not compress responses."
+                        )
+                else:
+                    self.assertTrue(resp_encoding is None or resp_encoding == 'identity',
+                                    f"[{name}] Expected no compression, got: {resp_encoding}")
+            finally:
+                if proxy:
+                    proxy.stop()

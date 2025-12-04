@@ -51,7 +51,13 @@ setup(
         'pandas': ['pandas'],
         'polars': ['polars'],
         'dataframe': ['pandas', 'polars'],
-        'test': ['pytest', 'pytest-cov', 'pytest-httpserver']
+        'test': [
+            'pytest',
+            'pytest-cov',
+            'pytest-httpserver',
+            'h2>=4.0.0,<5.0.0',
+            'cryptography>=3.4.0',
+        ]
     },
     install_requires=requires,
     python_requires='>=3.8',
