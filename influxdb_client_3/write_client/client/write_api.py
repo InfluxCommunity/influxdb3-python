@@ -287,31 +287,9 @@ class WriteApi(_BaseWriteApi):
         self._retry_callback = kwargs.get('retry_callback', None)
 
         if self._write_options.write_type is WriteType.batching:
-            # Define Subject that listen incoming data and produces writes into InfluxDB
-            self._subject = Subject()
-
-            self._disposable = self._subject.pipe(
-                # Split incoming data to windows by batch_size or flush_interval
-                ops.window_with_time_or_count(count=write_options.batch_size,
-                                              timespan=timedelta(milliseconds=write_options.flush_interval)),
-                # Map  window into groups defined by 'organization', 'bucket' and 'precision'
-                ops.flat_map(lambda window: window.pipe(
-                    # Group window by 'organization', 'bucket' and 'precision'
-                    ops.group_by(lambda batch_item: batch_item.key),
-                    # Create batch (concatenation line protocols by \n)
-                    ops.map(lambda group: group.pipe(
-                        ops.to_iterable(),
-                        ops.map(lambda xs: _BatchItem(key=group.key, data=_body_reduce(xs), size=len(xs))))),
-                    ops.merge_all())),
-                # Write data into InfluxDB (possibility to retry if its fail)
-                ops.filter(lambda batch: batch.size > 0),
-                ops.map(mapper=lambda batch: self._to_response(data=batch, delay=self._jitter_delay())),
-                ops.merge_all()) \
-                .subscribe(self._on_next, self._on_error, self._on_complete)
-
+            self._subject, self._disposable = self._create_batching_pipeline()
         else:
-            self._subject = None
-            self._disposable = None
+            self._subject, self._disposable = None, None
 
         if self._write_options.write_type is WriteType.asynchronous:
             message = """The 'WriteType.asynchronous' is deprecated and will be removed in future major version.
@@ -426,14 +404,88 @@ You can use native asynchronous version of the client:
             return results[0]
         return results
 
+    def _create_batching_pipeline(self) -> tuple[Subject[Any], rx.abc.DisposableBase]:
+        """Create the batching pipeline for collecting and writing data."""
+        # Define Subject that listen incoming data and produces writes into InfluxDB
+        subject = Subject()
+
+        disposable = subject.pipe(
+            # Split incoming data to windows by batch_size or flush_interval
+            ops.window_with_time_or_count(count=self._write_options.batch_size,
+                                          timespan=timedelta(milliseconds=self._write_options.flush_interval)),
+            # Map  window into groups defined by 'organization', 'bucket' and 'precision'
+            ops.flat_map(lambda window: window.pipe(    # type: ignore
+                # Group window by 'organization', 'bucket' and 'precision'
+                ops.group_by(lambda batch_item: batch_item.key),    # type: ignore
+                # Create batch (concatenation line protocols by \n)
+                ops.map(lambda group: group.pipe(   # type: ignore
+                    ops.to_iterable(),
+                    ops.map(lambda xs: _BatchItem(key=group.key, data=_body_reduce(xs), size=len(xs))))),   # type: ignore
+                ops.merge_all())),
+            # Write data into InfluxDB (possibility to retry if its fail)
+            ops.filter(lambda batch: batch.size > 0),
+            ops.map(mapper=lambda batch: self._to_response(data=batch, delay=self._jitter_delay())),
+            ops.merge_all()) \
+            .subscribe(self._on_next, self._on_error, self._on_complete)
+        
+        return subject, disposable
+
     def flush(self):
-        """Flush data."""
-        # TODO
-        pass
+        """
+        Flush any buffered writes to InfluxDB without closing the client.
+
+        This method immediately sends all buffered data points to the server
+        when using batching write mode. After flushing, the client remains
+        open and ready for more writes.
+
+        For synchronous or asynchronous write modes, this is a no-op since
+        data is written immediately.
+        """
+        if self._write_options.write_type is not WriteType.batching:
+            return  # Nothing to flush for synchronous/asynchronous writes
+
+        self.close()  # Close existing batching pipeline
+
+        # Recreate the batching pipeline for continued use
+        self._subject, self._disposable = self._create_batching_pipeline()
 
     def close(self):
         """Flush data and dispose a batching buffer."""
-        self.__del__()
+        if self._subject is None:
+            return  # Already closed
+        
+        self._subject.on_completed()
+        self._subject.dispose()
+        self._subject = None
+
+        """
+        We impose a maximum wait time to ensure that we do not cause a deadlock if the
+        background thread has exited abnormally
+
+        Each iteration waits 100ms, but sleep expects the unit to be seconds so convert
+        the maximum wait time to seconds.
+
+        We keep a counter of how long we've waited
+        """
+        max_wait_time = self._write_options.max_close_wait / 1000
+        waited = 0
+        sleep_period = 0.1
+
+        # Wait for writing to finish
+        while not self._disposable.is_disposed:
+            sleep(sleep_period)
+            waited += sleep_period
+
+            # Have we reached the upper limit?
+            if waited >= max_wait_time:
+                logger.warning(
+                    "Reached max_close_wait (%s seconds) waiting for batches to finish writing. Force closing",
+                    max_wait_time
+                )
+                break
+
+        if self._disposable:
+            self._disposable = None
 
     def __enter__(self):
         """
@@ -452,40 +504,7 @@ You can use native asynchronous version of the client:
 
     def __del__(self):
         """Close WriteApi."""
-        if self._subject:
-            self._subject.on_completed()
-            self._subject.dispose()
-            self._subject = None
-
-            """
-            We impose a maximum wait time to ensure that we do not cause a deadlock if the
-            background thread has exited abnormally
-
-            Each iteration waits 100ms, but sleep expects the unit to be seconds so convert
-            the maximum wait time to seconds.
-
-            We keep a counter of how long we've waited
-            """
-            max_wait_time = self._write_options.max_close_wait / 1000
-            waited = 0
-            sleep_period = 0.1
-
-            # Wait for writing to finish
-            while not self._disposable.is_disposed:
-                sleep(sleep_period)
-                waited += sleep_period
-
-                # Have we reached the upper limit?
-                if waited >= max_wait_time:
-                    logger.warning(
-                        "Reached max_close_wait (%s seconds) waiting for batches to finish writing. Force closing",
-                        max_wait_time
-                    )
-                    break
-
-        if self._disposable:
-            self._disposable = None
-        pass
+        self.close()
 
     def _write_batching(self, bucket, org, data,
                         precision=None,
