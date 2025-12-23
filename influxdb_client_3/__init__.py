@@ -660,6 +660,19 @@ class InfluxDBClient3:
 
         return version
 
+    def flush(self):
+        """
+        Flush any buffered writes to InfluxDB without closing the client.
+
+        This method immediately sends all buffered data points to the server
+        when using batching write mode. After flushing, the client remains
+        open and ready for more writes.
+
+        For synchronous write mode, this is a no-op since data is written
+        immediately.
+        """
+        self._write_api.flush()
+
     def close(self):
         """Close the client and clean up resources."""
         self._write_api.close()

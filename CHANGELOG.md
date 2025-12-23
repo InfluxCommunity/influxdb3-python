@@ -12,6 +12,9 @@
    compression for Flight queries:
     - `disable_grpc_compression` parameter in `InfluxDBClient3` constructor
     - `INFLUX_DISABLE_GRPC_COMPRESSION` environment variable support in `from_env()`
+1. [#180](https://github.com/InfluxCommunity/influxdb3-python/pull/180): Add `flush()` method to `InfluxDBClient3`:
+   - Allows flushing the write buffer without closing the client when using batching mode.
+   - Enables applications to ensure data is written before querying, while keeping the client open for further operations.
 
 ### Bug Fixes
 
