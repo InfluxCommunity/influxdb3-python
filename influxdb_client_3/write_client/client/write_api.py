@@ -420,14 +420,15 @@ You can use native asynchronous version of the client:
                 # Create batch (concatenation line protocols by \n)
                 ops.map(lambda group: group.pipe(   # type: ignore
                     ops.to_iterable(),
-                    ops.map(lambda xs: _BatchItem(key=group.key, data=_body_reduce(xs), size=len(xs))))),   # type: ignore
+                    ops.map(lambda xs: _BatchItem(key=group.key, data=_body_reduce(xs), size=len(xs))))),
+                # type: ignore
                 ops.merge_all())),
             # Write data into InfluxDB (possibility to retry if its fail)
             ops.filter(lambda batch: batch.size > 0),
             ops.map(mapper=lambda batch: self._to_response(data=batch, delay=self._jitter_delay())),
             ops.merge_all()) \
             .subscribe(self._on_next, self._on_error, self._on_complete)
-        
+
         return subject, disposable
 
     def flush(self):
@@ -453,7 +454,7 @@ You can use native asynchronous version of the client:
         """Flush data and dispose a batching buffer."""
         if self._subject is None:
             return  # Already closed
-        
+
         self._subject.on_completed()
         self._subject.dispose()
         self._subject = None
