@@ -27,6 +27,7 @@
     - Remove incorrect symbol `>>` for config.yml.
     - Added spacing for `<<` and `>>` just for consistency.
 1. [176](https://github.com/InfluxCommunity/influxdb3-python/pull/176): Use `ConstantFlightServerDelayed` for timeout tests.
+1. [#183](https://github.com/InfluxCommunity/influxdb3-python/pull/183): Temporarily add annotation to support Python 3.8.
 
 ## 0.16.0 [2025-09-15]
 
