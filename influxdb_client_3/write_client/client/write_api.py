@@ -1,6 +1,8 @@
 """Collect and write time series data to InfluxDB Cloud or InfluxDB OSS."""
 
 # coding: utf-8
+# TODO Remove after this program no longer supports Python 3.8.*
+from __future__ import annotations
 import logging
 import os
 import warnings
