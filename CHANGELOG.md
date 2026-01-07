@@ -2,6 +2,10 @@
 
 # 0.17.0 [unreleased]
 
+### Bug Fixes
+
+1. [#184](https://github.com/InfluxCommunity/influxdb3-python/pull/164): Add support for V3 write error.
+
 ### CI
 
 1. [#164](https://github.com/InfluxCommunity/influxdb3-python/pull/164): Fix pipelines not downloading the correct python images.

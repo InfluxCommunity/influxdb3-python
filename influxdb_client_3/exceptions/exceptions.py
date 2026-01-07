@@ -66,7 +66,43 @@ class InfluxDBError(InfluxDB3ClientError):
                 return get(d.get(key[0]), key[1:])
             try:
                 node = json.loads(response.data)
-                for key in [['message'], ['data', 'error_message'], ['error']]:
+
+                # Check for new format with line error details (data as array)
+                if isinstance(node.get('data'), list) and 'error' in node:
+                    try:
+                        # Extract main error message
+                        main_error = node['error']
+
+                        # Parse line errors
+                        line_errors = []
+                        for item in node['data']:
+                            line_error = {}
+                            if 'error_message' in item:
+                                line_error['error_message'] = item['error_message']
+                            if 'line_number' in item:
+                                line_error['line_number'] = item['line_number']
+                            if 'original_line' in item:
+                                line_error['original_line'] = item['original_line']
+                            if line_error:  # Only add if we extracted at least one field
+                                line_errors.append(line_error)
+
+                        # Build formatted message
+                        message_parts = [main_error]
+                        for err in line_errors:
+                            line_num = err.get('line_number', '?')
+                            err_msg = err.get('error_message', 'Unknown error')
+                            orig_line = err.get('original_line', '')
+                            message_parts.append(f"Line {line_num}: {err_msg}")
+                            if orig_line:
+                                message_parts.append(f"  Original: {orig_line}")
+
+                        return '\n'.join(message_parts)
+                    except Exception as e:
+                        logging.debug(f"Cannot parse line error details: {e}")
+                        # Fall through to existing logic
+
+                # Existing logic for other error formats
+                for key in [['message'], ['error']]:
                     value = get(node, key)
                     if value is not None:
                         return value

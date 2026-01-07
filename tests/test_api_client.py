@@ -99,30 +99,58 @@ class ApiClientTests(unittest.TestCase):
         service = WriteService(client)
         service.post_write("TEST_ORG", "TEST_BUCKET", "data,foo=bar val=3.14")
 
-    def test_api_error_cloud(self):
-        response_body = '{"message": "parsing failed for write_lp endpoint"}'
-        with self.assertRaises(InfluxDBError) as err:
-            self._test_api_error(response_body)
-        self.assertEqual('parsing failed for write_lp endpoint', err.exception.message)
+    def test_api_error_formats(self):
+        """Test various error response formats are parsed correctly using data-driven approach."""
+        test_cases = [
+            {
+                'name': 'cloud',
+                'response_body': '{"code": "internal", "message": "parsing failed for write_lp endpoint"}',
+                'expected_message': 'parsing failed for write_lp endpoint',
+            },
+            {
+                'name': 'oss_without_detail',
+                'response_body': '{"error": "parsing failed for write_lp endpoint"}',
+                'expected_message': 'parsing failed for write_lp endpoint',
+            },
+            {
+                'name': 'unknown',
+                'response_body': '{"detail":"no info"}',
+                'expected_message': '{"detail":"no info"}',
+            },
+            {
+                'name': 'oss_with_line_details',
+                'response_body': ('{"error":"partial write of line protocol occurred","data":['
+                                  '{"error_message":"A generic parsing error occurred: TakeWhile1","line_number":2,'
+                                  '"original_line":"temperatureroom=room"},'
+                                  '{"error_message":"invalid column type for column \'value\', expected '
+                                  'iox::column_type::field::float, got iox::column_type::field::integer",'
+                                  '"line_number":4,"original_line":"temperature,room=roo"}]}'
+                                  ),
+                'expected_message_contains': [
+                    'partial write of line protocol occurred',
+                    'Line 2:',
+                    'A generic parsing error occurred: TakeWhile1',
+                    'Original: temperatureroom=room',
+                    'Line 4:',
+                    'invalid column type',
+                    'Original: temperature,room=roo',
+                ],
+            },
+        ]
 
-    def test_api_error_oss_without_detail(self):
-        response_body = '{"error": "parsing failed for write_lp endpoint"}'
-        with self.assertRaises(InfluxDBError) as err:
-            self._test_api_error(response_body)
-        self.assertEqual('parsing failed for write_lp endpoint', err.exception.message)
+        for test_case in test_cases:
+            with self.subTest(format=test_case['name']):
+                with self.assertRaises(InfluxDBError) as err:
+                    self._test_api_error(test_case['response_body'])
 
-    def test_api_error_oss_with_detail(self):
-        response_body = ('{"error":"parsing failed for write_lp endpoint","data":{"error_message":"invalid field value '
-                         'in line protocol for field \'val\' on line 1"}}')
-        with self.assertRaises(InfluxDBError) as err:
-            self._test_api_error(response_body)
-        self.assertEqual('invalid field value in line protocol for field \'val\' on line 1', err.exception.message)
+                # Check exact message match
+                if 'expected_message' in test_case:
+                    self.assertEqual(test_case['expected_message'], err.exception.message)
 
-    def test_api_error_unknown(self):
-        response_body = '{"detail":"no info"}'
-        with self.assertRaises(InfluxDBError) as err:
-            self._test_api_error(response_body)
-        self.assertEqual(response_body, err.exception.message)
+                # Check message contains all expected strings
+                if 'expected_message_contains' in test_case:
+                    for expected_str in test_case['expected_message_contains']:
+                        self.assertIn(expected_str, err.exception.message)
 
     def test_api_error_headers(self):
         body = '{"error": "test error"}'
