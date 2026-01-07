@@ -1,5 +1,5 @@
+# TODO Remove after this program no longer supports Python 3.8.*
 from __future__ import annotations
-
 import unittest
 
 import influxdb_client_3
