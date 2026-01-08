@@ -15,6 +15,10 @@
 1. [#180](https://github.com/InfluxCommunity/influxdb3-python/pull/180): Add `flush()` method to `InfluxDBClient3`:
    - Allows flushing the write buffer without closing the client when using batching mode.
    - Enables applications to ensure data is written before querying, while keeping the client open for further operations.
+1. [#185](https://github.com/InfluxCommunity/influxdb3-python/pull/185):
+   - Add API Reference page on document page
+   - Remove old document link.
+   - Add link to document page to README.md
 
 ### Bug Fixes
 
