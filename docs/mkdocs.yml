@@ -2,5 +2,17 @@ site_name: InfluxDB 3.0 Python Client
 docs_dir: .
 nav:
   - Home: index.md
+  - API Reference: api_reference.md
 plugins:
   - include-markdown
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [ ../influxdb_client_3 ]
+          options:
+            summary: true
+            show_source: true
+            show_root_heading: true
+            members_order: alphabetical
+            show_submodules: true
+            members: true
