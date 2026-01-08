@@ -18,7 +18,7 @@
 1. [#185](https://github.com/InfluxCommunity/influxdb3-python/pull/185):
    - Add API Reference page on document page
    - Remove old document link.
-   - Add link to document page to README.md
+   - Add link to document page in README.md
 
 ### Bug Fixes
 
