@@ -11,8 +11,5 @@ plugins:
           paths: [ ../influxdb_client_3 ]
           options:
             summary: true
-            show_source: true
-            show_root_heading: true
-            members_order: alphabetical
-            show_submodules: true
-            members: true
+            show_symbol_type_toc: true
+            show_symbol_type_heading: true
