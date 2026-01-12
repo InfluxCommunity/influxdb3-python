@@ -4,6 +4,9 @@
 </p>
 
 <p align="center">
+    <a href="https://influxdb3-python.readthedocs.io/en/latest/">
+        <img src="https://img.shields.io/readthedocs/influxdb3-python/latest" alt="PyPI version">
+    </a>
     <a href="https://pypi.org/project/influxdb3-python/">
         <img src="https://img.shields.io/pypi/v/influxdb3-python.svg" alt="PyPI version">
     </a>
