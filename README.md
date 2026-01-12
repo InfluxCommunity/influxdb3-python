@@ -32,11 +32,6 @@
 
 `influxdb_client_3` is a Python module that provides a simple and convenient way to interact with InfluxDB 3.0. This module supports both writing data to InfluxDB and querying data using the Flight client, which allows you to execute SQL and InfluxQL queries on InfluxDB 3.0.
 
-## Documentation
-
-This is full document link
-- [Getting Started](https://influxdb3-python.readthedocs.io/en/latest/)
-
 We offer a ["Getting Started: InfluxDB 3.0 Python Client Library"](https://www.youtube.com/watch?v=tpdONTm1GC8) video that goes over how to use the library and goes over the examples.
 ## Dependencies
 
