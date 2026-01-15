@@ -1,12 +1,12 @@
 import logging
 import os
-import pyarrow
-import pytest
 import random
 import string
 import time
 import unittest
 
+import pyarrow
+import pytest
 from urllib3.exceptions import MaxRetryError, TimeoutError as Url3TimeoutError
 
 from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, \
@@ -59,11 +59,11 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
             write_client_options=wco)
 
         test_id = time.time_ns()
-        p = Point.measurement("integration_test_python14").tag("type", "used").field("value", 123.0)
+        p = Point.measurement("integration_test_python17").tag("type", "used").field("value", 123.0)
         # c.write(f"integration_test_python6,type=used value=123.0,test_id={test_id}i")
         self.client.write(record=p)
 
-        sql = 'SELECT * FROM integration_test_python14'
+        sql = 'SELECT * FROM integration_test_python17'
         df = self.client.query(query=sql)
 
         self.assertIsNotNone(df)
