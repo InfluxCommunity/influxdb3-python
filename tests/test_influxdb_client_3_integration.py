@@ -40,8 +40,8 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         self.host = os.getenv('TESTING_INFLUXDB_URL')
         self.token = os.getenv('TESTING_INFLUXDB_TOKEN')
         self.database = os.getenv('TESTING_INFLUXDB_DATABASE')
-        # write_options=WriteOptions(batch_size=100)
-        write_options=WriteOptions(write_type=WriteType.synchronous)
+        write_options=WriteOptions(batch_size=100)
+        # write_options=WriteOptions(write_type=WriteType.synchronous)
         wco = write_client_options(write_options=write_options)
         self.client = InfluxDBClient3(
             host=self.host,
