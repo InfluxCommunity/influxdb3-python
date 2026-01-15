@@ -40,7 +40,13 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         self.host = os.getenv('TESTING_INFLUXDB_URL')
         self.token = os.getenv('TESTING_INFLUXDB_TOKEN')
         self.database = os.getenv('TESTING_INFLUXDB_DATABASE')
-        self.client = InfluxDBClient3(host=self.host, database=self.database, token=self.token)
+        write_options=WriteOptions(batch_size=100)
+        wco = write_client_options(write_options=write_options)
+        self.client = InfluxDBClient3(
+            host=self.host,
+            database=self.database,
+            token=self.token,
+            write_client_options=wco)
 
     def tearDown(self):
         self._caplog.clear()
@@ -49,27 +55,25 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
             self.client.close()
 
     def test_write_batch_and_query(self):
-        write_options=WriteOptions(batch_size=100)
+        # write_options=WriteOptions(batch_size=100)
         # write_options=WriteOptions(write_type=WriteType.synchronous)
-        wco = write_client_options(write_options=write_options)
-        c = InfluxDBClient3(
-            host=self.host,
-            database=self.database,
-            token=self.token,
-            write_client_options=wco)
+        # wco = write_client_options(write_options=write_options)
+        # c = InfluxDBClient3(
+        #     host='http://localhost:8181',
+        #     database=self.database,
+        #     token='apiv3_XI_7D1lsUv0CsVoPiWQJtzG51LE-roQLF64pkKRxOi3cVdAFRfoBIJjptTjDordcOGa-rYe1Dow-iRsv9yU4ZA',
+        #     write_client_options=wco)
 
         test_id = time.time_ns()
-        p = Point.measurement("integration_test_python17").tag("type", "used").field("value", 123.0)
-        # c.write(f"integration_test_python6,type=used value=123.0,test_id={test_id}i")
-        self.client.write(record=p)
+        self.client.write(f"integration_test_python21,type=used value=123.0,test_id={test_id}i")
 
-        sql = 'SELECT * FROM integration_test_python17'
-        df = self.client.query(query=sql)
+        sql = 'SELECT * FROM integration_test_python21 where type=$type and test_id=$test_id'
+        df = self.client.query(sql, mode="pandas", query_parameters={'type': 'used', 'test_id': test_id})
 
         self.assertIsNotNone(df)
-        # self.assertEqual(1, len(df))
-        # self.assertEqual(test_id, df['test_id'][0])
-        # self.assertEqual(123.0, df['value'][0])
+        self.assertEqual(1, len(df))
+        self.assertEqual(test_id, df['test_id'][0])
+        self.assertEqual(123.0, df['value'][0])
 
     def test_write_and_query(self):
         test_id = time.time_ns()
