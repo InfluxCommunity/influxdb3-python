@@ -66,9 +66,9 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         #     write_client_options=wco)
 
         test_id = time.time_ns()
-        self.client.write(f"integration_test_python21,type=used value=123.0,test_id={test_id}i")
+        self.client.write(f"integration_test_python22,type=used value=123.0,test_id={test_id}i")
 
-        sql = 'SELECT * FROM integration_test_python21 where type=$type and test_id=$test_id'
+        sql = 'SELECT * FROM integration_test_python22 where type=$type and test_id=$test_id'
         df = self.client.query(sql, mode="pandas", query_parameters={'type': 'used', 'test_id': test_id})
 
         self.assertIsNotNone(df)
