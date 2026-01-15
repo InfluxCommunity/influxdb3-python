@@ -10,7 +10,7 @@ import unittest
 from urllib3.exceptions import MaxRetryError, TimeoutError as Url3TimeoutError
 
 from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, \
-    WriteType, InfluxDB3ClientQueryError
+    WriteType, InfluxDB3ClientQueryError, Point
 from influxdb_client_3.exceptions import InfluxDBError
 from tests.util import asyncio_run, lp_to_py_object
 
@@ -47,6 +47,29 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         self._caplog.set_level(logging.ERROR)
         if self.client:
             self.client.close()
+
+    def test_write_batch_and_query(self):
+        write_options=WriteOptions(batch_size=100)
+        # write_options=WriteOptions(write_type=WriteType.synchronous)
+        wco = write_client_options(write_options=write_options)
+        c = InfluxDBClient3(
+            host=self.host,
+            database=self.database,
+            token=self.token,
+            write_client_options=wco)
+
+        test_id = time.time_ns()
+        p = Point.measurement("integration_test_python14").tag("type", "used").field("value", 123.0)
+        # c.write(f"integration_test_python6,type=used value=123.0,test_id={test_id}i")
+        self.client.write(record=p)
+
+        sql = 'SELECT * FROM integration_test_python14'
+        df = self.client.query(query=sql)
+
+        self.assertIsNotNone(df)
+        # self.assertEqual(1, len(df))
+        # self.assertEqual(test_id, df['test_id'][0])
+        # self.assertEqual(123.0, df['value'][0])
 
     def test_write_and_query(self):
         test_id = time.time_ns()
