@@ -391,12 +391,9 @@ class WriteApi(_BaseWriteApi):
 
         _async_req = True if self._write_options.write_type == WriteType.asynchronous else False
 
-        # Filter out serializer-specific kwargs before passing to _post_write
-        http_kwargs = {k: v for k, v in kwargs.items() if k not in SERIALIZER_KWARGS}
-
         def write_payload(payload):
             final_string = b'\n'.join(payload[1])
-            return self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync, **http_kwargs)
+            return self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync, **kwargs)
 
         results = list(map(write_payload, payloads.items()))
         if not _async_req:
@@ -586,11 +583,13 @@ class WriteApi(_BaseWriteApi):
         return _BatchResponse(data=batch_item)
 
     def _post_write(self, _async_req, bucket, org, body, precision, no_sync, **kwargs):
+        # Filter out serializer-specific kwargs before passing to _post_write
+        http_kwargs = {k: v for k, v in kwargs.items() if k not in SERIALIZER_KWARGS}
         return self._write_service.post_write(org=org, bucket=bucket, body=body, precision=precision,
                                               no_sync=no_sync,
                                               async_req=_async_req,
                                               content_type="text/plain; charset=utf-8",
-                                              **kwargs)
+                                              **http_kwargs)
 
     def _to_response(self, data: _BatchItem, delay: timedelta):
 

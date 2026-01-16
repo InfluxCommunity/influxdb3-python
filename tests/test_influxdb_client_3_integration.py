@@ -1,12 +1,13 @@
 import logging
 import os
-import pyarrow
-import pytest
 import random
 import string
 import time
 import unittest
 
+import pandas as pd
+import pyarrow
+import pytest
 from urllib3.exceptions import MaxRetryError, TimeoutError as Url3TimeoutError
 
 from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, \
@@ -47,6 +48,68 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         self._caplog.set_level(logging.ERROR)
         if self.client:
             self.client.close()
+
+    def test_write_dataframe(self):
+        measurement = f'test{random_hex(3)}'.lower()
+        df = pd.DataFrame({
+            'time': pd.to_datetime(['2024-01-01', '2024-01-02']),
+            'city': ['London', 'Paris'],
+            'temperature': [15.0, 18.5]
+        })
+        self.client.write_dataframe(df, measurement=measurement, timestamp_column='time', tags=['city'])
+        self.client.flush()
+
+        result = self.client.query(query=f"select * from {measurement}", mode="pandas")
+
+        self.assertIsNotNone(result)
+        self.assertEqual(2, len(result.get('city')))
+        self.assertEqual(2, len(result.get('temperature')))
+
+    def test_write_dataframe_with_batch(self):
+        self.client = InfluxDBClient3(host=self.host,
+                                      database=self.database,
+                                      token=self.token,
+                                      write_client_options=write_client_options(
+                                          write_options=WriteOptions(batch_size=100)
+                                      ))
+        measurement = f'test{random_hex(3)}'.lower()
+        df = pd.DataFrame({
+            'time': pd.to_datetime(['2024-01-01', '2024-01-02']),
+            'city': ['London', 'Paris'],
+            'temperature': [15.0, 18.5]
+        })
+        self.client.write_dataframe(
+            df,
+            measurement=measurement,
+            timestamp_column='time',
+            tags=['city']
+        )
+        self.client.flush()
+
+        result = self.client.query(query=f"select * from {measurement}", mode="pandas")
+
+        self.assertIsNotNone(result)
+        self.assertEqual(2, len(result.get('city')))
+        self.assertEqual(2, len(result.get('temperature')))
+
+    def test_write_csv_file_with_batch(self):
+        client = InfluxDBClient3(host=self.host,
+                                 database=self.database,
+                                 token=self.token,
+                                 write_client_options=write_client_options(
+                                     write_options=WriteOptions(batch_size=100)
+                                 ))
+        measurement = f'test{random_hex(3)}'.lower()
+        client.write_file(
+            measurement_name=measurement,
+            file='tests/data/iot.csv',
+            timestamp_column='time', tag_columns=["name"])
+        client.flush()
+
+        result = client.query(query=f"select * from {measurement}", mode="pandas")
+        self.assertIsNotNone(result)
+        self.assertEqual(3, len(result.get('building')))
+        self.assertEqual(3, len(result.get('temperature')))
 
     def test_write_and_query(self):
         test_id = time.time_ns()

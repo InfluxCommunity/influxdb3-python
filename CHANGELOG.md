@@ -2,6 +2,10 @@
 
 ## 0.18.0 [unreleased]
 
+### Bug Fixes
+
+1. [#194](https://github.com/InfluxCommunity/influxdb3-python/pull/194): Fix `InfluxDBClient3.write_file()` and `InfluxDBClient3.write_dataframe()` fail with batching mode.  
+
 ## 0.17.0 [2026-01-08]
 
 ### Features
