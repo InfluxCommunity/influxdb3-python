@@ -61,7 +61,7 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
 
         result = self.client.query(query=f"select * from {measurement}", mode="pandas")
 
-        self.assertEqual(2, len(result))
+        self.assertIsNotNone(result)
         self.assertEqual(2, len(result.get('city')))
         self.assertEqual(2, len(result.get('temperature')))
 
@@ -91,6 +91,26 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(2, len(result.get('city')))
         self.assertEqual(2, len(result.get('temperature')))
+
+    def test_write_csv_file_with_batch(self):
+        client = InfluxDBClient3(host=self.host,
+                                 database=self.database,
+                                 token=self.token,
+                                 write_client_options=write_client_options(
+                                     write_options=WriteOptions(batch_size=100)
+                                 ))
+        measurement = f'test{random_hex(3)}'.lower()
+        client.write_file(
+            measurement_name=measurement,
+            file='tests/data/iot.csv',
+            timestamp_column='time', tag_columns=["name"])
+        client.flush()
+
+        result = client.query(query=f"select * from {measurement}", mode="pandas")
+        self.assertIsNotNone(result)
+        self.assertEqual(3, len(result.get('building')))
+        self.assertEqual(3, len(result.get('temperature')))
+
 
     def test_write_and_query(self):
         test_id = time.time_ns()
