@@ -5,13 +5,13 @@ import string
 import time
 import unittest
 
+import pandas as pd
 import pyarrow
 import pytest
 from urllib3.exceptions import MaxRetryError, TimeoutError as Url3TimeoutError
-from datetime import datetime
-import pandas as pd
+
 from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, \
-    WriteType, InfluxDB3ClientQueryError, Point
+    WriteType, InfluxDB3ClientQueryError
 from influxdb_client_3.exceptions import InfluxDBError
 from tests.util import asyncio_run, lp_to_py_object
 
@@ -110,7 +110,6 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(3, len(result.get('building')))
         self.assertEqual(3, len(result.get('temperature')))
-
 
     def test_write_and_query(self):
         test_id = time.time_ns()
