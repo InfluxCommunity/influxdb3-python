@@ -63,23 +63,13 @@ class ApiClient(object):
 
     def __del__(self):
         """Dispose pools."""
-        try:
-            self._signout()
-        except (TypeError, AttributeError):
-            # During interpreter shutdown, _signout may fail
-            pass
-        try:
-            if self._pool:
-                self._pool.close()
-                self._pool.join()
-                self._pool = None
-        except (TypeError, AttributeError):
-            pass
-        try:
-            if self.rest_client and self.rest_client.pool_manager and hasattr(self.rest_client.pool_manager, 'clear'):
-                self.rest_client.pool_manager.clear()
-        except (TypeError, AttributeError):
-            pass
+        self._signout()
+        if self._pool:
+            self._pool.close()
+            self._pool.join()
+            self._pool = None
+        if self.rest_client and self.rest_client.pool_manager and hasattr(self.rest_client.pool_manager, 'clear'):
+            self.rest_client.pool_manager.clear()
 
     @property
     def pool(self):
@@ -687,9 +677,6 @@ class ApiClient(object):
             self.cookie = http_info[2]['set-cookie']
 
     def _signout(self):
-        # During interpreter shutdown, imported functions may be None
-        if _requires_expire_user_session is None or SignoutService is None:
-            return
         if _requires_expire_user_session(self.configuration, self.cookie):
             SignoutService(self).post_signout()
             self.cookie = None

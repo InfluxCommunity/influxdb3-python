@@ -293,10 +293,6 @@ class InfluxDBClient(_BaseClient):
 
     def __del__(self):
         """Shutdown the client."""
-        try:
-            if self.api_client:
-                self.api_client.__del__()
-                self.api_client = None
-        except (TypeError, AttributeError):
-            # During interpreter shutdown, cleanup may fail
-            pass
+        if self.api_client:
+            self.api_client.__del__()
+            self.api_client = None
