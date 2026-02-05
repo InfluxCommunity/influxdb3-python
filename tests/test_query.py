@@ -335,8 +335,8 @@ Aw==
 
     def test_query_with_missing_middleware(self):
         with HeaderCheckFlightServer(
-            auth_handler=NoopAuthHandler(),
-            middleware={"check": HeaderCheckServerMiddlewareFactory1()}) as server:
+                auth_handler=NoopAuthHandler(),
+                middleware={"check": HeaderCheckServerMiddlewareFactory1()}) as server:
 
             client = InfluxDBClient3(
                 host=f'http://localhost:{server.port}',
