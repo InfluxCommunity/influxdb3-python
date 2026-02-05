@@ -63,9 +63,39 @@ class InfluxDBError(InfluxDB3ClientError):
             def get(d, key):
                 if not key or d is None:
                     return d
+                if not isinstance(d, dict):
+                    return None
                 return get(d.get(key[0]), key[1:])
             try:
                 node = json.loads(response.data)
+                if isinstance(node, dict):
+                    # InfluxDB v3 error format: { "code": "...", "message": "..." }
+                    code = node.get("code")
+                    message = node.get("message")
+                    if message:
+                        return f"{code}: {message}" if code else message
+
+                    # InfluxDB v3 write partial error format:
+                    # { "error": "...", "data": [ { "error_message": "...", "line_number": 2, "original_line": "..." }, ... ] }
+                    error_text = node.get("error")
+                    data = node.get("data")
+                    if error_text and isinstance(data, list):
+                        details = []
+                        for item in data:
+                            if not isinstance(item, dict):
+                                continue
+                            line_number = item.get("line_number")
+                            error_message = item.get("error_message")
+                            original_line = item.get("original_line")
+                            if line_number is not None and error_message and original_line:
+                                details.append(
+                                    f"\tline {line_number}: {error_message} ({original_line})"
+                                )
+                            elif error_message:
+                                details.append(f"\t{error_message}")
+                        if details:
+                            return error_text + ":\n" + "\n".join(details)
+                        return error_text
                 for key in [['message'], ['data', 'error_message'], ['error']]:
                     value = get(node, key)
                     if value is not None:

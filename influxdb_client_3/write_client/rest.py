@@ -26,6 +26,7 @@ class ApiException(InfluxDBError):
             self.reason = reason
             self.body = None
             self.headers = None
+        self.status_code = self.status
 
     def __str__(self):
         """Get custom error messages for exception."""
