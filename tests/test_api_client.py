@@ -124,6 +124,26 @@ class ApiClientTests(unittest.TestCase):
             self._test_api_error(response_body)
         self.assertEqual(response_body, err.exception.message)
 
+    def test_api_error_v3_with_detail_list(self):
+        response_body = (
+            '{"error":"partial write of line protocol occurred","data":['
+            '{"error_message":"invalid column type for column \'v\', expected iox::column_type::field::float, '
+            'got iox::column_type::field::uinteger","line_number":2,"original_line":"**.DBG.remote_***"},'
+            '{"error_message":"invalid column type for column \'v\', expected iox::column_type::field::float, '
+            'got iox::column_type::field::uinteger","line_number":3,"original_line":"***.INF.remote_***"}'
+            ']}'
+        )
+        with self.assertRaises(InfluxDBError) as err:
+            self._test_api_error(response_body)
+        expected = (
+            "partial write of line protocol occurred:\n"
+            "\tline 2: invalid column type for column 'v', expected iox::column_type::field::float, "
+            "got iox::column_type::field::uinteger (**.DBG.remote_***)\n"
+            "\tline 3: invalid column type for column 'v', expected iox::column_type::field::float, "
+            "got iox::column_type::field::uinteger (***.INF.remote_***)"
+        )
+        self.assertEqual(expected, err.exception.message)
+
     def test_api_error_headers(self):
         body = '{"error": "test error"}'
         body_dic = json.loads(body)
