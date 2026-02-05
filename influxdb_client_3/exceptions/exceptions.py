@@ -74,9 +74,11 @@ class InfluxDBError(InfluxDB3ClientError):
                     message = node.get("message")
                     if message:
                         return f"{code}: {message}" if code else message
-
-                    # InfluxDB v3 write partial error format:
-                    # { "error": "...", "data": [ { "error_message": "...", "line_number": 2, "original_line": "..." }, ... ] }
+                    # InfluxDB v3 write error format:
+                    # {
+                    #   "error": "...",
+                    #   "data": [ { "error_message": "...", "line_number": 2, "original_line": "..." }, ... ]
+                    # }
                     error_text = node.get("error")
                     data = node.get("data")
                     if error_text and isinstance(data, list):
