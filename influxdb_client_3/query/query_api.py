@@ -20,6 +20,7 @@ class QueryApiOptions(object):
     flight_client_options (dict): base set of flight client options passed to internal pyarrow.flight.FlightClient
     timeout(float): timeout in seconds to wait for a response
     disable_grpc_compression (bool): disable gRPC compression for query responses
+    middleware (list): list of middleware functions to be applied to Flight calls
     """
     _DEFAULT_TIMEOUT = 300.0
     tls_root_certs: bytes = None
@@ -28,13 +29,15 @@ class QueryApiOptions(object):
     flight_client_options: dict = None
     timeout: float = None
     disable_grpc_compression: bool = False
+    middleware: list = None
 
     def __init__(self, root_certs_path: str,
                  verify: bool,
                  proxy: str,
                  flight_client_options: dict,
                  timeout: float = _DEFAULT_TIMEOUT,
-                 disable_grpc_compression: bool = False):
+                 disable_grpc_compression: bool = False,
+                 middleware: list = None):
         """
         Initialize a set of QueryApiOptions
 
@@ -45,6 +48,7 @@ class QueryApiOptions(object):
                to be passed to internal pyarrow.flight.FlightClient.
         :param timeout: timeout in seconds to wait for a response.
         :param disable_grpc_compression: disable gRPC compression for query responses.
+        :param middleware: list of middleware functions to be applied to Flight calls.
         """
         if root_certs_path:
             self.tls_root_certs = self._read_certs(root_certs_path)
@@ -53,6 +57,7 @@ class QueryApiOptions(object):
         self.flight_client_options = flight_client_options
         self.timeout = timeout
         self.disable_grpc_compression = disable_grpc_compression
+        self.middleware = middleware
 
     def _read_certs(self, path: str) -> bytes:
         with open(path, "rb") as certs_file:
@@ -81,6 +86,7 @@ class QueryApiOptionsBuilder(object):
     _flight_client_options: dict = None
     _timeout: float = None
     _disable_grpc_compression: bool = False
+    _middleware: list = None
 
     def root_certs(self, path: str):
         self._root_certs_path = path
@@ -107,6 +113,10 @@ class QueryApiOptionsBuilder(object):
         self._disable_grpc_compression = disable
         return self
 
+    def middleware(self, middleware: list):
+        self._middleware = middleware
+        return self
+
     def build(self) -> QueryApiOptions:
         """Build a QueryApiOptions object with previously set values"""
         return QueryApiOptions(
@@ -116,6 +126,7 @@ class QueryApiOptionsBuilder(object):
             flight_client_options=self._flight_client_options,
             timeout=self._timeout,
             disable_grpc_compression=self._disable_grpc_compression,
+            middleware=self._middleware
         )
 
 
@@ -181,6 +192,8 @@ class QueryApi(object):
                 self._flight_client_options["generic_options"].append(
                     ("grpc.compression_enabled_algorithms_bitset", 1)
                 )
+            if options.middleware:
+                self._flight_client_options["middleware"] = options.middleware
         if self._proxy:
             self._flight_client_options["generic_options"].append(("grpc.http_proxy", self._proxy))
         self._flight_client = FlightClient(connection_string, **self._flight_client_options)

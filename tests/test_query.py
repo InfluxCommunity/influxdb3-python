@@ -12,7 +12,7 @@ from pyarrow.flight import (
     Ticket
 )
 
-from influxdb_client_3 import InfluxDBClient3
+from influxdb_client_3 import InfluxDBClient3, flight_client_options
 from influxdb_client_3.query.query_api import QueryApiOptionsBuilder, QueryApi
 from influxdb_client_3.version import USER_AGENT
 from tests.util import asyncio_run
@@ -25,7 +25,8 @@ from tests.util.mocks import (
     HeaderCheckServerMiddlewareFactory,
     NoopAuthHandler,
     get_req_headers,
-    set_req_headers
+    set_req_headers, ModifyAuthHeaderClientMiddlewareFactory,
+    HeaderCheckServerMiddlewareFactory1
 )
 
 
@@ -310,6 +311,42 @@ Aw==
                 _req_headers = get_req_headers()
                 assert _req_headers['authorization'] == [f"Bearer {token}"]
                 set_req_headers({})
+
+    def test_query_with_middleware_success(self):
+        with HeaderCheckFlightServer(
+                auth_handler=NoopAuthHandler(),
+                middleware={"check": HeaderCheckServerMiddlewareFactory1()}) as server:
+
+            middleware = [ModifyAuthHeaderClientMiddlewareFactory()]
+            client = InfluxDBClient3(
+                host=f'http://localhost:{server.port}',
+                org='test_org',
+                databse='test_db',
+                token='TEST_TOKEN',
+                flight_client_options=flight_client_options(middleware=middleware)
+
+            )
+
+            df = client.query(query='SELECT * FROM test', mode="pandas")
+            self.assertIsNotNone(df)
+
+    def test_query_with_missing_middleware(self):
+        with HeaderCheckFlightServer(
+            auth_handler=NoopAuthHandler(),
+            middleware={"check": HeaderCheckServerMiddlewareFactory1()}) as server:
+
+            client = InfluxDBClient3(
+                host=f'http://localhost:{server.port}',
+                org='test_org',
+                databse='test_db',
+                token='TEST_TOKEN'
+            )
+
+            try:
+                df = client.query(query='SELECT * FROM test', mode="pandas")
+                self.fail("Should have failed due to missing middleware")
+            except Exception as e:
+                assert "Invalid header value from middleware" in str(e)
 
     @asyncio_run
     async def test_query_async_pandas(self):
