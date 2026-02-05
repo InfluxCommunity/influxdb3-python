@@ -159,6 +159,7 @@ class HeaderCheckFlightServer(FlightServerBase):
             buf = struct.pack('<i', idx)
             yield batch, buf
 
+
 class ModifyAuthHeaderClientMiddleware(flight.ClientMiddleware):
     def sending_headers(self):
         return {
@@ -168,9 +169,11 @@ class ModifyAuthHeaderClientMiddleware(flight.ClientMiddleware):
     def received_headers(self, headers):
         pass
 
+
 class ModifyAuthHeaderClientMiddlewareFactory(flight.ClientMiddlewareFactory):
     def start_call(self, info):
         return ModifyAuthHeaderClientMiddleware()
+
 
 class HeaderCheckServerMiddlewareFactory1(ServerMiddlewareFactory):
     """Factory to create HeaderCheckServerMiddleware and check header values"""
@@ -181,6 +184,7 @@ class HeaderCheckServerMiddlewareFactory1(ServerMiddlewareFactory):
         global req_headers
         req_headers = headers
         return HeaderCheckServerMiddleware('')
+
 
 class ErrorFlightServer(FlightServerBase):
     def do_get(self, context, ticket):
