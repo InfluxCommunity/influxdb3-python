@@ -176,11 +176,13 @@ Aw==
         cert_chain = 'mTLS_explicit_chain'
         self.create_cert_file(cert_file)
         test_flight_client_options = {'private_key': private_key, 'cert_chain': cert_chain}
+        middleware = [ModifyAuthHeaderClientMiddlewareFactory()]
         options = QueryApiOptionsBuilder()\
             .proxy(proxy_name) \
             .root_certs(cert_file) \
             .tls_verify(False) \
             .flight_client_options(test_flight_client_options) \
+            .middleware(middleware) \
             .build()
 
         client = QueryApi(connection,
@@ -196,6 +198,7 @@ Aw==
             assert client._flight_client_options['private_key'] == private_key
             assert client._flight_client_options['cert_chain'] == cert_chain
             assert client._proxy == proxy_name
+            assert client._flight_client_options['middleware'] == middleware
             fc_opts = client._flight_client_options
             assert dict(fc_opts['generic_options'])['grpc.secondary_user_agent'].startswith('influxdb3-python/')
             assert dict(fc_opts['generic_options'])['grpc.http_proxy'] == proxy_name
@@ -343,7 +346,7 @@ Aw==
             )
 
             try:
-                df = client.query(query='SELECT * FROM test', mode="pandas")
+                client.query(query='SELECT * FROM test', mode="pandas")
                 self.fail("Should have failed due to missing middleware")
             except Exception as e:
                 assert "Invalid header value from middleware" in str(e)
