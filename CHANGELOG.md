@@ -2,6 +2,10 @@
 
 ## 0.18.0 [unreleased]
 
+### Features
+
+1. [#196](https://github.com/InfluxCommunity/influxdb3-python/pull/196): Support passing middleware functions to the Flight client.
+
 ### Bug Fixes
 
 1. [#194](https://github.com/InfluxCommunity/influxdb3-python/pull/194): Fix `InfluxDBClient3.write_file()` and `InfluxDBClient3.write_dataframe()` fail with batching mode.  
