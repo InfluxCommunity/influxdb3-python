@@ -149,7 +149,7 @@ class ApiClientTests(unittest.TestCase):
                 "partial write of line protocol occurred:\n"
                 "\tonly error message",
             ),
-            # non-dict item in data list is skipped (line 88)
+            # non-dict item in data list is skipped
             (
                 "non-dict item skipped",
                 '{"error":"partial write of line protocol occurred","data":[null,'
