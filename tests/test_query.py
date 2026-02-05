@@ -25,7 +25,7 @@ from tests.util.mocks import (
     HeaderCheckServerMiddlewareFactory,
     NoopAuthHandler,
     get_req_headers,
-    set_req_headers, ModifyAuthHeaderClientMiddlewareFactory,
+    set_req_headers, ModifyHeaderClientMiddlewareFactory,
     HeaderCheckServerMiddlewareFactory1
 )
 
@@ -176,7 +176,7 @@ Aw==
         cert_chain = 'mTLS_explicit_chain'
         self.create_cert_file(cert_file)
         test_flight_client_options = {'private_key': private_key, 'cert_chain': cert_chain}
-        middleware = [ModifyAuthHeaderClientMiddlewareFactory()]
+        middleware = [ModifyHeaderClientMiddlewareFactory()]
         options = QueryApiOptionsBuilder()\
             .proxy(proxy_name) \
             .root_certs(cert_file) \
@@ -320,14 +320,13 @@ Aw==
                 auth_handler=NoopAuthHandler(),
                 middleware={"check": HeaderCheckServerMiddlewareFactory1()}) as server:
 
-            middleware = [ModifyAuthHeaderClientMiddlewareFactory()]
+            middleware = [ModifyHeaderClientMiddlewareFactory()]
             client = InfluxDBClient3(
                 host=f'http://localhost:{server.port}',
                 org='test_org',
                 databse='test_db',
                 token='TEST_TOKEN',
                 flight_client_options=flight_client_options(middleware=middleware)
-
             )
 
             df = client.query(query='SELECT * FROM test', mode="pandas")

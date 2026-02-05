@@ -160,7 +160,7 @@ class HeaderCheckFlightServer(FlightServerBase):
             yield batch, buf
 
 
-class ModifyAuthHeaderClientMiddleware(flight.ClientMiddleware):
+class ModifyHeaderClientMiddleware(flight.ClientMiddleware):
     def sending_headers(self):
         return {
             "header-from-middleware": "some-value",
@@ -170,9 +170,9 @@ class ModifyAuthHeaderClientMiddleware(flight.ClientMiddleware):
         pass
 
 
-class ModifyAuthHeaderClientMiddlewareFactory(flight.ClientMiddlewareFactory):
+class ModifyHeaderClientMiddlewareFactory(flight.ClientMiddlewareFactory):
     def start_call(self, info):
-        return ModifyAuthHeaderClientMiddleware()
+        return ModifyHeaderClientMiddleware()
 
 
 class HeaderCheckServerMiddlewareFactory1(ServerMiddlewareFactory):
