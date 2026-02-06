@@ -5,8 +5,9 @@ import time
 from pyarrow import (
     array,
     Table,
-    concat_tables, ArrowException
+    concat_tables, ArrowException, flight
 )
+from pyarrow._flight import FlightInternalError
 from pyarrow.flight import (
     FlightServerBase,
     RecordBatchStream,
@@ -157,6 +158,32 @@ class HeaderCheckFlightServer(FlightServerBase):
         for idx, batch in enumerate(table.to_batches()):
             buf = struct.pack('<i', idx)
             yield batch, buf
+
+
+class ModifyHeaderClientMiddleware(flight.ClientMiddleware):
+    def sending_headers(self):
+        return {
+            "header-from-middleware": "some-value",
+        }
+
+    def received_headers(self, headers):
+        pass
+
+
+class ModifyHeaderClientMiddlewareFactory(flight.ClientMiddlewareFactory):
+    def start_call(self, info):
+        return ModifyHeaderClientMiddleware()
+
+
+class HeaderCheckServerMiddlewareFactory1(ServerMiddlewareFactory):
+    """Factory to create HeaderCheckServerMiddleware and check header values"""
+    def start_call(self, info, headers):
+        values = case_insensitive_header_lookup(headers, "header-from-middleware")
+        if values is None or values[0] != 'some-value':
+            raise FlightInternalError("Invalid header value from middleware")
+        global req_headers
+        req_headers = headers
+        return HeaderCheckServerMiddleware('')
 
 
 class ErrorFlightServer(FlightServerBase):
