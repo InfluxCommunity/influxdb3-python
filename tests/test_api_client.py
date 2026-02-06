@@ -124,6 +124,58 @@ class ApiClientTests(unittest.TestCase):
             self._test_api_error(response_body)
         self.assertEqual(response_body, err.exception.message)
 
+    def test_api_error_v3_with_detail(self):
+        cases = [
+            # all details available
+            (
+                "two-line details",
+                '{"error":"partial write of line protocol occurred","data":['
+                '{"error_message":"invalid column type for column \'v\', expected iox::column_type::field::float, '
+                'got iox::column_type::field::uinteger","line_number":2,"original_line":"**.DBG.remote_***"},'
+                '{"error_message":"invalid column type for column \'v\', expected iox::column_type::field::float, '
+                'got iox::column_type::field::uinteger","line_number":3,"original_line":"***.INF.remote_***"}'
+                ']}',
+                "partial write of line protocol occurred:\n"
+                "\tline 2: invalid column type for column 'v', expected iox::column_type::field::float, "
+                "got iox::column_type::field::uinteger (**.DBG.remote_***)\n"
+                "\tline 3: invalid column type for column 'v', expected iox::column_type::field::float, "
+                "got iox::column_type::field::uinteger (***.INF.remote_***)",
+            ),
+            # error_message only (no line_number/original_line)
+            (
+                "message-only detail",
+                '{"error":"partial write of line protocol occurred","data":['
+                '{"error_message":"only error message"}]}',
+                "partial write of line protocol occurred:\n"
+                "\tonly error message",
+            ),
+            # non-dict item in data list is skipped
+            (
+                "non-dict item skipped",
+                '{"error":"partial write of line protocol occurred","data":[null,'
+                '{"error_message":"bad line","line_number":2,"original_line":"bad lp"}]}',
+                "partial write of line protocol occurred:\n"
+                "\tline 2: bad line (bad lp)",
+            ),
+            # details empty -> return error_text
+            (
+                "no detail fields",
+                '{"error":"partial write of line protocol occurred","data":[{"line_number":2}]}',
+                "partial write of line protocol occurred",
+            ),
+            # data is not a dict when resolving fallback keys
+            (
+                "data not dict for fallback",
+                '{"error":"data not list","data":"oops"}',
+                "data not list",
+            ),
+        ]
+        for name, response_body, expected in cases:
+            with self.subTest(name):
+                with self.assertRaises(InfluxDBError) as err:
+                    self._test_api_error(response_body)
+                self.assertEqual(expected, err.exception.message)
+
     def test_api_error_headers(self):
         body = '{"error": "test error"}'
         body_dic = json.loads(body)
