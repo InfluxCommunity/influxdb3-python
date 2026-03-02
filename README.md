@@ -80,6 +80,8 @@ client.write(point)
 
 ### Control tag order for first-write column order (InfluxDB 3 Enterprise)
 ```python
+from influxdb_client_3 import InfluxDBClient3, Point, WriteOptions, WriteType, write_client_options
+
 point = Point("cpu") \
     .tag("host", "server-a") \
     .tag("region", "us-east") \
