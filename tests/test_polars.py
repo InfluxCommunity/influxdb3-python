@@ -60,10 +60,10 @@ class TestPolarsDataFrameSerializer(unittest.TestCase):
 
     def test_to_list_of_points_with_default_tags(self):
         import polars as pl
-        ps = PointSettings(env="prod", building="ignored")
+        ps = PointSettings(env="prod", building="ignored", skip_empty="")
         df = pl.DataFrame(data={
             "name": ['iot-devices'],
-            "building": ['5a'],
+            "building": [''],
             "temperature": [72.3],
             "time": pl.Series(["2022-10-01T12:01:00Z"]).str.to_datetime(time_unit='ns')
         })
@@ -77,9 +77,51 @@ class TestPolarsDataFrameSerializer(unittest.TestCase):
         )
 
         expected = [
-            'iot-devices,env=prod,building=5a name="iot-devices",temperature=72.3 1664625660000000000'
+            'iot-devices,env=prod,building=ignored name="iot-devices",temperature=72.3 1664625660000000000'
         ]
         self.assertEqual(expected, actual)
+
+    def test_to_list_of_points_with_precision_variants(self):
+        import polars as pl
+        ps = PointSettings()
+        df = pl.DataFrame(data={
+            "name": ['iot-devices'],
+            "temperature": [72.3],
+            "time": pl.Series(["2022-10-01T12:01:00Z"]).str.to_datetime(time_unit='ns')
+        })
+
+        actual_us = polars_data_frame_to_list_of_points(
+            df, ps, precision='us',
+            data_frame_measurement_name='iot-devices',
+            data_frame_timestamp_column='time')
+        self.assertEqual(
+            ['iot-devices name="iot-devices",temperature=72.3 1664625660000000'],
+            actual_us
+        )
+
+        actual_ms = polars_data_frame_to_list_of_points(
+            df, ps, precision='ms',
+            data_frame_measurement_name='iot-devices',
+            data_frame_timestamp_column='time')
+        self.assertEqual(
+            ['iot-devices name="iot-devices",temperature=72.3 1664625660000'],
+            actual_ms
+        )
+
+        actual_s = polars_data_frame_to_list_of_points(
+            df, ps, precision='s',
+            data_frame_measurement_name='iot-devices',
+            data_frame_timestamp_column='time')
+        self.assertEqual(
+            ['iot-devices name="iot-devices",temperature=72.3 1664625660'],
+            actual_s
+        )
+
+        with self.assertRaisesRegex(ValueError, "Unsupported precision"):
+            polars_data_frame_to_list_of_points(
+                df, ps, precision='bad',
+                data_frame_measurement_name='iot-devices',
+                data_frame_timestamp_column='time')
 
 
 @unittest.skipIf(importlib.util.find_spec("polars") is None, 'Polars package not installed')

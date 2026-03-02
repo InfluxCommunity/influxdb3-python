@@ -285,6 +285,21 @@ class TestDataFrameSerializer(unittest.TestCase):
         self.assertEqual(1, len(points))
         self.assertEqual("h2o,c=c,a=a,b=b level=2i 1586048400000000000", points[0])
 
+        ps = PointSettings(z="from-default", c="override-ignored")
+        points_with_defaults = data_frame_to_list_of_points(
+            data_frame=data_frame,
+            point_settings=ps,
+            data_frame_measurement_name='h2o',
+            data_frame_tag_columns={"c", "a", "b"},
+            tag_order=["z", "c", "a"],
+        )
+
+        self.assertEqual(1, len(points_with_defaults))
+        self.assertEqual(
+            "h2o,z=from-default,c=c,a=a,b=b level=2i 1586048400000000000",
+            points_with_defaults[0]
+        )
+
     def test_escape_text_value(self):
         now = pd.Timestamp('2020-04-05 00:00+00:00')
         an_hour_ago = now - timedelta(hours=1)

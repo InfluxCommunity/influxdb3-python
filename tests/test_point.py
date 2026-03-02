@@ -2,7 +2,7 @@ import datetime
 import unittest
 
 from influxdb_client_3 import WritePrecision
-from influxdb_client_3.write_client.client.write.point import EPOCH, Point
+from influxdb_client_3.write_client.client.write.point import EPOCH, Point, _np_is_subtype
 
 
 class TestPoint(unittest.TestCase):
@@ -55,3 +55,13 @@ class TestPoint(unittest.TestCase):
             Point.measurement("m").field("bad", object()).to_line_protocol()
         with self.assertRaises(ValueError):
             Point.measurement("m").field("value", 1).time([]).to_line_protocol()
+
+    def test_np_is_subtype(self):
+        try:
+            import numpy as np
+        except ImportError:
+            self.skipTest("numpy not installed")
+
+        self.assertTrue(_np_is_subtype(np.float64(1.0), 'float'))
+        self.assertTrue(_np_is_subtype(np.int64(1), 'int'))
+        self.assertFalse(_np_is_subtype(np.int64(1), 'other'))

@@ -163,6 +163,13 @@ class TestInfluxDBClient3(unittest.TestCase):
                 "measurement": "test",
                 "fields": {"value": 1}
             }, None)
+            df = pd.DataFrame({
+                "value": [1, 2],
+            }, index=pd.to_datetime(["2024-01-01T00:00:00Z", "2024-01-01T01:00:00Z"]))
+            client._write_api._write_batching(
+                "bucket", "org", df, None,
+                data_frame_measurement_name="test_measurement",
+            )
             point = Point.measurement("test").tag("host", "h1").field("value", 1).time(1, WritePrecision.S)
             payload = defaultdict(list)
             client._write_api._serialize(point, WritePrecision.NS, payload, tag_order=["host"])
