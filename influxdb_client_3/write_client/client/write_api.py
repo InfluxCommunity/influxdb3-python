@@ -22,7 +22,7 @@ from reactivex.subject import Subject
 from influxdb_client_3.write_client.client._base import _BaseWriteApi, _HAS_DATACLASS
 from influxdb_client_3.write_client.client.util.helpers import get_org_query_param
 from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
-from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION
+from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION, sanitize_tag_order
 from influxdb_client_3.write_client.client.write.retry import WritesRetry
 from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.rest import _UTF_8_encoding
@@ -67,30 +67,6 @@ class DefaultWriteOptions(Enum):
     write_precision = DEFAULT_WRITE_PRECISION
     no_sync = DEFAULT_WRITE_NO_SYNC
     timeout = DEFAULT_WRITE_TIMEOUT
-
-
-def _sanitize_tag_order(tag_order):
-    if tag_order is None:
-        return []
-
-    if isinstance(tag_order, (str, bytes)):
-        raise TypeError("tag_order must be an iterable of strings, not str/bytes")
-
-    if not isinstance(tag_order, Iterable):
-        raise TypeError("tag_order must be an iterable of strings")
-
-    sanitized = []
-    seen = set()
-    for tag in tag_order:
-        if tag is None or tag == "":
-            continue
-        if not isinstance(tag, str):
-            raise TypeError("tag_order entries must be strings")
-        if tag in seen:
-            continue
-        seen.add(tag)
-        sanitized.append(tag)
-    return sanitized
 
 
 class WriteOptions(object):
@@ -145,7 +121,7 @@ class WriteOptions(object):
         self.write_precision = write_precision
         self.timeout = timeout
         self.no_sync = no_sync
-        self.tag_order = _sanitize_tag_order(tag_order)
+        self.tag_order = sanitize_tag_order(tag_order)
 
     def to_retry_strategy(self, **kwargs):
         """
@@ -409,7 +385,10 @@ class WriteApi(_BaseWriteApi):
         if write_precision is None:
             write_precision = self._write_options.write_precision
 
-        kwargs.setdefault('tag_order', self._write_options.tag_order)
+        if 'tag_order' in kwargs:
+            kwargs['tag_order'] = sanitize_tag_order(kwargs.get('tag_order'))
+        else:
+            kwargs['tag_order'] = self._write_options.tag_order
 
         if self._write_options.write_type is WriteType.batching:
             return self._write_batching(bucket, org, record,

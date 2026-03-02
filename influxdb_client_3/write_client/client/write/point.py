@@ -3,6 +3,7 @@
 import math
 import warnings
 from builtins import int
+from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from numbers import Integral
@@ -255,7 +256,7 @@ The output Line protocol will be interpret as a comment by InfluxDB. For more in
 
 def _append_tags(tags, tag_order=None):
     _return = []
-    ordered_tag_keys = _ordered_tag_keys(tags, tag_order)
+    ordered_tag_keys = ordered_tag_keys_for_serialization(sorted(tags.keys()), tag_order)
     for tag_key in ordered_tag_keys:
         tag_value = tags.get(tag_key)
 
@@ -270,22 +271,47 @@ def _append_tags(tags, tag_order=None):
     return f"{',' if _return else ''}{','.join(_return)} "
 
 
-def _ordered_tag_keys(tags, tag_order=None):
-    sorted_keys = sorted(tags.keys())
-    if not tag_order:
-        return sorted_keys
+def sanitize_tag_order(tag_order):
+    if tag_order is None:
+        return []
 
-    remaining = set(sorted_keys)
-    ordered = []
+    if isinstance(tag_order, (str, bytes)):
+        raise TypeError("tag_order must be an iterable of strings, not str/bytes")
+
+    if not isinstance(tag_order, Iterable):
+        raise TypeError("tag_order must be an iterable of strings")
+
+    sanitized = []
+    seen = set()
+    for tag in tag_order:
+        if tag is None or tag == "":
+            continue
+        if not isinstance(tag, str):
+            raise TypeError("tag_order entries must be strings")
+        if tag in seen:
+            continue
+        seen.add(tag)
+        sanitized.append(tag)
+    return sanitized
+
+
+def ordered_tag_keys_for_serialization(existing_keys, tag_order=None):
+    ordered_keys = list(existing_keys)
+    if not tag_order:
+        return ordered_keys
+
+    remaining = set(ordered_keys)
+    prioritized = []
     for tag_key in tag_order:
         if not tag_key:
             continue
-        if tag_key in remaining:
-            remaining.remove(tag_key)
-            ordered.append(tag_key)
+        if tag_key not in remaining:
+            continue
+        remaining.remove(tag_key)
+        prioritized.append(tag_key)
 
-    ordered.extend(sorted(remaining))
-    return ordered
+    prioritized.extend([tag_key for tag_key in ordered_keys if tag_key in remaining])
+    return prioritized
 
 
 def _append_fields(fields, field_types):

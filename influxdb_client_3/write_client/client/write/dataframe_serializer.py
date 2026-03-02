@@ -10,7 +10,7 @@ import re
 
 from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.client.write.point import _ESCAPE_KEY, _ESCAPE_STRING, _ESCAPE_MEASUREMENT, \
-    DEFAULT_WRITE_PRECISION
+    DEFAULT_WRITE_PRECISION, ordered_tag_keys_for_serialization
 
 logger = logging.getLogger('influxdb_client.client.write.dataframe_serializer')
 
@@ -130,8 +130,8 @@ class DataframeSerializer:
 
         # keys holds a list of string keys.
         keys = []
-        # tags holds a list of tag f-string segments ordered alphabetically by tag key.
-        tags = []
+        # tags holds map of tag key -> tag f-string segment.
+        tags = {}
         # fields holds a list of field f-string segments ordered alphabetically by field key
         fields = []
         # field_indexes holds the index into each row of all the fields.
@@ -188,7 +188,7 @@ class DataframeSerializer:
                         }}"""
                 else:
                     key_value = f',{key_format}={{str({val_format}).translate(_ESCAPE_KEY)}}'
-                tags.append(key_value)
+                tags[key] = key_value
                 continue
             elif timestamp_column is not None and key in timestamp_column:
                 timestamp_index = field_index
@@ -225,7 +225,8 @@ class DataframeSerializer:
 
         measurement_name = str(data_frame_measurement_name).translate(_ESCAPE_MEASUREMENT)
 
-        tags = ''.join(tags)
+        tag_keys = ordered_tag_keys_for_serialization(list(tags.keys()), kwargs.get('tag_order'))
+        tags = ''.join(tags[tag_key] for tag_key in tag_keys)
         fields = ''.join(fields)
         timestamp = '{p[%s].value}' % timestamp_index
         if precision == WritePrecision.US:
