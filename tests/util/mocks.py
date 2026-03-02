@@ -53,7 +53,6 @@ def set_req_headers(headers):
 
 
 def get_req_headers():
-    global req_headers
     return req_headers
 
 
