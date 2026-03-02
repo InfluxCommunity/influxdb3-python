@@ -26,24 +26,37 @@ class TestPolarsDataFrameSerializer(unittest.TestCase):
                                                      data_frame_measurement_name='iot-devices',
                                                      data_frame_tag_columns=['building'],
                                                      data_frame_timestamp_column='time')
-        actual_with_order = polars_data_frame_to_list_of_points(df, ps,
-                                                                data_frame_measurement_name='iot-devices',
-                                                                data_frame_tag_columns=['building', 'region'],
-                                                                data_frame_timestamp_column='time',
-                                                                tag_order=['region', 'building'])
 
         expected = [
             'iot-devices,building=5a name="iot-devices",region="us-east",temperature=72.3 1664625660000000000',
             'iot-devices,building=5a name="iot-devices",region="us-east",temperature=72.1 1664712060000000000',
             'iot-devices,building=5a name="iot-devices",region="us-east",temperature=72.2 1664798460000000000'
         ]
-        expected_with_order = [
+        self.assertEqual(expected, actual)
+
+    def test_to_list_of_points_with_tag_order(self):
+        import polars as pl
+        ps = PointSettings()
+        df = pl.DataFrame(data={
+            "name": ['iot-devices', 'iot-devices', 'iot-devices'],
+            "building": ['5a', '5a', '5a'],
+            "region": ['us-east', 'us-east', 'us-east'],
+            "temperature": [72.3, 72.1, 72.2],
+            "time": pl.Series(["2022-10-01T12:01:00Z", "2022-10-02T12:01:00Z", "2022-10-03T12:01:00Z"])
+            .str.to_datetime(time_unit='ns')
+        })
+        actual = polars_data_frame_to_list_of_points(df, ps,
+                                                     data_frame_measurement_name='iot-devices',
+                                                     data_frame_tag_columns=['building', 'region'],
+                                                     data_frame_timestamp_column='time',
+                                                     tag_order=['region', 'building'])
+
+        expected = [
             'iot-devices,region=us-east,building=5a name="iot-devices",temperature=72.3 1664625660000000000',
             'iot-devices,region=us-east,building=5a name="iot-devices",temperature=72.1 1664712060000000000',
             'iot-devices,region=us-east,building=5a name="iot-devices",temperature=72.2 1664798460000000000'
         ]
         self.assertEqual(expected, actual)
-        self.assertEqual(expected_with_order, actual_with_order)
 
 
 @unittest.skipIf(importlib.util.find_spec("polars") is None, 'Polars package not installed')

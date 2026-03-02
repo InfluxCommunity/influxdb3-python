@@ -8,7 +8,7 @@ import logging
 import math
 
 from influxdb_client_3.write_client.client.write.point import _ESCAPE_KEY, _ESCAPE_STRING, DEFAULT_WRITE_PRECISION, \
-    ordered_tag_keys_for_serialization
+    ordered_tag_keys
 
 logger = logging.getLogger('influxdb_client.client.write.polars_dataframe_serializer')
 
@@ -83,7 +83,7 @@ class PolarsDataframeSerializer:
                 tag_keys.append(key)
                 tag_values[key] = value
 
-        final_tag_keys = ordered_tag_keys_for_serialization(tag_keys, self.tag_order)
+        final_tag_keys = ordered_tag_keys(tag_keys, self.tag_order)
         tags = ",".join(
             f'{self.escape_key(key)}={self.escape_key(tag_values[key])}'
             for key in final_tag_keys

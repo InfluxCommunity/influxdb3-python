@@ -256,8 +256,7 @@ The output Line protocol will be interpret as a comment by InfluxDB. For more in
 
 def _append_tags(tags, tag_order=None):
     _return = []
-    ordered_tag_keys = ordered_tag_keys_for_serialization(sorted(tags.keys()), tag_order)
-    for tag_key in ordered_tag_keys:
+    for tag_key in ordered_tag_keys(sorted(tags.keys()), tag_order):
         tag_value = tags.get(tag_key)
 
         if tag_value is None:
@@ -295,7 +294,7 @@ def sanitize_tag_order(tag_order):
     return sanitized
 
 
-def ordered_tag_keys_for_serialization(existing_keys, tag_order=None):
+def ordered_tag_keys(existing_keys, tag_order=None):
     ordered_keys = list(existing_keys)
     if not tag_order:
         return ordered_keys
