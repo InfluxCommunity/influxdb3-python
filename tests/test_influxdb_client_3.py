@@ -106,6 +106,12 @@ class TestInfluxDBClient3(unittest.TestCase):
         self.assertEqual(500, client._write_client_options["write_options"].flush_interval)
         self.assertEqual(["region", "host"], client._write_client_options["write_options"].tag_order)
 
+        with self.assertRaisesRegex(TypeError, "tag_order must be an iterable of strings, not str/bytes"):
+            WriteOptions(tag_order="region,host")
+
+        with self.assertRaisesRegex(TypeError, "tag_order entries must be strings"):
+            WriteOptions(tag_order=["region", 1])
+
     def test_default_write_options(self):
         client = InfluxDBClient3(
             host="localhost",
