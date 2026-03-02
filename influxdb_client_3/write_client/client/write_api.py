@@ -70,13 +70,23 @@ class DefaultWriteOptions(Enum):
 
 
 def _sanitize_tag_order(tag_order):
-    if not tag_order:
+    if tag_order is None:
         return []
+
+    if isinstance(tag_order, (str, bytes)):
+        raise TypeError("tag_order must be an iterable of strings, not str/bytes")
+
+    if not isinstance(tag_order, Iterable):
+        raise TypeError("tag_order must be an iterable of strings")
 
     sanitized = []
     seen = set()
     for tag in tag_order:
-        if not tag or tag in seen:
+        if tag is None or tag == "":
+            continue
+        if not isinstance(tag, str):
+            raise TypeError("tag_order entries must be strings")
+        if tag in seen:
             continue
         seen.add(tag)
         sanitized.append(tag)
