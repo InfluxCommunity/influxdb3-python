@@ -15,6 +15,7 @@ class TestPoint(unittest.TestCase):
 
     def test_point_tag_order(self):
         point = Point.measurement("h2o") \
+            .tag("drop", None) \
             .tag("rack", "r1") \
             .tag("host", "h1") \
             .tag("region", "us-east") \

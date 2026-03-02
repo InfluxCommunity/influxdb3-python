@@ -152,6 +152,10 @@ class TestInfluxDBClient3(unittest.TestCase):
         client = InfluxDBClient3(write_client_options=write_client_option)
         try:
             client._write_api._write_batching("bucket", "org", Point.measurement("test"), None)
+            client._write_api._write_batching("bucket", "org", {
+                "measurement": "test",
+                "fields": {"value": 1}
+            }, None)
             self.assertTrue(True)
         except Exception as e:
             self.fail(f"Write API with default options raised an exception: {str(e)}")
