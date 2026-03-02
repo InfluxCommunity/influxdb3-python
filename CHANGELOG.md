@@ -2,6 +2,11 @@
 
 ## 0.19.0 [unreleased]
 
+### Features
+
+1. [#198](https://github.com/InfluxCommunity/influxdb3-python/pull/198): Support custom tag order via `tag_order` write option.
+   See [Sort tags by priority](https://docs.influxdata.com/influxdb3/enterprise/write-data/best-practices/schema-design/#sort-tags-by-query-priority) for more.
+
 ## 0.18.0 [2026-02-19]
 
 ### Features
