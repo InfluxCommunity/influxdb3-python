@@ -43,6 +43,8 @@ SERIALIZER_KWARGS = {
     'record_time_key',
     'record_tag_keys',
     'record_field_keys',
+    # Point serialization-specific kwargs
+    'tag_order',
 }
 
 logger = logging.getLogger('influxdb_client_3.write_client.client.write_api')
@@ -67,6 +69,20 @@ class DefaultWriteOptions(Enum):
     timeout = DEFAULT_WRITE_TIMEOUT
 
 
+def _sanitize_tag_order(tag_order):
+    if not tag_order:
+        return []
+
+    sanitized = []
+    seen = set()
+    for tag in tag_order:
+        if not tag or tag in seen:
+            continue
+        seen.add(tag)
+        sanitized.append(tag)
+    return sanitized
+
+
 class WriteOptions(object):
     """Write configuration."""
 
@@ -81,6 +97,7 @@ class WriteOptions(object):
                  max_close_wait=300_000,
                  write_precision=DEFAULT_WRITE_PRECISION,
                  no_sync=DEFAULT_WRITE_NO_SYNC,
+                 tag_order=None,
                  timeout=DEFAULT_WRITE_TIMEOUT,
                  write_scheduler=ThreadPoolScheduler(max_workers=1)) -> None:
         """
@@ -100,6 +117,7 @@ class WriteOptions(object):
         :param max_close_wait: the maximum time to wait for writes to be flushed if close() is called
         :param write_precision: precision to use when writing points to InfluxDB
         :param no_sync: skip waiting for WAL persistence on write
+        :param tag_order: optional list of tag names used to prioritize tag serialization order
         :param timeout: timeout to use when writing to the database in milliseconds. Default is 10_000
         :param write_scheduler:
         """
@@ -117,6 +135,7 @@ class WriteOptions(object):
         self.write_precision = write_precision
         self.timeout = timeout
         self.no_sync = no_sync
+        self.tag_order = _sanitize_tag_order(tag_order)
 
     def to_retry_strategy(self, **kwargs):
         """
@@ -380,6 +399,8 @@ class WriteApi(_BaseWriteApi):
         if write_precision is None:
             write_precision = self._write_options.write_precision
 
+        kwargs.setdefault('tag_order', self._write_options.tag_order)
+
         if self._write_options.write_type is WriteType.batching:
             return self._write_batching(bucket, org, record,
                                         write_precision, **kwargs)
@@ -520,7 +541,9 @@ class WriteApi(_BaseWriteApi):
                                  precision, **kwargs)
 
         elif isinstance(data, Point):
-            self._write_batching(bucket, org, data.to_line_protocol(), data.write_precision, **kwargs)
+            self._write_batching(bucket, org,
+                                 data.to_line_protocol(tag_order=kwargs.get('tag_order')),
+                                 data.write_precision, **kwargs)
 
         elif isinstance(data, dict):
             self._write_batching(bucket, org, Point.from_dict(data, write_precision=precision, **kwargs),

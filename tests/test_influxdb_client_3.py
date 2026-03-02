@@ -90,7 +90,8 @@ class TestInfluxDBClient3(unittest.TestCase):
                                            max_retry_time=0,
                                            max_retry_delay=0,
                                            timeout=30_000,
-                                           flush_interval=500,))
+                                           flush_interval=500,
+                                           tag_order=["region", "", "host", "region"]))
         )
 
         self.assertIsInstance(client._write_client_options["write_options"], WriteOptions)
@@ -103,6 +104,7 @@ class TestInfluxDBClient3(unittest.TestCase):
         self.assertEqual(0, client._write_client_options["write_options"].max_retry_delay)
         self.assertEqual(WriteType.synchronous, client._write_client_options["write_options"].write_type)
         self.assertEqual(500, client._write_client_options["write_options"].flush_interval)
+        self.assertEqual(["region", "host"], client._write_client_options["write_options"].tag_order)
 
     def test_default_write_options(self):
         client = InfluxDBClient3(
@@ -118,6 +120,7 @@ class TestInfluxDBClient3(unittest.TestCase):
         self.assertEqual(DefaultWriteOptions.write_precision.value,
                          client._write_client_options["write_options"].write_precision)
         self.assertEqual(DefaultWriteOptions.timeout.value, client._write_client_options["write_options"].timeout)
+        self.assertEqual([], client._write_client_options["write_options"].tag_order)
 
     @asyncio_run
     async def test_query_async(self):
@@ -181,10 +184,12 @@ class TestInfluxDBClient3(unittest.TestCase):
             self.assertEqual(write_options.write_precision, expected_precision)
             self.assertEqual(write_options.write_type, expected_write_type)
             self.assertEqual(write_options.no_sync, expected_no_sync)
+            self.assertEqual(write_options.tag_order, [])
 
             self.assertEqual(c._write_api._write_options.write_precision, expected_precision)
             self.assertEqual(c._write_api._write_options.write_type, expected_write_type)
             self.assertEqual(c._write_api._write_options.no_sync, expected_no_sync)
+            self.assertEqual(c._write_api._write_options.tag_order, [])
 
         env_client = InfluxDBClient3.from_env()
         verify_client_write_options(env_client)

@@ -12,3 +12,14 @@ class TestPoint(unittest.TestCase):
     def test_point(self):
         point = Point.measurement("h2o").tag("location", "europe").field("level", 2.2).time(1_000_000)
         self.assertEqual('h2o,location=europe level=2.2 1000000', point.to_line_protocol())
+
+    def test_point_tag_order(self):
+        point = Point.measurement("h2o") \
+            .tag("rack", "r1") \
+            .tag("host", "h1") \
+            .tag("region", "us-east") \
+            .field("level", 2)
+
+        self.assertEqual('h2o,host=h1,rack=r1,region=us-east level=2i', point.to_line_protocol())
+        self.assertEqual('h2o,region=us-east,host=h1,rack=r1 level=2i',
+                         point.to_line_protocol(tag_order=["region", "", "host", "region", "missing"]))

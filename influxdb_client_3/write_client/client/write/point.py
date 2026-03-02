@@ -215,11 +215,12 @@ class Point(object):
         self._fields[field] = value
         return self
 
-    def to_line_protocol(self, precision=None):
+    def to_line_protocol(self, precision=None, tag_order=None):
         """
         Create LineProtocol.
 
          :param precision: required precision of LineProtocol. If it's not set then use the precision from ``Point``.
+         :param tag_order: optional list of tag names to prioritize in serialized output
         """
         _measurement = _escape_key(self._name, _ESCAPE_MEASUREMENT)
         if _measurement.startswith("#"):
@@ -229,7 +230,7 @@ The output Line protocol will be interpret as a comment by InfluxDB. For more in
     - https://docs.influxdata.com/influxdb/latest/reference/syntax/line-protocol/#comments
 """
             warnings.warn(message, SyntaxWarning)
-        _tags = _append_tags(self._tags)
+        _tags = _append_tags(self._tags, tag_order)
         _fields = _append_fields(self._fields, self._field_types)
         if not _fields:
             return ""
@@ -252,9 +253,11 @@ The output Line protocol will be interpret as a comment by InfluxDB. For more in
         return self.to_line_protocol()
 
 
-def _append_tags(tags):
+def _append_tags(tags, tag_order=None):
     _return = []
-    for tag_key, tag_value in sorted(tags.items()):
+    ordered_tag_keys = _ordered_tag_keys(tags, tag_order)
+    for tag_key in ordered_tag_keys:
+        tag_value = tags.get(tag_key)
 
         if tag_value is None:
             continue
@@ -265,6 +268,24 @@ def _append_tags(tags):
             _return.append(f'{tag}={value}')
 
     return f"{',' if _return else ''}{','.join(_return)} "
+
+
+def _ordered_tag_keys(tags, tag_order=None):
+    sorted_keys = sorted(tags.keys())
+    if not tag_order:
+        return sorted_keys
+
+    remaining = set(sorted_keys)
+    ordered = []
+    for tag_key in tag_order:
+        if not tag_key:
+            continue
+        if tag_key in remaining:
+            remaining.remove(tag_key)
+            ordered.append(tag_key)
+
+    ordered.extend(sorted(remaining))
+    return ordered
 
 
 def _append_fields(fields, field_types):
