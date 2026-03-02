@@ -58,6 +58,29 @@ class TestPolarsDataFrameSerializer(unittest.TestCase):
         ]
         self.assertEqual(expected, actual)
 
+    def test_to_list_of_points_with_default_tags(self):
+        import polars as pl
+        ps = PointSettings(env="prod", building="ignored")
+        df = pl.DataFrame(data={
+            "name": ['iot-devices'],
+            "building": ['5a'],
+            "temperature": [72.3],
+            "time": pl.Series(["2022-10-01T12:01:00Z"]).str.to_datetime(time_unit='ns')
+        })
+
+        actual = polars_data_frame_to_list_of_points(
+            df, ps,
+            data_frame_measurement_name='iot-devices',
+            data_frame_tag_columns=['building'],
+            data_frame_timestamp_column='time',
+            tag_order=['env', 'building'],
+        )
+
+        expected = [
+            'iot-devices,env=prod,building=5a name="iot-devices",temperature=72.3 1664625660000000000'
+        ]
+        self.assertEqual(expected, actual)
+
 
 @unittest.skipIf(importlib.util.find_spec("polars") is None, 'Polars package not installed')
 class TestWritePolars(unittest.TestCase):
