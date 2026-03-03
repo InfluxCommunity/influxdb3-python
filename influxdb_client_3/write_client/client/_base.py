@@ -246,7 +246,8 @@ class _BaseWriteApi(object):
         elif isinstance(record, Point):
             precision_from_point = kwargs.get('precision_from_point', True)
             precision = record.write_precision if precision_from_point else write_precision
-            self._serialize(record.to_line_protocol(precision=precision), precision, payload, **kwargs)
+            self._serialize(record.to_line_protocol(precision=precision, tag_order=kwargs.get('tag_order')),
+                            precision, payload, **kwargs)
 
         elif isinstance(record, dict):
             self._serialize(Point.from_dict(record, write_precision=write_precision, **kwargs),

@@ -7,7 +7,8 @@ Much of the code here is inspired by that in the aioinflux packet found here: ht
 import logging
 import math
 
-from influxdb_client_3.write_client.client.write.point import _ESCAPE_KEY, _ESCAPE_STRING, DEFAULT_WRITE_PRECISION
+from influxdb_client_3.write_client.client.write.point import _ESCAPE_KEY, _ESCAPE_STRING, DEFAULT_WRITE_PRECISION, \
+    ordered_tag_keys
 
 logger = logging.getLogger('influxdb_client.client.write.polars_dataframe_serializer')
 
@@ -36,6 +37,7 @@ class PolarsDataframeSerializer:
         self.chunk_size = chunk_size
         self.measurement_name = kwargs.get("data_frame_measurement_name", "measurement")
         self.tag_columns = kwargs.get("data_frame_tag_columns", [])
+        self.tag_order = kwargs.get("tag_order", None)
         self.timestamp_column = kwargs.get("data_frame_timestamp_column", None)
         self.timestamp_timezone = kwargs.get("data_frame_timestamp_timezone", None)
 
@@ -62,24 +64,30 @@ class PolarsDataframeSerializer:
         return str(value).translate(_ESCAPE_STRING)
 
     def to_line_protocol(self, row):
-        # Filter out None or empty values for tags
-        tags = ""
-
-        tags = ",".join(
-            f'{self.escape_key(col)}={self.escape_key(row[self.column_indices[col]])}'
-            for col in self.tag_columns
-            if row[self.column_indices[col]] is not None and row[self.column_indices[col]] != ""
-        )
+        tag_values = {}
+        tag_keys = []
+        for col in self.tag_columns:
+            value = row[self.column_indices[col]]
+            if value is None or value == "":
+                continue
+            if col not in tag_values:
+                tag_keys.append(col)
+            tag_values[col] = value
 
         if self.point_settings.defaultTags:
-            default_tags = ",".join(
-                f'{self.escape_key(key)}={self.escape_key(value)}'
-                for key, value in self.point_settings.defaultTags.items()
-            )
-            # Ensure there's a comma between existing tags and default tags if both are present
-            if tags and default_tags:
-                tags += ","
-            tags += default_tags
+            for key, value in self.point_settings.defaultTags.items():
+                if value is None or value == "":
+                    continue
+                if key in tag_values:
+                    continue
+                tag_keys.append(key)
+                tag_values[key] = value
+
+        final_tag_keys = ordered_tag_keys(tag_keys, self.tag_order)
+        tags = ",".join(
+            f'{self.escape_key(key)}={self.escape_key(tag_values[key])}'
+            for key in final_tag_keys
+        )
 
         # add escape symbols for special characters to tags
 

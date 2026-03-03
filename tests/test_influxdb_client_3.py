@@ -1,7 +1,7 @@
 import re
 import unittest
+from collections import defaultdict
 from unittest.mock import patch
-
 from pytest_httpserver import HTTPServer
 
 from influxdb_client_3 import InfluxDBClient3, WritePrecision, DefaultWriteOptions, Point, WriteOptions, WriteType, \
@@ -90,7 +90,8 @@ class TestInfluxDBClient3(unittest.TestCase):
                                            max_retry_time=0,
                                            max_retry_delay=0,
                                            timeout=30_000,
-                                           flush_interval=500,))
+                                           flush_interval=500,
+                                           tag_order=["region", "", "host", "region"]))
         )
 
         self.assertIsInstance(client._write_client_options["write_options"], WriteOptions)
@@ -103,6 +104,13 @@ class TestInfluxDBClient3(unittest.TestCase):
         self.assertEqual(0, client._write_client_options["write_options"].max_retry_delay)
         self.assertEqual(WriteType.synchronous, client._write_client_options["write_options"].write_type)
         self.assertEqual(500, client._write_client_options["write_options"].flush_interval)
+        self.assertEqual(["region", "host"], client._write_client_options["write_options"].tag_order)
+
+        with self.assertRaisesRegex(TypeError, "tag_order must be an iterable of strings, not str/bytes"):
+            WriteOptions(tag_order="region,host")
+
+        with self.assertRaisesRegex(TypeError, "tag_order entries must be strings"):
+            WriteOptions(tag_order=["region", 1])
 
     def test_default_write_options(self):
         client = InfluxDBClient3(
@@ -118,6 +126,7 @@ class TestInfluxDBClient3(unittest.TestCase):
         self.assertEqual(DefaultWriteOptions.write_precision.value,
                          client._write_client_options["write_options"].write_precision)
         self.assertEqual(DefaultWriteOptions.timeout.value, client._write_client_options["write_options"].timeout)
+        self.assertEqual([], client._write_client_options["write_options"].tag_order)
 
     @asyncio_run
     async def test_query_async(self):
@@ -147,13 +156,60 @@ class TestInfluxDBClient3(unittest.TestCase):
         write_options = WriteOptions(write_type=WriteType.batching)
         write_client_option = {'write_options': write_options}
         client = InfluxDBClient3(write_client_options=write_client_option)
+        sync_client = None
         try:
             client._write_api._write_batching("bucket", "org", Point.measurement("test"), None)
+            client._write_api._write_batching("bucket", "org", {
+                "measurement": "test",
+                "fields": {"value": 1}
+            }, None)
+            df = pd.DataFrame({
+                "value": [1, 2],
+            }, index=pd.to_datetime(["2024-01-01T00:00:00Z", "2024-01-01T01:00:00Z"]))
+            client._write_api._write_batching(
+                "bucket", "org", df, None,
+                data_frame_measurement_name="test_measurement",
+            )
+            point = Point.measurement("test").tag("host", "h1").field("value", 1).time(1, WritePrecision.S)
+            payload = defaultdict(list)
+            client._write_api._serialize(point, WritePrecision.NS, payload, tag_order=["host"])
+            self.assertIn(WritePrecision.S, payload)
+
+            payload_forced = defaultdict(list)
+            client._write_api._serialize(point, WritePrecision.NS, payload_forced,
+                                         precision_from_point=False, tag_order=["host"])
+            self.assertIn(WritePrecision.NS, payload_forced)
+
+            sync_client = InfluxDBClient3(
+                host="localhost",
+                org="my_org",
+                database="my_db",
+                token="my_token",
+                write_client_options=write_client_options(
+                    write_options=WriteOptions(write_type=WriteType.synchronous))
+            )
+            with patch.object(sync_client._write_api, "_post_write", return_value=None) as mock_post:
+                sync_point = Point.measurement("measurement") \
+                    .tag("host", "h1") \
+                    .tag("region", "us-east") \
+                    .field("value", 1)
+                sync_client.write(record=sync_point, tag_order=["region", "", "host", "region"])
+
+                args, kwargs = mock_post.call_args
+                body = kwargs.get("body")
+                if body is None and len(args) >= 4:
+                    body = args[3]
+                if isinstance(body, bytes):
+                    body = body.decode("utf-8")
+                self.assertIn("measurement,region=us-east,host=h1 value=1i", body)
+
             self.assertTrue(True)
         except Exception as e:
             self.fail(f"Write API with default options raised an exception: {str(e)}")
         finally:
             client._write_api._on_complete()  # abort batch writes - otherwise test cycles through urllib3 retries
+            if sync_client is not None:
+                sync_client.close()
 
     def test_default_client(self):
         expected_precision = DefaultWriteOptions.write_precision.value
@@ -181,10 +237,12 @@ class TestInfluxDBClient3(unittest.TestCase):
             self.assertEqual(write_options.write_precision, expected_precision)
             self.assertEqual(write_options.write_type, expected_write_type)
             self.assertEqual(write_options.no_sync, expected_no_sync)
+            self.assertEqual(write_options.tag_order, [])
 
             self.assertEqual(c._write_api._write_options.write_precision, expected_precision)
             self.assertEqual(c._write_api._write_options.write_type, expected_write_type)
             self.assertEqual(c._write_api._write_options.no_sync, expected_no_sync)
+            self.assertEqual(c._write_api._write_options.tag_order, [])
 
         env_client = InfluxDBClient3.from_env()
         verify_client_write_options(env_client)

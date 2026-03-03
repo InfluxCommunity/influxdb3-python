@@ -77,6 +77,30 @@ You can write data using the Point class, or supplying line protocol.
 point = Point("measurement").tag("location", "london").field("temperature", 42)
 client.write(point)
 ```
+
+### Control tag order for first-write column order (InfluxDB 3 Enterprise)
+```python
+from influxdb_client_3 import InfluxDBClient3, Point, WriteOptions, WriteType, write_client_options
+
+point = Point("cpu") \
+    .tag("host", "server-a") \
+    .tag("region", "us-east") \
+    .tag("rack", "r1") \
+    .field("usage", 0.42)
+
+write_options = WriteOptions(
+    write_type=WriteType.synchronous,
+    tag_order=["region", "host"],
+)
+
+client = InfluxDBClient3(
+    token="your-token",
+    host="your-host",
+    database="your-database",
+    write_client_options=write_client_options(write_options=write_options),
+)
+client.write(point)
+```
 ### Using Line Protocol
 ```python
 point = "measurement fieldname=0"
