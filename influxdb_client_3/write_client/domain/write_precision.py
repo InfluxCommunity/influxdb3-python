@@ -30,7 +30,7 @@ class WritePrecision(object):
     def __init__(self):  # noqa: E501,D401,D403
         """WritePrecision - a model defined in OpenAPI."""  # noqa: E501        self.discriminator = None
 
-    def to_dict(self):
+    def to_dict(self):  # pragma: no cover
         """Return the model properties as a dict."""
         result = {}
 
@@ -54,21 +54,21 @@ class WritePrecision(object):
 
         return result
 
-    def to_str(self):
+    def to_str(self):  # pragma: no cover
         """Return the string representation of the model."""
         return pprint.pformat(self.to_dict())
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         """For `print` and `pprint`."""
         return self.to_str()
 
-    def __eq__(self, other):
+    def __eq__(self, other):  # pragma: no cover
         """Return true if both objects are equal."""
         if not isinstance(other, WritePrecision):
             return False
 
         return self.__dict__ == other.__dict__
 
-    def __ne__(self, other):
+    def __ne__(self, other):  # pragma: no cover
         """Return true if both objects are not equal."""
         return not self == other
