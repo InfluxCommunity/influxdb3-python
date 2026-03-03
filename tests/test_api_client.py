@@ -56,7 +56,6 @@ class ApiClientTests(unittest.TestCase):
         return response.HTTPResponse(status=200, version=4, reason="OK", decode_content=False, request_url=url)
 
     def test_default_headers(self):
-        global _package
         conf = Configuration()
         client = ApiClient(conf,
                            header_name="Authorization",
@@ -69,7 +68,6 @@ class ApiClientTests(unittest.TestCase):
     @mock.patch("influxdb_client_3.write_client._sync.rest.RESTClientObject.request",
                 side_effect=mock_rest_request)
     def test_call_api(self, mock_post):
-        global _package
         global _sentHeaders
         _sentHeaders = {}
 
