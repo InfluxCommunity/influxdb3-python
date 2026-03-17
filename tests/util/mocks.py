@@ -62,9 +62,10 @@ class ConstantData:
         self.data = [
             array(['temp', 'temp', 'temp']),
             array(['kitchen', 'common', 'foyer']),
-            array([36.9, 25.7, 9.8])
+            array([36.9, 25.7, 9.8]),
+            array([None, None, None])
         ]
-        self.names = ['data', 'reference', 'value']
+        self.names = ['data', 'reference', 'value', 'null_field']
 
     def to_tuples(self):
         response = []
@@ -97,7 +98,8 @@ class ConstantFlightServer(FlightServerBase):
             tkt_data = [
                 array([key]),
                 array([tkt[key]]),
-                array([-1.0])
+                array([-1.0]),
+                array([None])
             ]
             result_table = concat_tables([result_table, Table.from_arrays(tkt_data, names=self.cd.names)])
         return RecordBatchStream(result_table, options=self.options)

@@ -148,9 +148,9 @@ class TestInfluxDBClient3(unittest.TestCase):
             for item in cd.to_list():
                 assert item in result_list
 
-            assert {'data': 'database', 'reference': 'my_db', 'value': -1.0} in result_list
-            assert {'data': 'sql_query', 'reference': query, 'value': -1.0} in result_list
-            assert {'data': 'query_type', 'reference': 'sql', 'value': -1.0} in result_list
+            assert {'data': 'database', 'reference': 'my_db', 'value': -1.0, 'null_field': None} in result_list
+            assert {'data': 'sql_query', 'reference': query, 'value': -1.0, 'null_field': None} in result_list
+            assert {'data': 'query_type', 'reference': 'sql', 'value': -1.0, 'null_field': None} in result_list
 
     def test_write_api_custom_options_no_error(self):
         write_options = WriteOptions(write_type=WriteType.batching)
