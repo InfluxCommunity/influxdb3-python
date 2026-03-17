@@ -402,9 +402,10 @@ Aw==
             for item in cd.to_list():
                 assert item in result_list
 
-            assert {'data': 'database', 'reference': 'my_database', 'value': -1.0} in result_list
-            assert {'data': 'sql_query', 'reference': 'SELECT * FROM data', 'value': -1.0} in result_list
-            assert {'data': 'query_type', 'reference': 'sql', 'value': -1.0} in result_list
+            assert {'data': 'database', 'reference': 'my_database', 'value': -1.0, 'null_field': None} in result_list
+            assert {'data': 'sql_query', 'reference': 'SELECT * FROM data', 'value': -1.0,
+                    'null_field': None} in result_list
+            assert {'data': 'query_type', 'reference': 'sql', 'value': -1.0, 'null_field': None} in result_list
 
     @asyncio_run
     async def test_query_async_delayed(self):
