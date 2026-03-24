@@ -123,6 +123,30 @@ class TestPolarsDataFrameSerializer(unittest.TestCase):
                 data_frame_measurement_name='iot-devices',
                 data_frame_timestamp_column='time')
 
+    def test_escape_for_key(self):
+        import polars as pl
+        ps = PointSettings(tag="prod")
+        df = pl.DataFrame(data={
+            "name whitespace": ['iot-devices'],
+            "tag1 whitespace": "something",
+            "building": ['5a'],
+            "temperature": [72.3],
+            "time": pl.Series(["2022-10-01T12:01:00Z"]).str.to_datetime(time_unit='ns')
+        })
+
+        actual = polars_data_frame_to_list_of_points(
+            data_frame=df, point_settings=ps,
+            data_frame_measurement_name='iot-devices',
+            data_frame_tag_columns=['building', 'tag1 whitespace'],
+            data_frame_timestamp_column='time',
+        )
+
+        expected = [
+            'iot-devices,building=5a,tag1\\ whitespace=something,tag=prod name\\ whitespace="iot-devices",'
+            'temperature=72.3 1664625660000000000'
+        ]
+        self.assertEqual(expected, actual)
+
 
 @unittest.skipIf(importlib.util.find_spec("polars") is None, 'Polars package not installed')
 class TestWritePolars(unittest.TestCase):
