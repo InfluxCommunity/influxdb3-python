@@ -147,6 +147,7 @@ class TestPolarsDataFrameSerializer(unittest.TestCase):
         ]
         self.assertEqual(expected, actual)
 
+
 @unittest.skipIf(importlib.util.find_spec("polars") is None, 'Polars package not installed')
 class TestWritePolars(unittest.TestCase):
     def setUp(self):
