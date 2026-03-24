@@ -142,7 +142,9 @@ class TestPolarsDataFrameSerializer(unittest.TestCase):
         )
 
         expected = [
-            'iot-devices,building=5a,tag1\\ whitespace=something,tag=prod name\\ whitespace="iot-devices",temperature=72.3 1664625660000000000']
+            'iot-devices,building=5a,tag1\\ whitespace=something,tag=prod name\\ whitespace="iot-devices",'
+            'temperature=72.3 1664625660000000000'
+        ]
         self.assertEqual(expected, actual)
 
 @unittest.skipIf(importlib.util.find_spec("polars") is None, 'Polars package not installed')
