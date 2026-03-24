@@ -92,12 +92,15 @@ class PolarsDataframeSerializer:
         # add escape symbols for special characters to tags
 
         fields = ",".join(
-            f"{col}=\"{self.escape_value(row[self.column_indices[col]])}\"" if isinstance(row[self.column_indices[col]],
-                                                                                          str)
-            else f"{col}={str(row[self.column_indices[col]]).lower()}" if isinstance(row[self.column_indices[col]],
-                                                                                     bool)  # Check for bool first
-            else f"{col}={row[self.column_indices[col]]}i" if isinstance(row[self.column_indices[col]], int)
-            else f"{col}={row[self.column_indices[col]]}"
+            f"{self.escape_key(col)}=\"{self.escape_value(row[self.column_indices[col]])}\"" if isinstance(
+                row[self.column_indices[col]],
+                str)
+            else f"{self.escape_key(col)}={str(row[self.column_indices[col]]).lower()}" if isinstance(
+                row[self.column_indices[col]],
+                bool)  # Check for bool first
+            else f"{self.escape_key(col)}={row[self.column_indices[col]]}i" if isinstance(row[self.column_indices[col]],
+                                                                                          int)
+            else f"{self.escape_key(col)}={row[self.column_indices[col]]}"
             for col in self.column_indices
             if col not in self.tag_columns + [self.timestamp_column] and
             row[self.column_indices[col]] is not None and row[self.column_indices[col]] != ""
