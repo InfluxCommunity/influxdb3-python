@@ -1,7 +1,12 @@
 import logging
-import influxdb_client_3 as InfluxDBClient3
-from influxdb_client_3 import write_client_options, WriteOptions, InfluxDBError
+import os
 
+import influxdb_client_3 as InfluxDBClient3
+from influxdb_client_3 import write_client_options, WriteOptions, InfluxDBError, file_parser_options
+
+from Examples.config import Config
+
+data_types = ["csv", "json", "feather", "orc", "parquet"]
 
 class BatchingCallback(object):
 
@@ -19,9 +24,11 @@ class BatchingCallback(object):
         print(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
 
 
-def main() -> None:
+def main(file_types=("csv",)) -> None:
 
     # allow detailed inspection
+    if file_types is None:
+        file_types = ["csv"]
     logging.basicConfig(level=logging.DEBUG)
 
     callback = BatchingCallback()
@@ -47,18 +54,33 @@ def main() -> None:
        write_client_options: see above
        debug: allows low-level inspection of communications and context-manager termination
     """
+    config = Config()
+
     with InfluxDBClient3.InfluxDBClient3(
-            token="INSERT_TOKEN",
-            host="https://us-east-1-1.aws.cloud2.influxdata.com/",
-            database="example_data_forever",
+            token=config.token,
+            host=config.host,
+            database=config.database,
             write_client_options=wco,
             debug=True) as client:
-        client.write_file(
-            file='./out.csv',
-            timestamp_column='time', tag_columns=["provider", "machineID"])
 
-    print(f'DONE writing from csv in {callback.write_count} batch(es)')
+        for type in file_types:
+            if not type in data_types:
+                logging.error(f"File type {type} not supported.")
+                continue
+
+            logging.info(f"Writing from file of type: {type}")
+            source_file = f"./source_data/out_update.{type}"
+            if not (os.path.exists(source_file) and os.path.isfile(source_file)):
+                logging.error(f"Source file {source_file} not found.")
+                logging.error(" TIP!: Perhaps source_data/updater.py needs to be run.")
+                continue
+            # write data from file
+            client.write_file(
+                file=source_file,
+                timestamp_column='time', tag_columns=["provider", "machineID"])
+
+    print(f'DONE writing from {file_types} in {callback.write_count} batch(es)')
 
 
 if __name__ == "__main__":
-    main()
+    main(("feather","parquet","orc","csv","json"))

@@ -4,7 +4,7 @@ import json
 
 class Config:
     def __init__(self):
-        self.host = os.getenv('INFLUXDB_HOST') or 'https://us-east-1-1.aws.cloud2.influxdata.com/'
+        self.host = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
         self.token = os.getenv('INFLUXDB_TOKEN') or 'my-token'
         self.database = os.getenv('INFLUXDB_DATABASE') or 'my-db'
 

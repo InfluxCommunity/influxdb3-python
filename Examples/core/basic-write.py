@@ -1,11 +1,18 @@
 import datetime
 
+from Examples.config import Config
 from influxdb_client_3 import InfluxDBClient3, Point
 
+#client = InfluxDBClient3(
+#    token="mGbL-OJ2kxYqvbIL9jQOOg2VJLhf16hh-xn-XJe3RUKrI5cewOAy80L5cVIzG0vh7dLLckZkpYfvExgoMBXLFA==",
+#    host="eu-central-1-1.aws.cloud2.influxdata.com",
+#    database="pokemon-codex")
+
+config = Config()
 client = InfluxDBClient3(
-    token="mGbL-OJ2kxYqvbIL9jQOOg2VJLhf16hh-xn-XJe3RUKrI5cewOAy80L5cVIzG0vh7dLLckZkpYfvExgoMBXLFA==",
-    host="eu-central-1-1.aws.cloud2.influxdata.com",
-    database="pokemon-codex")
+    token=config.token,
+    host=config.host,
+    database=config.database,)
 
 now = datetime.datetime.now(datetime.timezone.utc)
 

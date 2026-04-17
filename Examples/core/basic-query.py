@@ -1,9 +1,12 @@
+from Examples.config import Config
 from influxdb_client_3 import InfluxDBClient3
 
+config = Config()
+
 client = InfluxDBClient3(
-    token="",
-    host="eu-central-1-1.aws.cloud2.influxdata.com",
-    database="pokemon-codex")
+    token=config.token,
+    host=config.host,
+    database=config.database,)
 
 sql = '''SELECT * FROM caught WHERE trainer = 'ash' AND time >= now() - interval '1 hour' LIMIT 5'''
 table = client.query(query=sql, language='sql', mode='all')
