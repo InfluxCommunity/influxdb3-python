@@ -4,16 +4,18 @@ import logging
 import random
 import numpy as np
 
+
 def update_measurement_name(source: pd.DataFrame, measurment_name: str):
     count = 0
     for _ in source["iox::measurement"]:
         source.loc[count, "iox::measurement"] = measurment_name
         count += 1
 
+
 def update_timestamps(source: pd.DataFrame):
 
-    now = time.time_ns();
-    interval = 333_000_000 # ms
+    now = time.time_ns()
+    interval = 333_000_000  # ms
     grit = random.randrange(0, 1_000_000)
     interval = interval + grit
     current = np.int64(now - interval * len(source["time"]))
@@ -31,12 +33,14 @@ def update_timestamps(source: pd.DataFrame):
     if ts_type in ["int", "int32", "int64"]:
         source["time"] = source["time"].astype("int64")
 
+
 def feather_update():
     logging.info("Updating feather")
     f_df = pd.read_feather('./out.feather')
     update_timestamps(f_df)
     update_measurement_name(f_df, "machine_data_feather")
     f_df.to_feather('./out_update.feather')
+
 
 def orc_update():
     logging.info("Updating orc")
@@ -45,6 +49,7 @@ def orc_update():
     update_measurement_name(o_df, "machine_data_orc")
     o_df.to_orc('./out_update.orc', index=False)
 
+
 def parquet_update():
     logging.info("Updating parquet")
     p_df = pd.read_parquet('./out.parquet')
@@ -52,17 +57,20 @@ def parquet_update():
     update_measurement_name(p_df, "machine_data_parquet")
     p_df.to_parquet('./out_update.parquet', index=False)
 
+
 def csv_update():
     logging.info("Updating csv")
     csv_df = pd.read_csv('./out.csv')
     update_timestamps(csv_df)
     csv_df.to_csv('./out_update.csv', index=False)
 
+
 def json_update():
     logging.info("Updating json")
     json_df = pd.read_json('./out.json')
     update_timestamps(json_df)
     json_df.to_json('./out_update.json', orient='records', index=False)
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

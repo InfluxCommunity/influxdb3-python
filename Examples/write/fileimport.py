@@ -2,11 +2,12 @@ import logging
 import os
 
 import influxdb_client_3 as InfluxDBClient3
-from influxdb_client_3 import write_client_options, WriteOptions, InfluxDBError, file_parser_options
+from influxdb_client_3 import write_client_options, WriteOptions, InfluxDBError
 
 from Examples.config import Config
 
 data_types = ["csv", "json", "feather", "orc", "parquet"]
+
 
 class BatchingCallback(object):
 
@@ -64,7 +65,7 @@ def main(file_types=("csv",)) -> None:
             debug=True) as client:
 
         for type in file_types:
-            if not type in data_types:
+            if type not in data_types:
                 logging.error(f"File type {type} not supported.")
                 continue
 
@@ -83,4 +84,4 @@ def main(file_types=("csv",)) -> None:
 
 
 if __name__ == "__main__":
-    main(("feather","parquet","orc","csv","json"))
+    main(("feather", "parquet", "orc", "csv", "json"))
