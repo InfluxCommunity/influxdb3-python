@@ -388,6 +388,11 @@ class InfluxDBClient3:
         """
         Write data to InfluxDB.
 
+        Warning: When you write with only one Point or one Dict, and If that Point or Dict
+        contains fields with None value, those fields will not be written to InfluxDB.
+        If such fields are later queried explicitly, for example,
+        "SELECT field_with_value, field_with_null_value FROM my_table" an error will be thrown.
+
         :param record: The data point(s) to write.
         :type record: object or list of objects
         :param database: The database to write to. If not provided, uses the database provided during initialization.
