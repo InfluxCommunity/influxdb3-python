@@ -51,6 +51,44 @@ Note: This does not include Pandas support. If you would like to use key feature
 
 *Note: Please make sure you are using 3.9 or above. For the best performance use 3.11+*
 
+## CLI (Agent-Friendly Query Tool)
+
+This package includes an `influx3` CLI for read/query workflows.
+
+### Run a query
+
+```bash
+influx3 query -d my_database "SELECT * FROM cpu LIMIT 5"
+```
+
+By default, output is JSON to stdout.
+
+### Supported formats
+
+- `json` (default)
+- `jsonl`
+- `csv`
+- `pretty`
+
+```bash
+influx3 query -d my_database --format csv "SELECT * FROM cpu LIMIT 5"
+```
+
+### Config precedence
+
+Configuration values are resolved in this order:
+
+1. CLI flags
+2. `INFLUXDB3_*` environment variables
+3. legacy `INFLUX_*` environment variables
+4. built-in defaults (host defaults to `http://127.0.0.1:8181`)
+
+Relevant environment variables:
+
+- `INFLUXDB3_HOST_URL` (legacy fallback: `INFLUX_HOST`)
+- `INFLUXDB3_DATABASE_NAME` (legacy fallback: `INFLUX_DATABASE`)
+- `INFLUXDB3_AUTH_TOKEN` (legacy fallback: `INFLUX_TOKEN`)
+
 # Usage
 One of the easiest ways to get started is to checkout the ["Pokemon Trainer Cookbook"](https://github.com/InfluxCommunity/influxdb3-python/blob/main/Examples/pokemon-trainer/cookbook.ipynb). This scenario takes you through the basics of both the client library and Pyarrow.
 
