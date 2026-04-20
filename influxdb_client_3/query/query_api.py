@@ -61,7 +61,9 @@ class QueryApiOptions(object):
 
     def _read_certs(self, path: str) -> bytes:
         with open(path, "rb") as certs_file:
-            return certs_file.read()
+            certs = certs_file.read()
+            # Normalize PEM line endings so behavior is stable across platforms.
+            return certs.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
 
 
 class QueryApiOptionsBuilder(object):
