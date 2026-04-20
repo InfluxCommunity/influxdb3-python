@@ -33,17 +33,21 @@ TODO - delete this section as examples take shape and before creating PR.
 3. Keep one simple example of jupiter notebook. __DONE__
 4. Decide what to do with `./community` examples.
 5. Root examples
-   1. `basic_ssl_examle.py` to `./core`
-   2. `batching_example.py` to `./write`
-   3. `cloud_dedicated_query.py` - is it necessary to have specific _cloud_dedicated_ examples? Can this simply be documented in `README.md` or in code comments?
-   4. `cloud_dedicated_write.py` - is it necessary to have specific _cloud_dedicated_ examples? Can this simply be documented in `README.md` or in code comments?
+   1. `basic_ssl_examle.py` to `./core` __DONE__
+   2. `batching_example.py` to `./write` __DONE__
+   3. `cloud_dedicated_query.py` - is it necessary to have specific _cloud_dedicated_ examples? Can this simply be documented in `README.md` or in code comments? (Removed __DONE__)
+   4. `cloud_dedicated_write.py` - is it necessary to have specific _cloud_dedicated_ examples? Can this simply be documented in `README.md` or in code comments? (Removed __DONE__)
    5. `config.py` - universal configuration file.  Keep as is. 
-   6. `example.csv` - where is this used?  It doesn't seem to be used in any example... ???
-   7. `flight_options_example.py` - to `./query`
-   8. `handle_http_error.py` - to `./write`
-   9. `handle_query_error.py` - to `./query`
-   10. `pandas_write.py` - to `./write`
-   11. `query_async.py` - to `./query`
-   12. `query_type.py` - possible rename.  `_type` token in name is unclear.  Study closer.  Move to `./query`
-   13. `query_with_middleware.py` - to `./query`
-   14. `timeouts.py` - to `./core`
+   6. `example.csv` - where is this used?  It doesn't seem to be used in any example... ??? (Removed __DONE__)
+   7. `flight_options_example.py` - to `./query` __DONE__
+       - Note only option illustrated is tls certificate.  
+       - TODO after move - either enrich/refactor or verify this isn't covered elsewhere
+   8. `handle_http_error.py` - to `./write` __DONE__
+   9. `handle_query_error.py` - to `./query` __DONE__
+   10. `pandas_write.py` - to `./write` __DONE__
+   11. `query_async.py` - to `./query`  __DONE__
+   12. `query_type.py` - rename to `query_modes.py`. Move to `./query`  __DONE__
+   13. `query_with_middleware.py` - to `./query` __DONE__
+   14. `timeouts.py` - to `./core`  __DONE__ 
+6. Leverage `config.py` in all examples 
+7. Verify all refactored examples are working

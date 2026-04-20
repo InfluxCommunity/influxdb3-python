@@ -3,7 +3,7 @@ import time
 
 import pyarrow
 
-from config import Config
+from Examples.config import Config
 from influxdb_client_3 import InfluxDBClient3
 
 bad_cert = """-----BEGIN CERTIFICATE-----
