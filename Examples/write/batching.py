@@ -7,7 +7,7 @@ from bson import ObjectId
 import influxdb_client_3 as InfluxDBClient3
 from influxdb_client_3 import write_client_options, WritePrecision, WriteOptions, InfluxDBError
 
-from config import Config
+from Examples.config import Config
 
 
 class BatchingCallback(object):

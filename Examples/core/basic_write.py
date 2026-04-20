@@ -21,6 +21,7 @@ data = Point("caught").tag("trainer", "ash").tag("id", "0006").tag("num", "1") \
 
 try:
     client.write(data)
+    print("First point written to InfluxDB!")
 except Exception as e:
     print(f"Error writing point: {e}")
 

@@ -8,10 +8,27 @@ Influxdb3 uses two transports: one for writing data and another for querying.
 
 ### Writing data
 
-Basic examples can be found in the `write` directory.
+Basic examples can be found in the `Examples/core` directory.
 
-* `fileimport.py` shows how to import data to an Influx database directly from a number of other standard database formats.
-TODO - others
+   * `basic_write.py` - shows the essentials of using the `Point` class and making simple writes. 
+   * `basic_ssl.py` - shows how to handle SSL and TLS certificates. (TODO see point 7.2 below.)
+   * `timeouts.py` - shows how to set and leverage timeout values. 
+
+Richer examples can be found in the `Examples/write` directory.
+
+   * `batching.py` - shows how to make use of the _batching_ API for writing long-running data sets.   
+   * `fileimport.py` - shows how to import data to an Influx database directly from a number of other standard database formats.
+   * `handle_http_error.py` - shows error handling on writes.
+   * `pandas_write.py` - shows how to write pandas dataframes directly to an Influx database.
+   * `writeoptions.py` - shows the core options API for writes. (TODO more specific?  See point 7.1 below)
+
+### Querying data
+
+Basic examples can be found in the `Examples/core` directory.
+
+   * `basic_query.py` - shows the essentials of querying and Influxdb database.
+   * `basic_ssl.py` - shows how to handle SSL and TLS certificates. (TODO see point 7.2 below.)
+   * `timeouts.py` - shows how to set and leverage timeout values.
 
 ## Refactoring Notes 
 TODO - delete this section as examples take shape and before creating PR. 
@@ -49,5 +66,13 @@ TODO - delete this section as examples take shape and before creating PR.
    12. `query_type.py` - rename to `query_modes.py`. Move to `./query`  __DONE__
    13. `query_with_middleware.py` - to `./query` __DONE__
    14. `timeouts.py` - to `./core`  __DONE__ 
-6. Leverage `config.py` in all examples 
-7. Verify all refactored examples are working
+6. Standardization
+   1. Some examples show leveraging internal **kwargs like `data_frame_measurement_name` or `data_frame_tag_columns`
+       - Makes sense to expose these in _advanced_ examples. (e.g. pandas examples... )
+       - Perhaps though should encourage the use of a simpler standard API that hides them
+   2. Leverage `config.py` in all examples
+   3. Prefer using Influxdb3 Core by default.  But also document possibility of using other products.
+7. Enhancements
+   1. `writeoptions.py` - does not show much in the way of setting options.
+   2. `basic_ssl.py` - review. Seems to only show handling SSL handshake failures.
+8. Verify all refactored examples are working
