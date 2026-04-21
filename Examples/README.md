@@ -60,15 +60,15 @@ TODO - delete this section as examples take shape and before creating PR.
 2. Keep `file-import` as single file, with source data updatable - see `updater.py` __DONE__
 3. Keep one simple example of jupiter notebook. __DONE__
 4. Decide what to do with `./community` examples.
-   * `custom_url.py` 
+   * `custom_url.py` __DONE__ 
        * Doesn't seem to do what is on the tin.
        * Seems more like a _down sampling_ example
        * Doesn't query Influxdb directly but down samples from remote CSV
-       * TODO 
-           * rename to _down sampling_ or similar
-           * use initial query
-           * move to `./advanced`
-           * remove dependency on `githubusercontent`
+       * TODO __DONE__
+           * rename to _down sampling_ or similar __DONE__
+           * use initial query __DONE__
+           * move to `./advanced` __DONE__
+           * remove dependency on `githubusercontent` __DONE__
    * `database_transfer.py` 
        * Simply copies data from one bucket to another
        * Useful base example
@@ -76,7 +76,7 @@ TODO - delete this section as examples take shape and before creating PR.
        * To work requires `dbfrom` and measurement `airSensors` to exist.
            * Note - are camel caps not sometimes problematic in Influx? (seem to recall encountering problem with them in the past)
        * TODO
-           * move to `./advanced`
+           * move to `./advanced` __DONE__
            * make functional
 5. Root examples
    1. `basic_ssl_examle.py` to `./core` __DONE__
