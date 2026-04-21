@@ -6,7 +6,7 @@ import pandas
 
 from influxdb_client_3 import InfluxDBClient3
 
-from config import Config
+from Examples.config import Config
 
 
 async def fibio(iterations, grit=0.5):
