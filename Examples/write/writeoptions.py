@@ -1,9 +1,61 @@
+"""
+`writeoptions.py` is a functional example, except for certain illustrative callbacks,
+that shows the basic principles of setting up configuration properties for the standard
+HTTP write client.
+"""
 import datetime
+import logging
 
 from Examples.config import Config
-from influxdb_client_3 import InfluxDBClient3, Point, SYNCHRONOUS, write_client_options
+from influxdb_client_3 import (exceptions, InfluxDBClient3, Point,
+                               WriteOptions, WritePrecision, WriteType, write_client_options)
 
-wco = write_client_options(write_options=SYNCHRONOUS)
+logger = logging.getLogger("writeoptions")
+
+
+# An illustrative callback - see below
+def error_callback(conf, data: str, exception: exceptions.InfluxDBError):
+    now = datetime.datetime.now()
+    logger.warning(f"[{now}] an error occurred on latest write: {exception}")
+    logger.warning(f"   conf: {conf}")
+    logger.warning(f"   data: {data}")
+
+
+# An illustrative callback - see below
+def success_callback(conf, data: str):
+    now = datetime.datetime.now()
+    logger.info(f"[{now}] data written: {len(bytes(data, 'utf-8'))} bytes")
+    logger.debug(f"   conf: {conf}")
+
+
+wo = WriteOptions(
+    write_type=WriteType.synchronous,  # Type of write api to use
+    no_sync=False,  # Whether to wait for synchronizing writes with server acknowledgements
+    timeout=30_000,  # Time in milliseconds to wait for a post write response
+    write_precision=WritePrecision.MS,  # Timestamp precision used when writing data points
+)
+"""
+The WriteOptions class encapsulates basic configuration properties.
+
+Applicable properties will depend upon the value of the `write_type` property.  This can be...
+   * WriteType.asynchronous
+   * WriteType.synchronous (Default)
+   * WriteType.batching - see the example `write/batching.py` for more details.
+"""
+
+wco = write_client_options(write_options=wo,  # The core WriteOptions object to use
+                           success_callback=success_callback,  # N.B. currently only used in with batching type
+                           error_callback=error_callback,  # N.B. currently only used with batching type
+                           )
+"""
+The dictionary created by the call to `write_client_options()` can add other write client properties
+such as callback functions.  Note that the `write_options` property is not always required,
+in which case a default WriteOptions object is used internally.
+
+The InfluxDBClient3 constructor will leverage this dictionary when configuring the standard HTTP based write client.
+"""
+
+measurement = 'wo_caught'
 
 
 def main(config: Config):
@@ -11,13 +63,13 @@ def main(config: Config):
     with InfluxDBClient3(
          token=config.token,
          host=config.host,
-         database="pokemon-codex",
-         write_client_options=wco,
+         database=config.database,
+         write_client_options=wco,  # write client options get passed to the client instance here.
          debug=True) as client:
 
         now = datetime.datetime.now(datetime.timezone.utc)
 
-        data = Point("caught").tag("trainer", "ash").tag("id", "0006").tag("num", "1") \
+        data = Point(measurement).tag("trainer", "ash").tag("id", "0006").tag("num", "1") \
             .field("caught", "charizard") \
             .field("level", 10).field("attack", 30) \
             .field("defense", 40).field("hp", 200) \
@@ -30,7 +82,7 @@ def main(config: Config):
         except Exception as e:
             print(f"Error writing point: {e}")
 
-        data = [Point("caught")  # point 1
+        data = [Point(measurement)  # point 1
                 .tag("trainer", "ash")
                 .tag("id", "0006")
                 .tag("num", "1")
@@ -44,7 +96,7 @@ def main(config: Config):
                 .field("type2", "flying")
                 .time(now),
 
-                Point("caught")  # point 2
+                Point(measurement)  # point 2
                 .tag("trainer", "ash")
                 .tag("id", "0007")
                 .tag("num", "2")
@@ -58,7 +110,7 @@ def main(config: Config):
                 .field("type2", "poison")
                 .time(now),
 
-                Point("caught")  # point 3
+                Point(measurement)  # point 3
                 .tag("trainer", "ash")
                 .tag("id", "0008")
                 .tag("num", "3")

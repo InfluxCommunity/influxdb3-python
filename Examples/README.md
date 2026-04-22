@@ -4,7 +4,11 @@ First time users will likely want to study the examples in the `./core` director
 
 ### Underlying principles
 
-Influxdb3 uses two transports: one for writing data and another for querying.
+Influxdb3 uses two transports: one for writing data and another for querying.  For writes a standard HTTP REST style client is used.  Queries on the other hand make use of an HTTP/2.0 and gRPC compliant client.
+
+Most of the examples found here are functional and should be runnable against an Influxdb3 database, whether in the cloud or locally using for example Influxdb3 Core.  They have been revised and tested against the Influxdb3 Core product.
+
+Some more advanced examples contain only illustrative code that can be reused in your license compliant applications.  Whether an example is intended to be simply _illustrative_ or _functional_ is noted in comments at the start of each example file. 
 
 ### Writing data
 
@@ -21,7 +25,7 @@ Richer examples can be found in the `Examples/write` directory.
        * To refresh the source data use `Examples/write/source_data/updater.py` 
    * `handle_http_error.py` - shows error handling on writes.
    * `pandas_write.py` - shows how to write pandas dataframes directly to an Influx database.
-   * `writeoptions.py` - shows the core options API for writes. (TODO more specific?  See point 7.1 below)
+   * `writeoptions.py` - shows the core options API for writes.
 
 ### Querying data
 
@@ -103,7 +107,7 @@ TODO - delete this section as examples take shape and before creating PR.
    2. Leverage `config.py` in all examples
    3. Prefer using Influxdb3 Core by default.  But also document possibility of using other products.
 7. Enhancements
-   1. `writeoptions.py` - does not show much in the way of setting options.
+   1. `writeoptions.py` - does not show much in the way of setting options. (Update and revision - __DONE__)
    2. `basic_ssl.py` - review. Seems to only show handling SSL handshake failures.
 8. Verify all refactored examples are working
    *. __NOTE__ - If making an _illustrative_ example functional _out-of-the-box_ leads to too much distractive information being added, leave the example as _illustrative only_ and add a comment that it is for purposes of illustration.  However, make sure the illustrative example is still working in a concrete implementation. (e.g. `query_with_middleware.py`)
