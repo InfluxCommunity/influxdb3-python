@@ -53,6 +53,9 @@ Richer examples can be found in the `Examples/query` directory.
 
 ### Advanced examples
 
+   * `database_transfer.py` - illustrates writing datapoints from one database to another.
+   * `downsample.py` - shows how to read data from one measurement, reduce it to a smaller data set, and then write the new data set as a new measurement.
+
 ## Refactoring Notes 
 TODO - delete this section as examples take shape and before creating PR. 
 
@@ -114,6 +117,7 @@ TODO - delete this section as examples take shape and before creating PR.
    2. Remove dependencies on remote `../githubusercontent/../*.csv` 
    2. Leverage `config.py` in all examples
    3. Prefer using Influxdb3 Core by default.  But also document possibility of using other products.
+   4. Add shebangs to functional examples
 7. Enhancements
    1. `writeoptions.py` - does not show much in the way of setting options. (Update and revision - __DONE__)
    2. `basic_ssl.py` - review. Seems to only show handling SSL handshake failures. (Reviewed and updated - __DONE__)

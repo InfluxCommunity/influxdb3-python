@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+"""
+basic_write.py - shows the simplest ways in which to write data to an influxdb3 database using Point objects.
+
+After successfully running this example try basic_query.py to verify the results.
+"""
 import datetime
 
 from Examples.config import Config
@@ -11,7 +17,9 @@ client = InfluxDBClient3(
 
 now = datetime.datetime.now(datetime.timezone.utc)
 
-data = Point("caught").tag("trainer", "ash").tag("id", "0006").tag("num", "1") \
+measurement = "basic_caught"
+
+data = Point(measurement).tag("trainer", "ash").tag("id", "0006").tag("num", "1") \
     .field("caught", "charizard") \
     .field("level", 10).field("attack", 30) \
     .field("defense", 40).field("hp", 200) \
@@ -25,7 +33,7 @@ try:
 except Exception as e:
     print(f"Error writing point: {e}")
 
-data = [Point("caught")  # first point
+data = [Point(measurement)  # first point
         .tag("trainer", "ash")
         .tag("id", "0006")
         .tag("num", "1")
@@ -39,7 +47,7 @@ data = [Point("caught")  # first point
         .field("type2", "flying")
         .time(now),
 
-        Point("caught")  # second point
+        Point(measurement)  # second point
         .tag("trainer", "ash")
         .tag("id", "0007")
         .tag("num", "2")
@@ -53,7 +61,7 @@ data = [Point("caught")  # first point
         .field("type2", "poison")
         .time(now),
 
-        Point("caught")  # third point
+        Point(measurement)  # third point
         .tag("trainer", "ash")
         .tag("id", "0008")
         .tag("num", "3")
@@ -73,3 +81,5 @@ try:
     print(f"Write success: {len(data)} points!")
 except Exception as e:
     print(f"Error writing point: {e}")
+finally:
+    client.close()

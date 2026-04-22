@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 basic_ssl.py is a functional example that shows how to work with non-standard SSL configurations.
 

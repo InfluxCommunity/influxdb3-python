@@ -1,38 +1,39 @@
 #!/usr/bin/env python3
-import sys
-import time
-
-from influxdb_client_3 import InfluxDBClient3, write_client_options
-
 """
-This example shows how to set query and write timeouts.
+timeouts.py - shows how to set query and write timeouts.
+
 They can be set directly using arguments (write_timeout, query_timeout) in the client constructor.
 They can also be overridden in write and query calls.
 
 To trigger timeout and deadline expired exceptions, reset the timeout values in the examples or
 supply new values as command line parameters.
 
-Be sure to update the host, token a database values below, before running this example.
+Be sure to update INFLUXDB_HOST, INFLUXDB_DATABASE and INFLUXDB_TOKEN environment variables,
+before running this example.
 """
+import sys
+import time
+
+from influxdb_client_3 import InfluxDBClient3, write_client_options
+from Examples.config import Config
 
 DEFAULT_WRITE_TIMEOUT = 30_000  # in milliseconds
 DEFAULT_QUERY_TIMEOUT = 120_000  # in milliseconds
-DEFAULT_HOST = 'http://localhost:8181'
-DEFAULT_TOKEN = 'my-token'
-DEFAULT_DATABASE = 'test-data'
 
+config = Config()
+
+print(f"DEBUG config: {config}")
 
 def handle_write_error_cb(rd, rt, rx):
     print(f"Got a write error: {rd}, {rt}, {rx}")
-
 
 def main(w_to: int, q_to: int) -> None:
     print(f"main {w_to}, {q_to}")
     lp_data = "timeout_example,location=terra fVal=3.14,iVal=42i"
     with InfluxDBClient3(
-        host=DEFAULT_HOST,
-        token=DEFAULT_TOKEN,
-        database=DEFAULT_DATABASE,
+        host=config.host,
+        token=config.token,
+        database=config.database,
         write_timeout=w_to,
         query_timeout=q_to,
         write_client_options=write_client_options(
