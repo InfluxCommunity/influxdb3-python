@@ -8,7 +8,15 @@ Influxdb3 uses two transports: one for writing data and another for querying.  F
 
 Most of the examples found here are functional and should be runnable against an Influxdb3 database, whether in the cloud or locally using for example Influxdb3 Core.  They have been revised and tested against the Influxdb3 Core product.
 
-Some more advanced examples contain only illustrative code that can be reused in your license compliant applications.  Whether an example is intended to be simply _illustrative_ or _functional_ is noted in comments at the start of each example file. 
+Some more advanced examples contain only illustrative code that can be reused in your license compliant applications.  Whether an example is intended to be simply _illustrative_ or _functional_ is noted in comments at the start of each example file.
+
+__Configuration__
+
+Functional examples make use of the base `Config` class in `config.py`.  User values can be set either directly in this file, or through the following environment variables.
+
+* `INFLUXDB_HOST` - host URL to connect to an Influxdb3 database.
+* `INFLUXDB_DATABASE` - default database to be used with the examples.
+* `INFLUXDB_TOKEN` - a token associated with read and write permissions to the default database and any additional databases that might be used with the examples.
 
 ### Writing data
 
@@ -108,7 +116,7 @@ TODO - delete this section as examples take shape and before creating PR.
    3. Prefer using Influxdb3 Core by default.  But also document possibility of using other products.
 7. Enhancements
    1. `writeoptions.py` - does not show much in the way of setting options. (Update and revision - __DONE__)
-   2. `basic_ssl.py` - review. Seems to only show handling SSL handshake failures.
+   2. `basic_ssl.py` - review. Seems to only show handling SSL handshake failures. (Reviewed and updated - __DONE__)
 8. Verify all refactored examples are working
    *. __NOTE__ - If making an _illustrative_ example functional _out-of-the-box_ leads to too much distractive information being added, leave the example as _illustrative only_ and add a comment that it is for purposes of illustration.  However, make sure the illustrative example is still working in a concrete implementation. (e.g. `query_with_middleware.py`)
    *. TODO In comments, mark examples as either _illustrative_ or _functional_ 

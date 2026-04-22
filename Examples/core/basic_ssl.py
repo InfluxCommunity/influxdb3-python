@@ -1,3 +1,13 @@
+"""
+basic_ssl.py is a functional example that shows how to work with non-standard SSL configurations.
+
+Please NOTE, as this is an SSL example it needs to be run over an HTTPS transport.  Running with a local
+Influxdb3 Core deployment over HTTP is of little use.  When running this example, please either...
+
+   * deploy Influxdb3 Core / Enterprise locally over HTTPS.
+       (see https://docs.influxdata.com/influxdb3/core/reference/config-options/#security)
+   * use an Influxdb3 Cloud account.
+"""
 import os
 import time
 
