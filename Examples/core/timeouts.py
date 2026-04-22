@@ -24,8 +24,10 @@ config = Config()
 
 print(f"DEBUG config: {config}")
 
+
 def handle_write_error_cb(rd, rt, rx):
     print(f"Got a write error: {rd}, {rt}, {rx}")
+
 
 def main(w_to: int, q_to: int) -> None:
     print(f"main {w_to}, {q_to}")
