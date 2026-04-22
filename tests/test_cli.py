@@ -130,11 +130,110 @@ def test_run_query_writes_json_error_for_query_exception():
     assert json.loads(stderr.getvalue()) == {"error": "bad query"}
 
 
+def test_run_query_formats_csv():
+    args = _args(
+        query="SELECT * FROM m",
+        host="http://localhost:8181",
+        database="db1",
+        output_format="csv",
+    )
+    mock_client = _mock_client(return_value=pa.Table.from_pylist([{"a": 1, "b": "x"}, {"a": 2, "b": "y"}]))
+
+    stdout, stderr = io.StringIO(), io.StringIO()
+
+    with patch("influxdb_client_3.cli.InfluxDBClient3", return_value=mock_client):
+        rc = _run_query(args, stdout, stderr, env={})
+
+    assert rc == 0
+    lines = stdout.getvalue().strip().splitlines()
+    assert lines[0] == "a,b"
+    assert lines[1] == "1,x"
+    assert lines[2] == "2,y"
+    assert stderr.getvalue() == ""
+
+
+def test_run_query_formats_pretty():
+    args = _args(
+        query="SELECT * FROM m",
+        host="http://localhost:8181",
+        database="db1",
+        output_format="pretty",
+    )
+    mock_client = _mock_client(return_value=pa.Table.from_pylist([{"a": 1, "b": "hi"}]))
+
+    stdout, stderr = io.StringIO(), io.StringIO()
+
+    with patch("influxdb_client_3.cli.InfluxDBClient3", return_value=mock_client):
+        rc = _run_query(args, stdout, stderr, env={})
+
+    assert rc == 0
+    lines = stdout.getvalue().splitlines()
+    assert lines[0] == "a | b "
+    assert lines[1] == "--+---"
+    assert lines[2] == "1 | hi"
+    assert stderr.getvalue() == ""
+
+
+def test_run_query_writes_output_to_file(tmp_path):
+    out_file = tmp_path / "result.json"
+    args = _args(
+        query="SELECT 1 AS v",
+        host="http://localhost:8181",
+        database="db1",
+        output_file_path=str(out_file),
+    )
+    mock_client = _mock_client(return_value=pa.Table.from_pylist([{"v": 1}]))
+
+    stdout, stderr = io.StringIO(), io.StringIO()
+
+    with patch("influxdb_client_3.cli.InfluxDBClient3", return_value=mock_client):
+        rc = _run_query(args, stdout, stderr, env={})
+
+    assert rc == 0
+    assert stdout.getvalue() == ""
+    content = out_file.read_text(encoding="utf-8")
+    assert json.loads(content) == [{"v": 1}]
+
+
+def test_run_query_empty_jsonl_no_output():
+    args = _args(
+        query="SELECT * FROM m",
+        host="http://localhost:8181",
+        database="db1",
+        output_format="jsonl",
+    )
+    mock_client = _mock_client(return_value=pa.Table.from_pylist([], schema=pa.schema([("a", pa.int64())])))
+
+    stdout, stderr = io.StringIO(), io.StringIO()
+
+    with patch("influxdb_client_3.cli.InfluxDBClient3", return_value=mock_client):
+        rc = _run_query(args, stdout, stderr, env={})
+
+    assert rc == 0
+    assert stdout.getvalue() == ""
+
+
+def test_run_query_rejects_negative_timeout():
+    args = _args(
+        query="SELECT 1",
+        host="http://localhost:8181",
+        database="db1",
+        query_timeout=-5,
+    )
+    stdout, stderr = io.StringIO(), io.StringIO()
+
+    rc = _run_query(args, stdout, stderr, env={})
+
+    assert rc == 1
+    assert "non-negative" in stderr.getvalue()
+
+
 def test_main_returns_1_when_database_missing():
-    with patch("influxdb_client_3.cli.sys.stdout", new=io.StringIO()), patch(
-        "influxdb_client_3.cli.sys.stderr", new=io.StringIO()
-    ) as stderr:
-        rc = main(["query", "SELECT 1"])
+    with patch.dict("os.environ", {}, clear=True):
+        with patch("influxdb_client_3.cli.sys.stdout", new=io.StringIO()), patch(
+            "influxdb_client_3.cli.sys.stderr", new=io.StringIO()
+        ) as stderr:
+            rc = main(["query", "SELECT 1"])
 
     assert rc == 1
     assert "Database is required" in stderr.getvalue()

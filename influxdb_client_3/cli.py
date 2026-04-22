@@ -68,6 +68,8 @@ def _rows_to_json(rows, fieldnames):
 
 
 def _rows_to_jsonl(rows, fieldnames):
+    if not rows:
+        return ""
     return "\n".join(json.dumps(row, default=str) for row in rows)
 
 
@@ -86,6 +88,8 @@ def _format_table(table: pa.Table, output_format: str) -> str:
 
 
 def _ensure_trailing_nl(text: str) -> str:
+    if not text:
+        return ""
     return text if text.endswith("\n") else text + "\n"
 
 
@@ -138,6 +142,10 @@ def _run_query(args, stdout, stderr, env: Optional[Mapping[str, str]] = None) ->
 
     if not database:
         _write_error(stderr, "Database is required. Set --database or INFLUXDB3_DATABASE_NAME.")
+        return 1
+
+    if args.query_timeout is not None and args.query_timeout < 0:
+        _write_error(stderr, "--query-timeout must be non-negative.")
         return 1
 
     try:
