@@ -2,6 +2,14 @@
 
 ## 0.20.0 [unreleased]
 
+### Features
+
+1. [#208](https://github.com/InfluxCommunity/influxdb3-python/pull/208): Add `influx3 query` CLI support for executing SQL/InfluxQL queries with JSON/JSONL/CSV/pretty output, including module execution via `python -m influxdb_client_3`.
+
+### Bug Fixes
+
+1. [#208](https://github.com/InfluxCommunity/influxdb3-python/pull/208): Normalize PEM certificate line endings when loading Flight query root certificates to ensure consistent SSL option behavior on Windows.
+
 ## 0.19.0 [2026-04-23]
 
 ### Features
@@ -9,11 +17,6 @@
 1. [#198](https://github.com/InfluxCommunity/influxdb3-python/pull/198): Support custom tag order via `tag_order` write option.
    See [Sort tags by priority](https://docs.influxdata.com/influxdb3/enterprise/write-data/best-practices/schema-design/#sort-tags-by-query-priority) for more.
 1. [#202](https://github.com/InfluxCommunity/influxdb3-python/pull/202): Add escape for field keys when serializing to line protocol in `PolarsDataframeSerializer`.
-1. [#208](https://github.com/InfluxCommunity/influxdb3-python/pull/208): Add `influx3 query` CLI support for executing SQL/InfluxQL queries with JSON/JSONL/CSV/pretty output, including module execution via `python -m influxdb_client_3`.
-
-### Bug Fixes
-
-1. [#208](https://github.com/InfluxCommunity/influxdb3-python/pull/208): Normalize PEM certificate line endings when loading Flight query root certificates to ensure consistent SSL option behavior on Windows.
 
 ## 0.18.0 [2026-02-19]
 
