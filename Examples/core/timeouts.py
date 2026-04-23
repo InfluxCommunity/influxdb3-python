@@ -22,8 +22,6 @@ DEFAULT_QUERY_TIMEOUT = 120_000  # in milliseconds
 
 config = Config()
 
-print(f"DEBUG config: {config}")
-
 
 def handle_write_error_cb(rd, rt, rx):
     print(f"Got a write error: {rd}, {rt}, {rx}")

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 `writeoptions.py` is a functional example, except for certain illustrative callbacks,
 that shows the basic principles of setting up configuration properties for the standard
@@ -39,8 +40,8 @@ The WriteOptions class encapsulates basic configuration properties.
 
 Applicable properties will depend upon the value of the `write_type` property.  This can be...
    * WriteType.asynchronous
-   * WriteType.synchronous (Default)
-   * WriteType.batching - see the example `write/batching.py` for more details.
+   * WriteType.synchronous 
+   * WriteType.batching (Constructor Default) - see the example `write/batching.py` for more details.
 """
 
 wco = write_client_options(write_options=wo,  # The core WriteOptions object to use

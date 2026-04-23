@@ -1,3 +1,12 @@
+#!/usr/bin/env python3
+"""
+fileimport.py - is a functional example that shows how to import data directly to Influxdb3
+from other common database types.
+
+The template databases used for this example can be found in `Examples/write/source_data`. To create
+fresh databases with current timestamps please run the helper file `Examples/write/source_data/updater.py`
+before running fileimport.py.
+"""
 import logging
 import os
 
@@ -48,15 +57,11 @@ def main(file_types=("csv",)) -> None:
                                write_options=write_options
                                )
 
-    """
-       token: access token generated in cloud
-       host: ATTN could be another AWS region or even another cloud provider
-       database: should have retention policy 'forever' to handle older sample data timestamps
-       write_client_options: see above
-       debug: allows low-level inspection of communications and context-manager termination
-    """
     config = Config()
-
+    """
+       Note:
+       debug: allows low-level inspection of communications and of context-manager termination
+    """
     with InfluxDBClient3.InfluxDBClient3(
             token=config.token,
             host=config.host,
@@ -64,15 +69,15 @@ def main(file_types=("csv",)) -> None:
             write_client_options=wco,
             debug=True) as client:
 
-        for type in file_types:
-            if type not in data_types:
-                logging.error(f"File type {type} not supported.")
+        for _ftype in file_types:
+            if _ftype not in data_types:
+                logging.error(f"File type {_ftype} not supported.")
                 continue
 
-            logging.info(f"Writing from file of type: {type}")
-            source_file = f"./source_data/out_update.{type}"
+            logging.info(f"Writing from DB file of type: {_ftype}")
+            source_file = f"./source_data/out_update.{_ftype}"
             if not (os.path.exists(source_file) and os.path.isfile(source_file)):
-                logging.error(f"Source file {source_file} not found.")
+                logging.error(f"Source DB file {source_file} not found.")
                 logging.error(" TIP!: Perhaps source_data/updater.py needs to be run.")
                 continue
             # write data from file

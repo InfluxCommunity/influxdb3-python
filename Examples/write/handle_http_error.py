@@ -1,8 +1,9 @@
+#!/usr/bin/env python3
 """
-Demonstrates handling response error headers on error.
+handle_http_error.py - is a functional example that demonstrates handling response error headers on error.
 """
 import logging
-from config import Config
+from Examples.config import Config
 
 import influxdb_client_3 as InfluxDBClient3
 

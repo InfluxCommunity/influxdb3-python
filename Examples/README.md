@@ -23,7 +23,7 @@ Functional examples make use of the base `Config` class in `config.py`.  User va
 Basic examples can be found in the `Examples/core` directory.
 
    * `basic_write.py` - shows the essentials of using the `Point` class and making simple writes. 
-   * `basic_ssl.py` - shows how to handle SSL and TLS certificates. (TODO see point 7.2 below.)
+   * `basic_ssl.py` - shows how to handle SSL and TLS certificates.
    * `timeouts.py` - shows how to set and leverage timeout values. 
 
 Richer examples can be found in the `Examples/write` directory.
@@ -40,12 +40,12 @@ Richer examples can be found in the `Examples/write` directory.
 Basic examples can be found in the `Examples/core` directory.
 
    * `basic_query.py` - shows the essentials of querying and Influxdb database.
-   * `basic_ssl.py` - shows how to handle SSL and TLS certificates. (TODO see point 7.2 below.)
+   * `basic_ssl.py` - shows how to handle SSL and TLS certificates.
    * `timeouts.py` - shows how to set and leverage timeout values.
 
 Richer examples can be found in the `Examples/query` directory.
 
-   * `flight_options.py` - shows how to set options on the query transport.
+   * `flight_options.py` - shows how to set options on the query transport. (TODO see point 7.3 below)
    * `handle_query_error.py` - shows basic error handling.
    * `query_async.py` - shows basic usage of the asynchronous query API. 
    * `query_modes.py` - when making a query, different modes return data in different types of structures.  This example shows which modes return which structured formats.
@@ -118,9 +118,12 @@ TODO - delete this section as examples take shape and before creating PR.
    2. Leverage `config.py` in all examples
    3. Prefer using Influxdb3 Core by default.  But also document possibility of using other products.
    4. Add shebangs to functional examples
+   5. Ensure timestamps are current and not fixed for example to 2023
 7. Enhancements
    1. `writeoptions.py` - does not show much in the way of setting options. (Update and revision - __DONE__)
    2. `basic_ssl.py` - review. Seems to only show handling SSL handshake failures. (Reviewed and updated - __DONE__)
+   3. `write_pandas.py` - has fixed dates from 2023, make dynamic with current.
+   3. `flight_options.py` - review. This example is nearly three years old, and flight/query options has been greatly enhanced since then.
 8. Verify all refactored examples are working
    *. __NOTE__ - If making an _illustrative_ example functional _out-of-the-box_ leads to too much distractive information being added, leave the example as _illustrative only_ and add a comment that it is for purposes of illustration.  However, make sure the illustrative example is still working in a concrete implementation. (e.g. `query_with_middleware.py`)
    *. TODO In comments, mark examples as either _illustrative_ or _functional_ 

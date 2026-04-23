@@ -1,8 +1,9 @@
+#!/usr/bin/env python3
 """
-Demonstrates handling error when querying InfluxDB.
+handle_query_error.py - Is a functional example that demonstrates handling error when querying InfluxDB.
 """
 import logging
-from config import Config
+from Examples.config import Config
 from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
 
 import influxdb_client_3 as InfluxDBClient3

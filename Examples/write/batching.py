@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+"""
+batching.py - is a functional example that shows how to set up and use WriteType.batching,
+which is the default WriteType when instantiating a WriteOptions object.
+"""
 import datetime
 import random
 import time
@@ -11,7 +16,9 @@ from Examples.config import Config
 
 
 class BatchingCallback(object):
-
+    """
+    Prepare callbacks to be used to handle batching states.
+    """
     def __init__(self):
         self.write_status_msg = None
         self.write_count = 0
