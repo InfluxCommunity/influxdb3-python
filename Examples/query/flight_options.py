@@ -1,19 +1,35 @@
-import influxdb_client_3 as InfluxDBClient3
-from influxdb_client_3 import flight_client_options
+"""
+flight_options.py - is an illustrative example of how to set low level options for the Arrow Flight client
+and even for its internal gRPC client.
+
+Note that the query transport of Influxdb3 is built on top of Arrow Flight, so `flight_client_options` in
+a broad sense is synonymous with setting low level "Query API Options".
+
+TODO review this one more time
+"""
+from influxdb_client_3 import InfluxDBClient3, flight_client_options
+from Examples.config import Config
 
 
 with open("./cert.pem", 'rb') as f:
     cert = f.read()
 print(cert)
 
+config = Config()
 
-client = InfluxDBClient3.InfluxDBClient3(
-    token="",
-    host="b0c7cce5-8dbc-428e-98c6-7f996fb96467.a.influxdb.io",
-    database="flightdemo",
-    flight_client_options=flight_client_options(
-        tls_root_certs=cert))
-
+client = InfluxDBClient3(
+    token=config.token,
+    host=config.host,
+    database=config.database,
+    flight_client_options=flight_client_options(  # Options passed directly to the underlying Arrow flight client
+        tls_root_certs=cert,  # Use a non-standard root certificate
+        disable_server_verification=True,  # N.B. unsafe - for illustration here
+        generic_options=[  # options to be passed to the gRPC client used by Arrow flight
+            ("grpc.keepalive_time_ms", 300000),
+            ("grpc.keepalive_timeout_ms", 20000),
+        ]
+    )
+)
 
 table = client.query(
     query="SELECT * FROM flight WHERE time > now() - 4h",

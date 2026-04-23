@@ -1,3 +1,7 @@
+"""
+query_with_middleware.py - is an illustrative example of how to add Arrow Flight middleware
+when initializing a client.
+"""
 from pyarrow import flight
 
 from Examples.config import Config
