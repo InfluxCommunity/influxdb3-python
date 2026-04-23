@@ -4,7 +4,7 @@ First time users will likely want to study the examples in the `./core` director
 
 ### Underlying principles
 
-Influxdb3 uses two transports: one for writing data and another for querying.  For writes a standard HTTP REST style client is used.  Queries on the other hand make use of an HTTP/2.0 and gRPC compliant client.
+Influxdb3 uses two transports: one for writing data and another for querying.  For writes a standard HTTP REST style client is used.  Queries on the other hand make use of an HTTP/2.0 and [gRPC](https://grpc.io/docs/what-is-grpc/introduction/) compliant client under [Apache Arrow Flight](https://arrow.apache.org/cookbook/py/flight.html).
 
 Most of the examples found here are functional and should be runnable against an Influxdb3 database, whether in the cloud or locally using for example Influxdb3 Core.  They have been revised and tested against the Influxdb3 Core product.
 
@@ -23,7 +23,7 @@ Functional examples make use of the base `Config` class in `config.py`.  User va
 Basic examples can be found in the `Examples/core` directory.
 
    * `basic_write.py` - shows the essentials of using the `Point` class and making simple writes. 
-   * `basic_ssl.py` - shows how to handle SSL and TLS certificates.
+   * `basic_ssl.py` - shows how to handle special SSL/TLS situations.
    * `timeouts.py` - shows how to set and leverage timeout values. 
 
 Richer examples can be found in the `Examples/write` directory.
@@ -40,7 +40,7 @@ Richer examples can be found in the `Examples/write` directory.
 Basic examples can be found in the `Examples/core` directory.
 
    * `basic_query.py` - shows the essentials of querying and Influxdb database.
-   * `basic_ssl.py` - shows how to handle SSL and TLS certificates.
+   * `basic_ssl.py` - shows how to handle special SSL/TLS situations.
    * `timeouts.py` - shows how to set and leverage timeout values.
 
 Richer examples can be found in the `Examples/query` directory.

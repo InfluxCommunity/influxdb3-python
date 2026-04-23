@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+"""
+query_async.py - is a functional example that shows how to run a query and process results in one coroutine
+while calculating a Fibonacci series in a parallel coroutine.
+"""
 import asyncio
 import random
 import time
