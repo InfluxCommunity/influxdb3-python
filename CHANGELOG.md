@@ -1,5 +1,7 @@
 # Change Log
 
+## 0.20.0 [unreleased]
+
 ## 0.19.0 [2026-04-23]
 
 ### Features
