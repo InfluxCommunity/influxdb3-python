@@ -40,7 +40,7 @@ The WriteOptions class encapsulates basic configuration properties.
 
 Applicable properties will depend upon the value of the `write_type` property.  This can be...
    * WriteType.asynchronous
-   * WriteType.synchronous 
+   * WriteType.synchronous
    * WriteType.batching (Constructor Default) - see the example `write/batching.py` for more details.
 """
 
