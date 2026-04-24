@@ -4,7 +4,7 @@ First time users will likely want to study the examples in the `./core` director
 
 ### Underlying principles
 
-Influxdb3 uses two transports: one for writing data and another for querying.  For writes a standard HTTP REST style client is used.  Queries on the other hand make use of an HTTP/2.0 and [gRPC](https://grpc.io/docs/what-is-grpc/introduction/) compliant client under [Apache Arrow Flight](https://arrow.apache.org/cookbook/py/flight.html).
+Influxdb3 uses two transports: one for writing data and another for querying.  For __writes__ a standard _HTTP REST_ style client is used internally.  __Queries__ on the other hand make use of an HTTP/2.0 and a _[gRPC](https://grpc.io/docs/what-is-grpc/introduction/)_ compliant client under _[Apache Arrow Flight](https://arrow.apache.org/cookbook/py/flight.html)_.
 
 Most of the examples found here are functional and should be runnable against an Influxdb3 database, whether in the cloud or locally using for example Influxdb3 Core.  They have been revised and tested against the Influxdb3 Core product.
 
@@ -18,6 +18,29 @@ Functional examples make use of the base `Config` class in `config.py`.  User va
 * `INFLUXDB_DATABASE` - default database to be used with the examples.
 * `INFLUXDB_TOKEN` - a token associated with read and write permissions to the default database and any additional databases that might be used with the examples.
 
+It is recommended to run examples using a python virtual environment.
+
+For example...
+
+```bash
+$ python -m venv venv
+$ source ./venv/bin/activate
+```
+
+Before running any functional examples, ensure that the Influxdb3-python project is installed.  From the `influxdb3-python` project root run...
+
+```bash
+$ pip install .
+```
+
+A few of the examples depend on libraries not included in Influxdb3 python.  Be sure to install them as well.
+
+```bash
+$ Examples/install_extra_deps.sh
+```
+
+Functional examples come with a shebang header and should run from the commandline once exec permissions are set.
+
 ### Writing data
 
 Basic examples can be found in the `Examples/core` directory.
@@ -30,7 +53,7 @@ Richer examples can be found in the `Examples/write` directory.
 
    * `batching.py` - shows how to make use of the _batching_ API for writing long-running data sets.   
    * `fileimport.py` - shows how to import data to an Influx database directly from a number of other standard database formats.
-       * To refresh the source data use `Examples/write/source_data/updater.py` 
+       * To refresh the source data used in the example, please run `Examples/write/source_data/updater.py` beforehand.
    * `handle_http_error.py` - shows error handling on writes.
    * `pandas_write.py` - shows how to write pandas dataframes directly to an Influx database.
    * `writeoptions.py` - shows the core options API for writes.

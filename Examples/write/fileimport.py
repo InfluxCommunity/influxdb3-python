@@ -15,6 +15,8 @@ from influxdb_client_3 import write_client_options, WriteOptions, InfluxDBError
 
 from Examples.config import Config
 
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
 data_types = ["csv", "json", "feather", "orc", "parquet"]
 
 
@@ -75,7 +77,7 @@ def main(file_types=("csv",)) -> None:
                 continue
 
             logging.info(f"Writing from DB file of type: {_ftype}")
-            source_file = f"./source_data/out_update.{_ftype}"
+            source_file = f"{dir_path}/source_data/out_update.{_ftype}"
             if not (os.path.exists(source_file) and os.path.isfile(source_file)):
                 logging.error(f"Source DB file {source_file} not found.")
                 logging.error(" TIP!: Perhaps source_data/updater.py needs to be run.")
