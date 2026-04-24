@@ -1,7 +1,12 @@
+"""
+database_transfer.py - is an illustrative examples showing how to copy data from one Influxdb 3 database to another.
+"""
 import time
 
-import influxdb_client_3 as InfluxDBClient3
-from influxdb_client_3 import write_client_options, WriteOptions, InfluxDBError
+from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, InfluxDBError
+from Examples.config import Config
+
+config = Config()
 
 
 class BatchingCallback(object):
@@ -16,11 +21,9 @@ class BatchingCallback(object):
         print(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
 
 
-# InfluxDB connection details
-token = ""
+# Data management details
 dbfrom = "a"
 dbto = "b"
-url = "eu-central-1-1.aws.cloud2.influxdata.com"
 measurement = "airSensors"
 taglist = []
 
@@ -41,9 +44,10 @@ wco = write_client_options(success_callback=callback.success,
                            )
 # Opening InfluxDB client with a batch size of 5k points or flush interval
 # of 10k ms and gzip compression
-with InfluxDBClient3.InfluxDBClient3(token=token,
-                                     host=url,
-                                     enable_gzip=True, write_client_options=wco) as _client:
+with InfluxDBClient3(token=config.token,
+                     host=config.host,
+                     enable_gzip=True,
+                     write_client_options=wco) as _client:
     query = f"SHOW TAG KEYS FROM {measurement}"
     tags = _client.query(query=query, language="influxql", database=dbfrom)
     tags = tags.to_pydict()

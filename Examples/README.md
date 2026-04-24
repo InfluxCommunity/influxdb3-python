@@ -45,7 +45,7 @@ Basic examples can be found in the `Examples/core` directory.
 
 Richer examples can be found in the `Examples/query` directory.
 
-   * `flight_options.py` - shows how to set options on the query transport. (TODO see point 7.3 below)
+   * `flight_options.py` - shows how to set options on the query transport.
    * `handle_query_error.py` - shows basic error handling.
    * `query_async.py` - shows basic usage of the asynchronous query API. 
    * `query_modes.py` - when making a query, different modes return data in different types of structures.  This example shows which modes return which structured formats.
@@ -71,15 +71,15 @@ TODO - delete this section as examples take shape and before creating PR.
        - apparently depends on other examples
        - write and query options are illustrated in other examples
    6. `cookbook.ipynb` - most of this is migrated to `./jupyter/basic-write-query.ipynb` - can be removed __DONE__
-       - what to do about step _write table to parquet file_? - not necessary. 
+       - what to do about step _write table to parquet file_? - not necessary __DONE__.
 2. Keep `file-import` as single file, with source data updatable - see `updater.py` __DONE__
 3. Keep one simple example of jupiter notebook. __DONE__
 4. Decide what to do with `./community` examples.
    * `custom_url.py` __DONE__ 
        * Doesn't seem to do what is on the tin.
        * Seems more like a _down sampling_ example
-       * Doesn't query Influxdb directly but down samples from remote CSV
-       * TODO __DONE__
+       * ~~Doesn't query Influxdb directly but down samples from remote CSV~~
+       * review/enhance __DONE__
            * rename to _down sampling_ or similar __DONE__
            * use initial query __DONE__
            * move to `./advanced` __DONE__
@@ -89,10 +89,9 @@ TODO - delete this section as examples take shape and before creating PR.
        * Useful base example
        * Current illustrative only - doesn't look functional without some undocumented setup
        * To work requires `dbfrom` and measurement `airSensors` to exist.
-           * Note - are camel caps not sometimes problematic in Influx? (seem to recall encountering problem with them in the past)
-       * TODO
+       * review __DONE__
            * move to `./advanced` __DONE__
-           * make functional
+           * ~~make functional~~ kept as _illustrative_ - `advanced/downsample.py` is similar _and_ functional
 5. Root examples
    1. `basic_ssl_examle.py` to `./core` __DONE__
    2. `batching_example.py` to `./write` __DONE__
@@ -101,8 +100,8 @@ TODO - delete this section as examples take shape and before creating PR.
    5. `config.py` - universal configuration file.  Keep as is. 
    6. `example.csv` - where is this used?  It doesn't seem to be used in any example... ??? (Removed __DONE__)
    7. `flight_options_example.py` - to `./query` __DONE__
-       - Note only option illustrated is tls certificate.  
-       - TODO after move - either enrich/refactor or verify this isn't covered elsewhere
+       - ~~Note only option illustrated is tls certificate~~.
+       - after move - either enrich/refactor or verify this isn't covered elsewhere  __DONE__
    8. `handle_http_error.py` - to `./write` __DONE__
    9. `handle_query_error.py` - to `./query` __DONE__
    10. `pandas_write.py` - to `./write` __DONE__
@@ -111,41 +110,41 @@ TODO - delete this section as examples take shape and before creating PR.
    13. `query_with_middleware.py` - to `./query` __DONE__
    14. `timeouts.py` - to `./core`  __DONE__ 
 6. Standardization
-   1. Some examples show leveraging internal **kwargs like `data_frame_measurement_name` or `data_frame_tag_columns`
+   1. Some examples show leveraging internal **kwargs like `data_frame_measurement_name` or `data_frame_tag_columns`  __DONE__
        - Makes sense to expose these in _advanced_ examples. (e.g. pandas examples... )
        - Perhaps though should encourage the use of a simpler standard API that hides them
    2. Remove dependencies on remote `../githubusercontent/../*.csv`  __DONE__
-   2. Leverage `config.py` in all examples
+   2. Leverage `config.py` in all examples  __DONE__
    3. Prefer using Influxdb3 Core by default.  But also document possibility of using other products.
-   4. Add shebangs to functional examples
-   5. Ensure timestamps are current and not fixed for example to 2023
+   4. Add shebangs to functional examples __DONE__
+   5. Ensure timestamps are current and not fixed for example to 2023 __DONE__
 7. Enhancements
    1. `writeoptions.py` - does not show much in the way of setting options. (Update and revision - __DONE__)
    2. `basic_ssl.py` - review. Seems to only show handling SSL handshake failures. (Reviewed and updated - __DONE__)
-   3. `write_pandas.py` - has fixed dates from 2023, make dynamic with current.
-   3. `flight_options.py` - review. This example is nearly three years old, and flight/query options has been greatly enhanced since then.
+   3. `write_pandas.py` - has fixed dates from 2023, make dynamic with current.  __DONE__
+   3. `flight_options.py` - review. This example is nearly three years old, and flight/query options has been greatly enhanced since then. __DONE__
 8. Verify all refactored examples are working
    *. __NOTE__ - If making an _illustrative_ example functional _out-of-the-box_ leads to too much distractive information being added, leave the example as _illustrative only_ and add a comment that it is for purposes of illustration.  However, make sure the illustrative example is still working in a concrete implementation. (e.g. `query_with_middleware.py`)
-   *. TODO In comments, mark examples as either _illustrative_ or _functional_ 
+   *. In comments, mark examples as either _illustrative_ or _functional_ __DONE__
 
 #### Standardization summary (F - functional, I - illustrative)
 
-| example                         | F/I | Head Comment | shebang  | Config() | **kwargs (adv) | github user link   | Timestamps | Notes                                            |
-|---------------------------------|-----|--------------|----------|----------|----------------|--------------------|------------|--------------------------------------------------|
-| advanced/database_transfer.py   | TODO | None | None     | No       | Yes (pd)       | None               | ??? | TODO revise                                      |
-| advanced/downsample.py          | F | None | None | Yes | Yes (pd)       | None               | Dynamic / Current | TODO shebang + header                            |
-| core/basic_write.py             | F | Yes | Yes | Yes | None | None               | Dynamic / Now | Ready                                            |
-| core/basic_query.py             | F | Yes | Yes | Yes | None | None               | Read only | Ready                                            |
-| core/basic_ssl.py               | F | Yes | Yes | Yes | None | None               | Dynamic / Now | Ready                                            |
-| core/timeouts.py                | F | Yes | Yes | Yes | None | None               | Now (implicit) | Ready                                            |
-| jupyter/basic-write-query.ipynb | F | N/A | N/A | N/A | None | None               | Dynamic | Ready                                            |
-| query/flight_options.py         | I | Yes | None | Yes | None | None               | Read only | Ready                                            |
-| query/handle_query_error.py     | F | Yes | Yes | Yes | None | None               | Read only | Ready                                            |
-| query/query_async.py            | F | Yes | Yes | Yes | None | None               | Dynamic | Ready                                            |
-| query/query_modes.py            | F | Yes | Yes | Yes | Yes (pd) | None               | Dynamic | TODO - review kwargs use in non-advanced example |
-| query/query_with_middleware.py  | I | Yes | None | Yes | None | None               | Read only | Ready                                            |
-| write/batching.py               | F | Yes | Yes | Yes | None | None               | Dynamic | Ready                                            |
-| write/fileimport.py             | F | Yes | Yes | Yes | Yes (`file_write()`) | None | Dynamic | Ready - kwargs here are part of example |
-| write/handle_http_error.py      | F | Yes | Yes | Yes | None | None | N.A. | Ready - shows write error |
-| write/pandas_write.py | F | Yes | Yes | Yes | Yes (pd) | None | Dynamic | Ready - kwargs here are part of example |
-| write/writeoptions | F | Yes | Yes | Yes | None | None | Dynamic / now | Ready |
+| example                         | F/I | Head Comment | shebang | Config() | **kwargs (adv)       | github user link | Timestamps                   | Notes                                   |
+|---------------------------------|-----|--------------|---------|----------|----------------------|------------------|------------------------------|-----------------------------------------|
+| advanced/database_transfer.py   | I   | Yes          | None    | Yes      | Yes (pd)             | None             | N.A. - copied without change | Ready                                   |
+| advanced/downsample.py          | F   | Yes          | Yes     | Yes      | Yes (pd)             | None             | Dynamic / Current            | Ready                                   |
+| core/basic_write.py             | F   | Yes          | Yes     | Yes      | None                 | None             | Dynamic / Now                | Ready                                   |
+| core/basic_query.py             | F   | Yes          | Yes     | Yes      | None                 | None             | Read only                    | Ready                                   |
+| core/basic_ssl.py               | F   | Yes          | Yes     | Yes      | None                 | None             | Dynamic / Now                | Ready                                   |
+| core/timeouts.py                | F   | Yes          | Yes     | Yes      | None                 | None             | Now (implicit)               | Ready                                   |
+| jupyter/basic-write-query.ipynb | F   | N/A          | N/A     | N/A      | None                 | None             | Dynamic                      | Ready                                   |
+| query/flight_options.py         | I   | Yes          | None    | Yes      | None                 | None             | Read only                    | Ready                                   |
+| query/handle_query_error.py     | F   | Yes          | Yes     | Yes      | None                 | None             | Read only                    | Ready                                   |
+| query/query_async.py            | F   | Yes          | Yes     | Yes      | None                 | None             | Dynamic                      | Ready                                   |
+| query/query_modes.py            | F   | Yes          | Yes     | Yes      | None                 | None             | Dynamic                      | Ready                                   |
+| query/query_with_middleware.py  | I   | Yes          | None    | Yes      | None                 | None             | Read only                    | Ready                                   |
+| write/batching.py               | F   | Yes          | Yes     | Yes      | None                 | None             | Dynamic                      | Ready                                   |
+| write/fileimport.py             | F   | Yes          | Yes     | Yes      | Yes (`file_write()`) | None             | Dynamic                      | Ready - kwargs here are part of example |
+| write/handle_http_error.py      | F   | Yes          | Yes     | Yes      | None                 | None             | N.A.                         | Ready - shows write error               |
+| write/pandas_write.py           | F   | Yes          | Yes     | Yes      | Yes (pd)             | None             | Dynamic                      | Ready - kwargs here are part of example |
+| write/writeoptions              | F   | Yes          | Yes     | Yes      | None                 | None             | Dynamic / now                | Ready                                   |

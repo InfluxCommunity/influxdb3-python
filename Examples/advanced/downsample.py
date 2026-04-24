@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+"""
+downsample.py - is a functional example showing how to reduce a larger measurement set to a smaller one
+by averaging values across a given time window.
+"""
 import datetime
 import random
 
@@ -41,9 +46,6 @@ wco = write_client_options(success_callback=callback.success,
 now = pd.Timestamp.now(tz='UTC').floor('ms')
 
 current = now - datetime.timedelta(days=1)
-
-print(f"DEBUG now: {now} type is {type(now)}")
-print(f"DEBUG current: {current} type is {type(current)}")
 
 # Lists of possible trainers
 trainers = ["ash", "brock", "misty", "gary", "jessie", "james"]

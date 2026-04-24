@@ -2,30 +2,31 @@
 """
 query_modes.py - is a functional example that shows how to use different modes when executing queries.
 """
-import pandas as pd
+import pytz
 import numpy as np
-from influxdb_client_3 import InfluxDBClient3
+
+from datetime import datetime, timedelta
+
+from influxdb_client_3 import InfluxDBClient3, Point
 from Examples.config import Config
 
 
 def prep_data(client: InfluxDBClient3, measurement: str):
-    now = pd.Timestamp.now(tz="utc").floor(freq='s')
-    start = now - pd.Timedelta(minutes=5)
-    timestamps = pd.date_range(start=start, end=now, freq='10s')
+    now = datetime.now(tz=pytz.utc)
+    current = now - timedelta(minutes=5)
 
-    df = pd.DataFrame(
-        np.random.randn(
-            len(timestamps),
-            3),
-        index=timestamps,
-        columns=[
-            'volts',
-            'amps',
-            'dBm'])
-    df['model'] = np.random.choice(['R2D2', 'C3PO', 'ROBBIE', 'HAL'], len(df))
+    points = []
 
-    client.write(df, data_frame_measurement_name=measurement,
-                 data_frame_tag_columns=['model'])
+    while current < now:
+        points.append(Point(measurement)
+                      .tag('model', np.random.choice(['R2D2', 'C3PO', 'ROBBIE', 'HAL']))
+                      .field('mV', np.random.uniform(low=0, high=1000))
+                      .field('mA', np.random.uniform(low=0, high=1000))
+                      .field('dBm', np.random.uniform(low=-10, high=10))
+                      .time(current))
+        current += timedelta(seconds=10)
+
+    client.write(points)
 
 
 def query_chunk(client: InfluxDBClient3, influxql_query: str):

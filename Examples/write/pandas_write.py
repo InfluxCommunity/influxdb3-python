@@ -12,8 +12,6 @@ from Examples.config import Config
 
 def main(config: Config):
 
-    print(f"DEBUG config: {config}")
-
     with InfluxDBClient3.InfluxDBClient3(
             token=config.token,
             host=config.host,
