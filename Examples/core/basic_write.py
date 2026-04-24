@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-basic_write.py - shows the simplest ways in which to write data to an influxdb3 database using Point objects.
+basic_write.py - is a functional example showing the simplest ways
+in which to write data to an influxdb3 database using Point objects.
 
 After successfully running this example try basic_query.py to verify the results.
 """

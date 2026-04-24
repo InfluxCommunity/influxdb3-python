@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-timeouts.py - shows how to set query and write timeouts.
+timeouts.py - is a functional example that shows how to set query and write timeouts.
 
 They can be set directly using arguments (write_timeout, query_timeout) in the client constructor.
 They can also be overridden in write and query calls.

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-basic_query.py - shows the simplest ways in which to query data from an influxdb3 database.
+basic_query.py - is a functional example that shows the simplest ways in which to query data from an influxdb3 database.
 
-As a functional example it should be run after running basic_write.py, which prepares the measurements
-queried here.
+It should be run after running basic_write.py, which prepares the measurements queried here.
 
 For more information on working with query modes see the `query/query_modes.py` example.
 """

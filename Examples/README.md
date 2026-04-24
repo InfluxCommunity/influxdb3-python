@@ -114,7 +114,7 @@ TODO - delete this section as examples take shape and before creating PR.
    1. Some examples show leveraging internal **kwargs like `data_frame_measurement_name` or `data_frame_tag_columns`
        - Makes sense to expose these in _advanced_ examples. (e.g. pandas examples... )
        - Perhaps though should encourage the use of a simpler standard API that hides them
-   2. Remove dependencies on remote `../githubusercontent/../*.csv` 
+   2. Remove dependencies on remote `../githubusercontent/../*.csv`  __DONE__
    2. Leverage `config.py` in all examples
    3. Prefer using Influxdb3 Core by default.  But also document possibility of using other products.
    4. Add shebangs to functional examples
@@ -127,3 +127,25 @@ TODO - delete this section as examples take shape and before creating PR.
 8. Verify all refactored examples are working
    *. __NOTE__ - If making an _illustrative_ example functional _out-of-the-box_ leads to too much distractive information being added, leave the example as _illustrative only_ and add a comment that it is for purposes of illustration.  However, make sure the illustrative example is still working in a concrete implementation. (e.g. `query_with_middleware.py`)
    *. TODO In comments, mark examples as either _illustrative_ or _functional_ 
+
+#### Standardization summary (F - functional, I - illustrative)
+
+| example                         | F/I | Head Comment | shebang  | Config() | **kwargs (adv) | github user link   | Timestamps | Notes                                            |
+|---------------------------------|-----|--------------|----------|----------|----------------|--------------------|------------|--------------------------------------------------|
+| advanced/database_transfer.py   | TODO | None | None     | No       | Yes (pd)       | None               | ??? | TODO revise                                      |
+| advanced/downsample.py          | F | None | None | Yes | Yes (pd)       | None               | Dynamic / Current | TODO shebang + header                            |
+| core/basic_write.py             | F | Yes | Yes | Yes | None | None               | Dynamic / Now | Ready                                            |
+| core/basic_query.py             | F | Yes | Yes | Yes | None | None               | Read only | Ready                                            |
+| core/basic_ssl.py               | F | Yes | Yes | Yes | None | None               | Dynamic / Now | Ready                                            |
+| core/timeouts.py                | F | Yes | Yes | Yes | None | None               | Now (implicit) | Ready                                            |
+| jupyter/basic-write-query.ipynb | F | N/A | N/A | N/A | None | None               | Dynamic | Ready                                            |
+| query/flight_options.py         | I | Yes | None | Yes | None | None               | Read only | Ready                                            |
+| query/handle_query_error.py     | F | Yes | Yes | Yes | None | None               | Read only | Ready                                            |
+| query/query_async.py            | F | Yes | Yes | Yes | None | None               | Dynamic | Ready                                            |
+| query/query_modes.py            | F | Yes | Yes | Yes | Yes (pd) | None               | Dynamic | TODO - review kwargs use in non-advanced example |
+| query/query_with_middleware.py  | I | Yes | None | Yes | None | None               | Read only | Ready                                            |
+| write/batching.py               | F | Yes | Yes | Yes | None | None               | Dynamic | Ready                                            |
+| write/fileimport.py             | F | Yes | Yes | Yes | Yes (`file_write()`) | None | Dynamic | Ready - kwargs here are part of example |
+| write/handle_http_error.py      | F | Yes | Yes | Yes | None | None | N.A. | Ready - shows write error |
+| write/pandas_write.py | F | Yes | Yes | Yes | Yes (pd) | None | Dynamic | Ready - kwargs here are part of example |
+| write/writeoptions | F | Yes | Yes | Yes | None | None | Dynamic / now | Ready |
