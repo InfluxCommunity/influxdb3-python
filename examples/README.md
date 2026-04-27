@@ -33,13 +33,11 @@ Before running any functional examples, ensure that the Influxdb3-python project
 $ pip install .
 ```
 
-A few of the examples depend on libraries not included in Influxdb3 python.  Be sure to install them as well.
+A few of the examples depend on libraries not included in Influxdb3 python.  The `examples/prep.py` script will install any missing example dependencies and set functional examples as executable.
 
 ```bash
-$ Examples/install_extra_deps.sh
+$ python examples/prep.py
 ```
-
-Functional examples come with a shebang header and should run from the commandline once exec permissions are set.
 
 ### Writing data
 
