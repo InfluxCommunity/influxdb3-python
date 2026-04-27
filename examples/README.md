@@ -12,11 +12,13 @@ Some more advanced examples contain only illustrative code that can be reused in
 
 __Configuration__
 
-Functional examples make use of the base `Config` class in `config.py`.  User values can be set either directly in this file, or through the following environment variables.
+Functional examples make use of the three basic environment variables.
 
 * `INFLUXDB_HOST` - host URL to connect to an Influxdb3 database.
 * `INFLUXDB_DATABASE` - default database to be used with the examples.
 * `INFLUXDB_TOKEN` - a token associated with read and write permissions to the default database and any additional databases that might be used with the examples.
+
+These need to be set before running any example.
 
 It is recommended to run examples using a python virtual environment.
 
@@ -138,7 +140,7 @@ TODO - delete this section as examples take shape and before creating PR.
        - Perhaps though should encourage the use of a simpler standard API that hides them
    2. Remove dependencies on remote `../githubusercontent/../*.csv`  __DONE__
    2. ~~Leverage `config.py` in all examples~~  __DONE__ 
-       1. TODO undo and use standard ENVARS instead 
+       1. Undo and use standard ENVARS instead __DONE__
    3. Prefer using Influxdb3 Core by default.  But also document possibility of using other products.
    4. Add shebangs to functional examples __DONE__
    5. Ensure timestamps are current and not fixed for example to 2023 __DONE__
@@ -172,3 +174,5 @@ TODO - delete this section as examples take shape and before creating PR.
 | write/handle_http_error.py      | F   | Yes          | Yes     | None         | Yes    | None                 | None           | N.A.                         | Review - shows write error |
 | write/pandas_write.py           | F   | Yes          | Yes     | None         | Yes    | Yes (pd)             | None           | Dynamic                      | Review - kwargs here are part of example |
 | write/writeoptions              | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic / now                | Review |
+
+TODO Review - run any example marked as "Review" in a fresh venv after a fresh project checkout and ensure it executes without issue.
