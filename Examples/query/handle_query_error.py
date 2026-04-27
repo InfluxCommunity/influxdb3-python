@@ -3,10 +3,10 @@
 handle_query_error.py - Is a functional example that demonstrates handling error when querying InfluxDB.
 """
 import logging
-from Examples.config import Config
-from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
+import os
 
-import influxdb_client_3 as InfluxDBClient3
+from influxdb_client_3 import InfluxDBClient3
+from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
 
 
 def main() -> None:
@@ -14,13 +14,16 @@ def main() -> None:
     Main function
     :return:
     """
-    config = Config()
+    host = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
+    token = os.getenv('INFLUXDB_TOKEN') or 'my-token'
+    database = os.getenv('INFLUXDB_DATABASE') or 'my-db'
+
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
-    client = InfluxDBClient3.InfluxDBClient3(
-        host=config.host,
-        token=config.token,
-        database=config.database
+    client = InfluxDBClient3(
+        host=host,
+        token=token,
+        database=database
     )
 
     try:

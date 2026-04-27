@@ -4,15 +4,16 @@ downsample.py - is a functional example showing how to reduce a larger measureme
 by averaging values across a given time window.
 """
 import datetime
+import os
 import random
 
 import pandas as pd
 
 from influxdb_client_3 import InfluxDBClient3, InfluxDBError, WriteOptions, write_client_options
 
-from Examples.config import Config
-
-config = Config()
+HOST = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
+TOKEN = os.getenv('INFLUXDB_TOKEN') or 'my-token'
+DATABASE = os.getenv('INFLUXDB_DATABASE') or 'my-db'
 
 
 class BatchingCallback(object):
@@ -66,9 +67,9 @@ num_entries = 1000
 
 # use a first client to write the prep data
 with InfluxDBClient3(
-        token=config.token,
-        host=config.host,
-        database=config.database,
+        token=TOKEN,
+        host=HOST,
+        database=DATABASE,
         enable_gzip=True,
         write_client_options=wco) as prep_client:
 
@@ -123,9 +124,9 @@ with InfluxDBClient3(
 
 # Now query just written data and downsample
 with InfluxDBClient3(
-        token=config.token,
-        host=config.host,
-        database=config.database, enable_gzip=True, write_client_options=wco) as ds_client:
+        token=TOKEN,
+        host=HOST,
+        database=DATABASE, enable_gzip=True, write_client_options=wco) as ds_client:
 
     # downsample data to average number of catches per quarter-hour
     sql = ("SELECT date_bin('15 minutes', \"time\") as window_start, \n"

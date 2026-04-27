@@ -118,6 +118,8 @@ TODO - delete this section as examples take shape and before creating PR.
 5. Root examples
    1. `basic_ssl_examle.py` to `./core` __DONE__
    2. `batching_example.py` to `./write` __DONE__
+      1. Issue - getting interpreter shutdown before example ends. TODO - fix
+      2. Issue - runs very slow - TODO speed up. 
    3. `cloud_dedicated_query.py` - is it necessary to have specific _cloud_dedicated_ examples? Can this simply be documented in `README.md` or in code comments? (Removed __DONE__)
    4. `cloud_dedicated_write.py` - is it necessary to have specific _cloud_dedicated_ examples? Can this simply be documented in `README.md` or in code comments? (Removed __DONE__)
    5. `config.py` - universal configuration file.  Keep as is. 
@@ -153,22 +155,22 @@ TODO - delete this section as examples take shape and before creating PR.
 
 #### Standardization summary (F - functional, I - illustrative)
 
-| example                         | F/I | Head Comment | shebang | ~~Config()~~ | ENVARS | **kwargs (adv)       | github user link | Timestamps                   | Notes                                   |
-|---------------------------------|-----|--------------|---------|--------------|--------|----------------------|------------------|------------------------------|-----------------------------------------|
-| advanced/database_transfer.py   | I   | Yes          | None    | Yes          | TODO   | Yes (pd)             | None                 | N.A. - copied without change | Ready                                   |
-| advanced/downsample.py          | F   | Yes          | Yes     | Yes          | TODO   | Yes (pd)             | None           | Dynamic / Current            | Ready                                   |
-| core/basic_write.py             | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic / Now                | Ready                                   |
-| core/basic_query.py             | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Read only                    | Ready                                   |
-| core/basic_ssl.py               | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic / Now                | Ready                                   |
-| core/timeouts.py                | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Now (implicit)               | Ready                                   |
-| jupyter/basic-write-query.ipynb | F   | N/A          | N/A     | N/A          | TODO   | None                 | None           | Dynamic                      | Ready                                   |
-| query/flight_options.py         | I   | Yes          | None    | Yes          | TODO   | None                 | None           | Read only                    | Ready                                   |
-| query/handle_query_error.py     | F   | Yes          | Yes     | Yes          | TODO   | None                 | None           | Read only                    | Ready                                   |
-| query/query_async.py            | F   | Yes          | Yes     | Yes          | TODO   | None                 | None           | Dynamic                      | Ready                                   |
-| query/query_modes.py            | F   | Yes          | Yes     | Yes          | TODO   | None                 | None           | Dynamic                      | Ready                                   |
-| query/query_with_middleware.py  | I   | Yes          | None    | Yes          | TODO   | None                 | None           | Read only                    | Ready                                   |
-| write/batching.py               | F   | Yes          | Yes     | Yes          | TODO   | None                 | None           | Dynamic                      | Ready                                   |
-| write/fileimport.py             | F   | Yes          | Yes     | Yes          | TODO   | Yes (`file_write()`) | None           | Dynamic                      | Ready - kwargs here are part of example |
-| write/handle_http_error.py      | F   | Yes          | Yes     | Yes          | TODO   | None                 | None           | N.A.                         | Ready - shows write error               |
-| write/pandas_write.py           | F   | Yes          | Yes     | Yes          | TODO   | Yes (pd)             | None           | Dynamic                      | Ready - kwargs here are part of example |
-| write/writeoptions              | F   | Yes          | Yes     | Yes          | TODO   | None                | None           | Dynamic / now                | Ready                                   |
+| example                         | F/I | Head Comment | shebang | ~~Config()~~ | ENVARS | **kwargs (adv)       | github user link | Timestamps                   | Notes |
+|---------------------------------|-----|--------------|---------|--------------|--------|----------------------|------------------|------------------------------|--|
+| advanced/database_transfer.py   | I   | Yes          | None    | None         | Yes    | Yes (pd)             | None                 | N.A. - copied without change | Review |
+| advanced/downsample.py          | F   | Yes          | Yes     | None         | Yes    | Yes (pd)             | None           | Dynamic / Current            | Review |
+| core/basic_write.py             | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic / Now                | Review |
+| core/basic_query.py             | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Read only                    | Review |
+| core/basic_ssl.py               | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic / Now                | Review |
+| core/timeouts.py                | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Now (implicit)               | Review |
+| jupyter/basic-write-query.ipynb | F   | N/A          | N/A     | N/A          | Yes    | None                 | None           | Dynamic                      | Review |
+| query/flight_options.py         | I   | Yes          | None    | None         | Yes    | None                 | None           | Read only                    | Review |
+| query/handle_query_error.py     | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Read only                    | Review |
+| query/query_async.py            | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic                      | Review |
+| query/query_modes.py            | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic                      | Review |
+| query/query_with_middleware.py  | I   | Yes          | None    | None         | Yes    | None                 | None           | Read only                    | Review |
+| write/batching.py               | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic                      | Review |
+| write/fileimport.py             | F   | Yes          | Yes     | None         | Yes    | Yes (`file_write()`) | None           | Dynamic                      | Review - kwargs here are part of example |
+| write/handle_http_error.py      | F   | Yes          | Yes     | None         | Yes    | None                 | None           | N.A.                         | Review - shows write error |
+| write/pandas_write.py           | F   | Yes          | Yes     | None         | Yes    | Yes (pd)             | None           | Dynamic                      | Review - kwargs here are part of example |
+| write/writeoptions              | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic / now                | Review |

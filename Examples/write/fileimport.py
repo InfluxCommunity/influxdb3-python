@@ -13,7 +13,6 @@ import os
 import influxdb_client_3 as InfluxDBClient3
 from influxdb_client_3 import write_client_options, WriteOptions, InfluxDBError
 
-from Examples.config import Config
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -38,6 +37,10 @@ class BatchingCallback(object):
 
 def main(file_types=("csv",)) -> None:
 
+    host = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
+    token = os.getenv('INFLUXDB_TOKEN') or 'my-token'
+    database = os.getenv('INFLUXDB_DATABASE') or 'my-db'
+
     # allow detailed inspection
     if file_types is None:
         file_types = ["csv"]
@@ -59,15 +62,14 @@ def main(file_types=("csv",)) -> None:
                                write_options=write_options
                                )
 
-    config = Config()
     """
        Note:
        debug: allows low-level inspection of communications and of context-manager termination
     """
     with InfluxDBClient3.InfluxDBClient3(
-            token=config.token,
-            host=config.host,
-            database=config.database,
+            token=token,
+            host=host,
+            database=database,
             write_client_options=wco,
             debug=True) as client:
 

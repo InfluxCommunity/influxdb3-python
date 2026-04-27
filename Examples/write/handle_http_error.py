@@ -3,7 +3,7 @@
 handle_http_error.py - is a functional example that demonstrates handling response error headers on error.
 """
 import logging
-from Examples.config import Config
+import os
 
 import influxdb_client_3 as InfluxDBClient3
 
@@ -13,13 +13,16 @@ def main() -> None:
     Main function
     :return:
     """
-    config = Config()
+    host = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
+    token = os.getenv('INFLUXDB_TOKEN') or 'my-token'
+    database = os.getenv('INFLUXDB_DATABASE') or 'my-db'
+
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
     client = InfluxDBClient3.InfluxDBClient3(
-        host=config.host,
-        token=config.token,
-        database=config.database
+        host=host,
+        token=token,
+        database=database
     )
 
     # write with empty field results in HTTP 400 error

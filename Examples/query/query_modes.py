@@ -2,13 +2,14 @@
 """
 query_modes.py - is a functional example that shows how to use different modes when executing queries.
 """
+import os
+
 import pytz
 import numpy as np
 
 from datetime import datetime, timedelta
 
 from influxdb_client_3 import InfluxDBClient3, Point
-from Examples.config import Config
 
 
 def prep_data(client: InfluxDBClient3, measurement: str):
@@ -85,13 +86,19 @@ def query_reader(client: InfluxDBClient3, influxqul_query: str):
         print(batch.to_pandas())
 
 
-def main(config: Config):
+def main():
+
+    host = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
+    token = os.getenv('INFLUXDB_TOKEN') or 'my-token'
+    database = os.getenv('INFLUXDB_DATABASE') or 'my-db'
+
     measurement = "machine_data"
+
     influxql = f"SELECT * FROM {measurement} WHERE time > now() - 5m"
     with InfluxDBClient3(
-        host=config.host,
-        database=config.database,
-        token=config.token
+        host=host,
+        database=database,
+        token=token
     ) as client:
         prep_data(client, measurement)
         print("\n=== Querying Chunks ===\n")
@@ -107,4 +114,4 @@ def main(config: Config):
 
 
 if __name__ == "__main__":
-    main(Config())
+    main()

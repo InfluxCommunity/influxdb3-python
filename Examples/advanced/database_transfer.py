@@ -1,12 +1,14 @@
 """
 database_transfer.py - is an illustrative examples showing how to copy data from one Influxdb 3 database to another.
 """
+import os
 import time
 
 from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, InfluxDBError
-from Examples.config import Config
 
-config = Config()
+HOST = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
+TOKEN = os.getenv('INFLUXDB_TOKEN') or 'my-token'
+DATABASE = os.getenv('INFLUXDB_DATABASE') or 'my-db'
 
 
 class BatchingCallback(object):
@@ -44,8 +46,8 @@ wco = write_client_options(success_callback=callback.success,
                            )
 # Opening InfluxDB client with a batch size of 5k points or flush interval
 # of 10k ms and gzip compression
-with InfluxDBClient3(token=config.token,
-                     host=config.host,
+with InfluxDBClient3(token=TOKEN,
+                     host=HOST,
                      enable_gzip=True,
                      write_client_options=wco) as _client:
     query = f"SHOW TAG KEYS FROM {measurement}"

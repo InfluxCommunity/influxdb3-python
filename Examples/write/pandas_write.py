@@ -3,19 +3,23 @@
 pandas_write.py - is a functional example that demonstrates how to write data to Influxdb3
 directly from a pandas DataFrame.
 """
-import influxdb_client_3 as InfluxDBClient3
+import os
 import pandas as pd
 import numpy as np
 
-from Examples.config import Config
+import influxdb_client_3 as InfluxDBClient3
 
 
-def main(config: Config):
+def main():
+
+    host = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
+    token = os.getenv('INFLUXDB_TOKEN') or 'my-token'
+    database = os.getenv('INFLUXDB_DATABASE') or 'my-db'
 
     with InfluxDBClient3.InfluxDBClient3(
-            token=config.token,
-            host=config.host,
-            database=config.database) as client:
+            token=token,
+            host=host,
+            database=database) as client:
 
         # Create a dataframe
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
@@ -53,4 +57,4 @@ def main(config: Config):
 
 
 if __name__ == '__main__':
-    main(Config())
+    main()

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-`writeoptions.py` is a functional example, except for certain illustrative callbacks,
+`writeoptions.py` - is a functional example, except for certain illustrative callbacks,
 that shows the basic principles of setting up configuration properties for the standard
 HTTP write client.
 """
 import datetime
 import logging
+import os
 
-from Examples.config import Config
 from influxdb_client_3 import (exceptions, InfluxDBClient3, Point,
                                WriteOptions, WritePrecision, WriteType, write_client_options)
 
@@ -59,12 +59,16 @@ The InfluxDBClient3 constructor will leverage this dictionary when configuring t
 measurement = 'wo_caught'
 
 
-def main(config: Config):
+def main():
+
+    host = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
+    token = os.getenv('INFLUXDB_TOKEN') or 'my-token'
+    database = os.getenv('INFLUXDB_DATABASE') or 'my-db'
 
     with InfluxDBClient3(
-         token=config.token,
-         host=config.host,
-         database=config.database,
+         token=token,
+         host=host,
+         database=database,
          write_client_options=wco,  # write client options get passed to the client instance here.
          debug=True) as client:
 
@@ -134,4 +138,4 @@ def main(config: Config):
 
 
 if __name__ == "__main__":
-    main(Config())
+    main()

@@ -16,12 +16,9 @@ import sys
 import time
 
 from influxdb_client_3 import InfluxDBClient3, write_client_options
-from Examples.config import Config
 
 DEFAULT_WRITE_TIMEOUT = 30_000  # in milliseconds
 DEFAULT_QUERY_TIMEOUT = 120_000  # in milliseconds
-
-config = Config()
 
 
 def handle_write_error_cb(rd, rt, rx):

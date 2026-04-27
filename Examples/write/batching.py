@@ -4,6 +4,7 @@ batching.py - is a functional example that shows how to set up and use WriteType
 which is the default WriteType when instantiating a WriteOptions object.
 """
 import datetime
+import os
 import random
 import time
 
@@ -11,8 +12,6 @@ from bson import ObjectId
 
 import influxdb_client_3 as InfluxDBClient3
 from influxdb_client_3 import write_client_options, WritePrecision, WriteOptions, InfluxDBError
-
-from Examples.config import Config
 
 
 class BatchingCallback(object):
@@ -43,7 +42,10 @@ class BatchingCallback(object):
 
 
 def main() -> None:
-    conf = Config()
+
+    host = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
+    token = os.getenv('INFLUXDB_TOKEN') or 'my-token'
+    database = os.getenv('INFLUXDB_DATABASE') or 'my-db'
 
     # Creating 5.000 gatewayId values as MongoDB ObjectIDs
     gatewayIds = [ObjectId() for x in range(0, 100)]
@@ -75,9 +77,9 @@ def main() -> None:
 
     # Opening InfluxDB client with a batch size of 5k points or flush interval
     # of 10k ms and gzip compression
-    with InfluxDBClient3.InfluxDBClient3(token=conf.token,
-                                         host=conf.host,
-                                         database=conf.database,
+    with InfluxDBClient3.InfluxDBClient3(token=token,
+                                         host=host,
+                                         database=database,
                                          enable_gzip=True,
                                          write_client_options=wco) as _client:
         # Creating iterator for one hour worth of data (6 sensor readings per

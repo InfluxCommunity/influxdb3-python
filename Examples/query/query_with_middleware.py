@@ -2,9 +2,10 @@
 query_with_middleware.py - is an illustrative example of how to add Arrow Flight middleware
 when initializing a client.
 """
+import os
+
 from pyarrow import flight
 
-from Examples.config import Config
 from influxdb_client_3 import InfluxDBClient3, flight_client_options
 
 
@@ -24,12 +25,15 @@ class ModifyHeaderClientMiddlewareFactory(flight.ClientMiddlewareFactory):
         return ModifyHeaderClientMiddleware()
 
 
-config = Config()
+HOST = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
+TOKEN = os.getenv('INFLUXDB_TOKEN') or 'my-token'
+DATABASE = os.getenv('INFLUXDB_DATABASE') or 'my-db'
+
 middleware = [ModifyHeaderClientMiddlewareFactory()]
 client = InfluxDBClient3(
-    host=config.host,
-    token=config.token,
-    database=config.database,
+    host=HOST,
+    token=TOKEN,
+    database=DATABASE,
     flight_client_options=flight_client_options(middleware=middleware)
 )
 

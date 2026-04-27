@@ -4,6 +4,7 @@ query_async.py - is a functional example that shows how to run a query and proce
 while calculating a Fibonacci series in a parallel coroutine.
 """
 import asyncio
+import os
 import random
 import time
 
@@ -11,10 +12,8 @@ import pandas
 
 from influxdb_client_3 import InfluxDBClient3
 
-from Examples.config import Config
 
-
-async def fibio(iterations, grit=0.5):
+async def fibo(iterations, grit=0.5):
     """
     example coroutine to run parallel with query_async
     :param iterations:
@@ -72,18 +71,22 @@ async def query_data(client: InfluxDBClient3, measurement):
 
 
 async def main():
-    config = Config()
+
+    host = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
+    token = os.getenv('INFLUXDB_TOKEN') or 'my-token'
+    database = os.getenv('INFLUXDB_DATABASE') or 'my-db'
+
     client = InfluxDBClient3(
-        host=config.host,
-        token=config.token,
-        database=config.database,
+        host=host,
+        token=token,
+        database=database,
     )
     measurement = 'example_uav'
     write_data(client, measurement)
 
     # run both coroutines simultaneously
-    result = await asyncio.gather(fibio(10, 0.2), query_data(client, measurement))
-    print(f"fibio sequence = {result[0]}")
+    result = await asyncio.gather(fibo(10, 0.2), query_data(client, measurement))
+    print(f"fibonacci sequence = {result[0]}")
     print(f"data set =\n{result[1]}")
 
 
