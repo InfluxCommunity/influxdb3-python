@@ -14,8 +14,11 @@ import time
 
 import pyarrow
 
-from Examples.config import Config
 from influxdb_client_3 import InfluxDBClient3
+
+HOST = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
+TOKEN = os.getenv('INFLUXDB_TOKEN') or 'my-token'
+DATABASE = os.getenv('INFLUXDB_DATABASE') or 'my-db'
 
 bad_cert = """-----BEGIN CERTIFICATE-----
 MIIFDTCCAvWgAwIBAgIUYzpfisy9xLrhiZd+D9vOdzC3+iswDQYJKoZIhvcNAQEL
@@ -68,20 +71,19 @@ def print_results(results: list):
 def main() -> None:
     print("Main")
     temp_cert_file = "temp_cert.pem"
-    conf = Config()
 
-    write_and_query_with_explicit_sys_cert(conf)
+    write_and_query_with_explicit_sys_cert()
 
     write_cert(bad_cert, temp_cert_file)
-    query_with_verify_ssl_off(conf, temp_cert_file)
+    query_with_verify_ssl_off(temp_cert_file)
     remove_cert(temp_cert_file)
 
 
-def write_and_query_with_explicit_sys_cert(conf):
+def write_and_query_with_explicit_sys_cert():
     print("\nwrite and query with typical linux system cert\n")
-    with InfluxDBClient3(token=conf.token,
-                         host=conf.host,
-                         database=conf.database,
+    with InfluxDBClient3(token=TOKEN,
+                         host=HOST,
+                         database=DATABASE,
                          ssl_ca_cert="/etc/ssl/certs/ca-certificates.crt",
                          verify_ssl=True) as _client:
         now = time.time_ns()
@@ -93,14 +95,14 @@ def write_and_query_with_explicit_sys_cert(conf):
         print_results(reader.to_pylist())
 
 
-def query_with_verify_ssl_off(conf, cert):
+def query_with_verify_ssl_off(cert):
     print("\nquerying with verify_ssl off\n")
 
     # Note that the passed root cert above is bad
     # Switch verify_ssl to True to throw SSL_ERROR_SSL
-    with InfluxDBClient3(token=conf.token,
-                         host=conf.host,
-                         database=conf.database,
+    with InfluxDBClient3(token=TOKEN,
+                         host=HOST,
+                         database=DATABASE,
                          ssl_ca_cert=cert,
                          verify_ssl=False) as _client:
 

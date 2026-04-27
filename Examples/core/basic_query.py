@@ -6,15 +6,17 @@ It should be run after running basic_write.py, which prepares the measurements q
 
 For more information on working with query modes see the `query/query_modes.py` example.
 """
-from Examples.config import Config
+import os
 from influxdb_client_3 import InfluxDBClient3
 
-config = Config()
+HOST = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
+TOKEN = os.getenv('INFLUXDB_TOKEN') or 'my-token'
+DATABASE = os.getenv('INFLUXDB_DATABASE') or 'my-db'
 
 client = InfluxDBClient3(
-    token=config.token,
-    host=config.host,
-    database=config.database,)
+    token=TOKEN,
+    host=HOST,
+    database=DATABASE,)
 
 measurement = "basic_caught"
 

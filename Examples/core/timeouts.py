@@ -11,6 +11,7 @@ supply new values as command line parameters.
 Be sure to update INFLUXDB_HOST, INFLUXDB_DATABASE and INFLUXDB_TOKEN environment variables,
 before running this example.
 """
+import os
 import sys
 import time
 
@@ -28,12 +29,17 @@ def handle_write_error_cb(rd, rt, rx):
 
 
 def main(w_to: int, q_to: int) -> None:
+
+    host = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
+    token = os.getenv('INFLUXDB_TOKEN') or 'my-token'
+    database = os.getenv('INFLUXDB_DATABASE') or 'my-db'
+
     print(f"main {w_to}, {q_to}")
     lp_data = "timeout_example,location=terra fVal=3.14,iVal=42i"
     with InfluxDBClient3(
-        host=config.host,
-        token=config.token,
-        database=config.database,
+        host=host,
+        token=token,
+        database=database,
         write_timeout=w_to,
         query_timeout=q_to,
         write_client_options=write_client_options(

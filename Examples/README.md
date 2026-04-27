@@ -137,7 +137,8 @@ TODO - delete this section as examples take shape and before creating PR.
        - Makes sense to expose these in _advanced_ examples. (e.g. pandas examples... )
        - Perhaps though should encourage the use of a simpler standard API that hides them
    2. Remove dependencies on remote `../githubusercontent/../*.csv`  __DONE__
-   2. Leverage `config.py` in all examples  __DONE__
+   2. ~~Leverage `config.py` in all examples~~  __DONE__ 
+       1. TODO undo and use standard ENVARS instead 
    3. Prefer using Influxdb3 Core by default.  But also document possibility of using other products.
    4. Add shebangs to functional examples __DONE__
    5. Ensure timestamps are current and not fixed for example to 2023 __DONE__
@@ -152,22 +153,22 @@ TODO - delete this section as examples take shape and before creating PR.
 
 #### Standardization summary (F - functional, I - illustrative)
 
-| example                         | F/I | Head Comment | shebang | Config() | **kwargs (adv)       | github user link | Timestamps                   | Notes                                   |
-|---------------------------------|-----|--------------|---------|----------|----------------------|------------------|------------------------------|-----------------------------------------|
-| advanced/database_transfer.py   | I   | Yes          | None    | Yes      | Yes (pd)             | None             | N.A. - copied without change | Ready                                   |
-| advanced/downsample.py          | F   | Yes          | Yes     | Yes      | Yes (pd)             | None             | Dynamic / Current            | Ready                                   |
-| core/basic_write.py             | F   | Yes          | Yes     | Yes      | None                 | None             | Dynamic / Now                | Ready                                   |
-| core/basic_query.py             | F   | Yes          | Yes     | Yes      | None                 | None             | Read only                    | Ready                                   |
-| core/basic_ssl.py               | F   | Yes          | Yes     | Yes      | None                 | None             | Dynamic / Now                | Ready                                   |
-| core/timeouts.py                | F   | Yes          | Yes     | Yes      | None                 | None             | Now (implicit)               | Ready                                   |
-| jupyter/basic-write-query.ipynb | F   | N/A          | N/A     | N/A      | None                 | None             | Dynamic                      | Ready                                   |
-| query/flight_options.py         | I   | Yes          | None    | Yes      | None                 | None             | Read only                    | Ready                                   |
-| query/handle_query_error.py     | F   | Yes          | Yes     | Yes      | None                 | None             | Read only                    | Ready                                   |
-| query/query_async.py            | F   | Yes          | Yes     | Yes      | None                 | None             | Dynamic                      | Ready                                   |
-| query/query_modes.py            | F   | Yes          | Yes     | Yes      | None                 | None             | Dynamic                      | Ready                                   |
-| query/query_with_middleware.py  | I   | Yes          | None    | Yes      | None                 | None             | Read only                    | Ready                                   |
-| write/batching.py               | F   | Yes          | Yes     | Yes      | None                 | None             | Dynamic                      | Ready                                   |
-| write/fileimport.py             | F   | Yes          | Yes     | Yes      | Yes (`file_write()`) | None             | Dynamic                      | Ready - kwargs here are part of example |
-| write/handle_http_error.py      | F   | Yes          | Yes     | Yes      | None                 | None             | N.A.                         | Ready - shows write error               |
-| write/pandas_write.py           | F   | Yes          | Yes     | Yes      | Yes (pd)             | None             | Dynamic                      | Ready - kwargs here are part of example |
-| write/writeoptions              | F   | Yes          | Yes     | Yes      | None                 | None             | Dynamic / now                | Ready                                   |
+| example                         | F/I | Head Comment | shebang | ~~Config()~~ | ENVARS | **kwargs (adv)       | github user link | Timestamps                   | Notes                                   |
+|---------------------------------|-----|--------------|---------|--------------|--------|----------------------|------------------|------------------------------|-----------------------------------------|
+| advanced/database_transfer.py   | I   | Yes          | None    | Yes          | TODO   | Yes (pd)             | None                 | N.A. - copied without change | Ready                                   |
+| advanced/downsample.py          | F   | Yes          | Yes     | Yes          | TODO   | Yes (pd)             | None           | Dynamic / Current            | Ready                                   |
+| core/basic_write.py             | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic / Now                | Ready                                   |
+| core/basic_query.py             | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Read only                    | Ready                                   |
+| core/basic_ssl.py               | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic / Now                | Ready                                   |
+| core/timeouts.py                | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Now (implicit)               | Ready                                   |
+| jupyter/basic-write-query.ipynb | F   | N/A          | N/A     | N/A          | TODO   | None                 | None           | Dynamic                      | Ready                                   |
+| query/flight_options.py         | I   | Yes          | None    | Yes          | TODO   | None                 | None           | Read only                    | Ready                                   |
+| query/handle_query_error.py     | F   | Yes          | Yes     | Yes          | TODO   | None                 | None           | Read only                    | Ready                                   |
+| query/query_async.py            | F   | Yes          | Yes     | Yes          | TODO   | None                 | None           | Dynamic                      | Ready                                   |
+| query/query_modes.py            | F   | Yes          | Yes     | Yes          | TODO   | None                 | None           | Dynamic                      | Ready                                   |
+| query/query_with_middleware.py  | I   | Yes          | None    | Yes          | TODO   | None                 | None           | Read only                    | Ready                                   |
+| write/batching.py               | F   | Yes          | Yes     | Yes          | TODO   | None                 | None           | Dynamic                      | Ready                                   |
+| write/fileimport.py             | F   | Yes          | Yes     | Yes          | TODO   | Yes (`file_write()`) | None           | Dynamic                      | Ready - kwargs here are part of example |
+| write/handle_http_error.py      | F   | Yes          | Yes     | Yes          | TODO   | None                 | None           | N.A.                         | Ready - shows write error               |
+| write/pandas_write.py           | F   | Yes          | Yes     | Yes          | TODO   | Yes (pd)             | None           | Dynamic                      | Ready - kwargs here are part of example |
+| write/writeoptions              | F   | Yes          | Yes     | Yes          | TODO   | None                | None           | Dynamic / now                | Ready                                   |

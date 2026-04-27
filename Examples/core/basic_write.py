@@ -6,15 +6,18 @@ in which to write data to an influxdb3 database using Point objects.
 After successfully running this example try basic_query.py to verify the results.
 """
 import datetime
+import os
 
-from Examples.config import Config
 from influxdb_client_3 import InfluxDBClient3, Point
 
-config = Config()
+HOST = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
+TOKEN = os.getenv('INFLUXDB_TOKEN') or 'my-token'
+DATABASE = os.getenv('INFLUXDB_DATABASE') or 'my-db'
+
 client = InfluxDBClient3(
-    token=config.token,
-    host=config.host,
-    database=config.database,)
+    token=TOKEN,
+    host=HOST,
+    database=DATABASE,)
 
 now = datetime.datetime.now(datetime.timezone.utc)
 
