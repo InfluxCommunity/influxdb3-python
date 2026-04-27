@@ -32,19 +32,19 @@ functional_examples = [
     './advanced/downsample.py'
 ]
 
+
 def set_functional_examples_executable():
-    global functional_examples
     dir_path = os.path.dirname(os.path.realpath(__file__))
     for example in functional_examples:
         if os.path.exists(f"{dir_path}/{example}"):
-            print(f"Functional example found at {example}")
+            print(f"Setting chmod of {example} to 775")
             os.chmod(f"{dir_path}/{example}", 0o775)
 
 
 def install_extra_packages():
-    global extra_packages
     for package in extra_packages:
         subprocess.check_call([sys.executable, "-m", "pip", "install", f"{package}"])
+
 
 print(f"Installing extra packages {extra_packages}")
 install_extra_packages()
