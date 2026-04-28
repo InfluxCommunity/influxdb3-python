@@ -11,6 +11,8 @@ import pandas as pd
 
 from influxdb_client_3 import InfluxDBClient3, InfluxDBError, WriteOptions, write_client_options
 
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
 HOST = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
 TOKEN = os.getenv('INFLUXDB_TOKEN') or 'my-token'
 DATABASE = os.getenv('INFLUXDB_DATABASE') or 'my-db'
@@ -53,7 +55,7 @@ trainers = ["ash", "brock", "misty", "gary", "jessie", "james"]
 
 # Read the CSV into a DataFrame
 pokemon_df = pd.read_csv(
-    "../write/source_data/pokemon.csv"
+    f"{dir_path}/../write/source_data/pokemon.csv"
 )
 
 # Creating an empty list to store the original data

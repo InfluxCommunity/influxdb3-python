@@ -41,6 +41,16 @@ A few of the examples depend on libraries not included in Influxdb3 python.  The
 $ python examples/prep.py
 ```
 
+Functional examples can now be executed from the command line. 
+
+e.g. 
+
+```bash
+$ examples/core/basic_write.py 
+First point written to InfluxDB!
+Write success: 3 points!
+```
+
 ### Writing data
 
 Basic examples can be found in the `Examples/core` directory.
@@ -155,24 +165,24 @@ TODO - delete this section as examples take shape and before creating PR.
 
 #### Standardization summary (F - functional, I - illustrative)
 
-| example                         | F/I | Head Comment | shebang | ~~Config()~~ | ENVARS | **kwargs (adv)       | github user link | Timestamps                   | Notes |
-|---------------------------------|-----|--------------|---------|--------------|--------|----------------------|------------------|------------------------------|--|
-| advanced/database_transfer.py   | I   | Yes          | None    | None         | Yes    | Yes (pd)             | None                 | N.A. - copied without change | Review |
-| advanced/downsample.py          | F   | Yes          | Yes     | None         | Yes    | Yes (pd)             | None           | Dynamic / Current            | Review |
-| core/basic_write.py             | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic / Now                | Review |
-| core/basic_query.py             | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Read only                    | Review |
-| core/basic_ssl.py               | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic / Now                | Review |
-| core/timeouts.py                | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Now (implicit)               | Review |
-| jupyter/basic-write-query.ipynb | F   | N/A          | N/A     | N/A          | Yes    | None                 | None           | Dynamic                      | Review |
-| query/flight_options.py         | I   | Yes          | None    | None         | Yes    | None                 | None           | Read only                    | Review |
-| query/handle_query_error.py     | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Read only                    | Review |
-| query/query_async.py            | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic                      | Review |
-| query/query_modes.py            | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic                      | Review |
-| query/query_with_middleware.py  | I   | Yes          | None    | None         | Yes    | None                 | None           | Read only                    | Review |
-| write/batching.py               | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic                      | Review |
-| write/fileimport.py             | F   | Yes          | Yes     | None         | Yes    | Yes (`file_write()`) | None           | Dynamic                      | Review - kwargs here are part of example |
-| write/handle_http_error.py      | F   | Yes          | Yes     | None         | Yes    | None                 | None           | N.A.                         | Review - shows write error |
-| write/pandas_write.py           | F   | Yes          | Yes     | None         | Yes    | Yes (pd)             | None           | Dynamic                      | Review - kwargs here are part of example |
-| write/writeoptions              | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic / now                | Review |
+| example                         | F/I | Head Comment | shebang | ~~Config()~~ | ENVARS | **kwargs (adv)       | github user link | Timestamps                   | Notes                                   |
+|---------------------------------|-----|--------------|---------|--------------|--------|----------------------|------------------|------------------------------|-----------------------------------------|
+| advanced/database_transfer.py   | I   | Yes          | None    | None         | Yes    | Yes (pd)             | None           | N.A. - copied without change | Ready                                   |
+| advanced/downsample.py          | F   | Yes          | Yes     | None         | Yes    | Yes (pd)             | None           | Dynamic / Current            | Ready                                   |
+| core/basic_write.py             | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic / Now                | Ready                                   |
+| core/basic_query.py             | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Read only                    | Ready                                   |
+| core/basic_ssl.py               | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic / Now                | Ready                                   |
+| core/timeouts.py                | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Now (implicit)               | Ready                                   |
+| jupyter/basic-write-query.ipynb | F   | N/A          | N/A     | N/A          | Yes    | None                 | None           | Dynamic                      | Ready                                   |
+| query/flight_options.py         | I   | Yes          | None    | None         | Yes    | None                 | None           | Read only                    | Ready                                   |
+| query/handle_query_error.py     | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Read only                    | Ready                                   |
+| query/query_async.py            | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic                      | Ready                                   |
+| query/query_modes.py            | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic                      | Ready                                   |
+| query/query_with_middleware.py  | I   | Yes          | None    | None         | Yes    | None                 | None           | Read only                    | Ready                                   |
+| write/batching.py               | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic                      | Review                                  |
+| write/fileimport.py             | F   | Yes          | Yes     | None         | Yes    | Yes (`file_write()`) | None           | Dynamic                      | Ready - kwargs here are part of example |
+| write/handle_http_error.py      | F   | Yes          | Yes     | None         | Yes    | None                 | None           | N.A.                         | Ready - shows write error               |
+| write/pandas_write.py           | F   | Yes          | Yes     | None         | Yes    | Yes (pd)             | None           | Dynamic                      | Ready - kwargs here are part of example |
+| write/writeoptions              | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic / now                | Ready                                   |
 
 TODO Review - run any example marked as "Review" in a fresh venv after a fresh project checkout and ensure it executes without issue.

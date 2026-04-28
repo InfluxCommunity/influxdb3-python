@@ -13,6 +13,7 @@ extra_packages = [
     'pandas',
     'bson',
     'matplotlib',
+    'pytz'
 ]
 
 functional_examples = [

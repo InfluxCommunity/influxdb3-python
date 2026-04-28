@@ -25,16 +25,16 @@ class BatchingCallback(object):
         self.start = time.time_ns()
 
     def success(self, conf, data: str):
-        print(f"Written batch: {conf}, data: {data}")
+        print(f"Written batch: {conf}, data: {len(data)} bytes")
         self.write_count += 1
         self.write_status_msg = f"SUCCESS: {self.write_count} writes"
 
     def error(self, conf, data: str, exception: InfluxDBError):
-        print(f"Cannot write batch: {conf}, data: {data} due: {exception}")
+        print(f"Cannot write batch: {conf}, data: {len(data)} bytes, due_to: {exception}")
         self.write_status_msg = f"FAILURE - cause: {exception}"
 
     def retry(self, conf, data: str, exception: InfluxDBError):
-        print(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
+        print(f"Retryable error occurs for batch: {conf}, data: {len(data)} bytes, retry: {exception}")
         self.retry_count += 1
 
     def elapsed(self) -> int:
@@ -54,10 +54,11 @@ def main() -> None:
     precision = 2
 
     # Setting timestamp for first sensor reading
-    sample_window_days = 7
+    # sample_window_days = 7
+    sample_window_days = 0.25
     now = datetime.datetime.now()
     now = now - datetime.timedelta(days=sample_window_days)
-    target_sample_count = sample_window_days * 24 * 60 * 6
+    target_sample_count = int(sample_window_days * 24 * 60 * 6)
 
     callback = BatchingCallback()
 
