@@ -128,8 +128,8 @@ TODO - delete this section as examples take shape and before creating PR.
 5. Root examples
    1. `basic_ssl_examle.py` to `./core` __DONE__
    2. `batching_example.py` to `./write` __DONE__
-      1. Issue - getting interpreter shutdown before example ends. TODO - fix
-      2. Issue - runs very slow - TODO speed up. 
+      1. Issue - getting interpreter shutdown before example ends. - fix, reduce data set size __DONE__
+      2. Issue - runs very slow - fix, stop printing full data set with every write. __DONE__ 
    3. `cloud_dedicated_query.py` - is it necessary to have specific _cloud_dedicated_ examples? Can this simply be documented in `README.md` or in code comments? (Removed __DONE__)
    4. `cloud_dedicated_write.py` - is it necessary to have specific _cloud_dedicated_ examples? Can this simply be documented in `README.md` or in code comments? (Removed __DONE__)
    5. `config.py` - universal configuration file.  Keep as is. 
@@ -179,10 +179,8 @@ TODO - delete this section as examples take shape and before creating PR.
 | query/query_async.py            | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic                      | Ready                                   |
 | query/query_modes.py            | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic                      | Ready                                   |
 | query/query_with_middleware.py  | I   | Yes          | None    | None         | Yes    | None                 | None           | Read only                    | Ready                                   |
-| write/batching.py               | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic                      | Review                                  |
+| write/batching.py               | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic                      | Ready                                   |
 | write/fileimport.py             | F   | Yes          | Yes     | None         | Yes    | Yes (`file_write()`) | None           | Dynamic                      | Ready - kwargs here are part of example |
 | write/handle_http_error.py      | F   | Yes          | Yes     | None         | Yes    | None                 | None           | N.A.                         | Ready - shows write error               |
 | write/pandas_write.py           | F   | Yes          | Yes     | None         | Yes    | Yes (pd)             | None           | Dynamic                      | Ready - kwargs here are part of example |
 | write/writeoptions              | F   | Yes          | Yes     | None         | Yes    | None                 | None           | Dynamic / now                | Ready                                   |
-
-TODO Review - run any example marked as "Review" in a fresh venv after a fresh project checkout and ensure it executes without issue.

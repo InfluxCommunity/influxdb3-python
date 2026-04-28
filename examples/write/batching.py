@@ -54,9 +54,8 @@ def main() -> None:
     precision = 2
 
     # Setting timestamp for first sensor reading
-    # sample_window_days = 7
     sample_window_days = 0.25
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(datetime.timezone.utc)
     now = now - datetime.timedelta(days=sample_window_days)
     target_sample_count = int(sample_window_days * 24 * 60 * 6)
 
