@@ -16,30 +16,19 @@ extra_packages = [
     'pytz'
 ]
 
-functional_examples = [
-    './core/basic_write.py',
-    './core/basic_query.py',
-    './core/basic_ssl.py',
-    './core/timeouts.py',
-    './write/batching.py',
-    './write/fileimport.py',
-    './write/source_data/updater.py',
-    './write/handle_http_error.py',
-    './write/pandas_write.py',
-    './write/writeoptions.py',
-    './query/handle_query_error.py',
-    './query/query_async.py',
-    './query/query_modes.py',
-    './advanced/downsample.py'
-]
-
 
 def set_functional_examples_executable():
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    for example in functional_examples:
-        if os.path.exists(f"{dir_path}/{example}"):
-            print(f"Setting chmod of {example} to 775")
-            os.chmod(f"{dir_path}/{example}", 0o775)
+    for root, dirs, files in os.walk(dir_path):
+        root.split(os.sep)
+        for file in files:
+            with (open(os.path.join(root, file), "r")) as input_file:
+                try:
+                    head = [next(input_file) for _ in range(1)]
+                    if head[0].startswith("#!/"):
+                        os.chmod(input_file.name, 0o775)
+                except UnicodeDecodeError:
+                    continue
 
 
 def install_extra_packages():
