@@ -9,17 +9,17 @@ import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
-def update_measurement_name(source: pd.DataFrame, measurment_name: str):
+def update_measurement_name(source: pd.DataFrame, measurement_name: str):
     count = 0
     for _ in source["iox::measurement"]:
-        source.loc[count, "iox::measurement"] = measurment_name
+        source.loc[count, "iox::measurement"] = measurement_name
         count += 1
 
 
 def update_timestamps(source: pd.DataFrame):
 
     now = time.time_ns()
-    interval = 333_000_000  # ms
+    interval = 333_000_000  # ns
     grit = random.randrange(0, 1_000_000)
     interval = interval + grit
     current = np.int64(now - interval * len(source["time"]))

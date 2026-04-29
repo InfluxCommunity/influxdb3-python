@@ -4,15 +4,14 @@ and even for its internal gRPC client.
 
 Note that the query transport of Influxdb3 is built on top of Arrow Flight, so `flight_client_options` in
 a broad sense is synonymous with setting low level "Query API Options".
-
-TODO review this one more time
 """
 import os
 
 from influxdb_client_3 import InfluxDBClient3, flight_client_options
 
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
-with open("./cert.pem", 'rb') as f:
+with open(f"${dir_path}/cert.pem", 'rb') as f:
     cert = f.read()
 print(cert)
 

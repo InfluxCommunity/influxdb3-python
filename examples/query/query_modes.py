@@ -75,10 +75,10 @@ def query_schema(client: InfluxDBClient3, influxql_query: str):
     print(table)
 
 
-def query_reader(client: InfluxDBClient3, influxqul_query: str):
+def query_reader(client: InfluxDBClient3, influxql_query: str):
     # Convert this reader into a regular RecordBatchReader
     reader = client.query(
-        query=influxqul_query,
+        query=influxql_query,
         language="influxql", mode="reader")
 
     print("reader:")

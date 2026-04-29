@@ -15,7 +15,7 @@ logger = logging.getLogger("writeoptions")
 
 
 # An illustrative callback - see below
-def error_callback(conf, data: str, exception: exceptions.InfluxDBError):
+def error_callback(conf, data: bytes, exception: exceptions.InfluxDBError):
     now = datetime.datetime.now()
     logger.warning(f"[{now}] an error occurred on latest write: {exception}")
     logger.warning(f"   conf: {conf}")
@@ -23,7 +23,7 @@ def error_callback(conf, data: str, exception: exceptions.InfluxDBError):
 
 
 # An illustrative callback - see below
-def success_callback(conf, data: str):
+def success_callback(conf, data: bytes):
     now = datetime.datetime.now()
     logger.info(f"[{now}] data written: {len(bytes(data, 'utf-8'))} bytes")
     logger.debug(f"   conf: {conf}")

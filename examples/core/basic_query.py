@@ -20,7 +20,7 @@ client = InfluxDBClient3(
 
 measurement = "basic_caught"
 
-print("Quering with sql to Arrow Table")
+print("Querying with sql to Arrow Table")
 sql = f'''SELECT * FROM {measurement} WHERE trainer = 'ash' AND time >= now() - interval '1 hour' LIMIT 5'''
 table = client.query(query=sql, language='sql', mode='all')
 print(table)

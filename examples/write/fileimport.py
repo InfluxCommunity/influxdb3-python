@@ -3,7 +3,7 @@
 fileimport.py - is a functional example that shows how to import data directly to Influxdb3
 from other common database types.
 
-The template databases used for this example can be found in `Examples/write/source_data`. To create
+The template databases used for this example can be found in `examples/write/source_data`. To create
 fresh databases with current timestamps please run the helper file `Examples/write/source_data/updater.py`
 before running fileimport.py.
 """
@@ -24,15 +24,15 @@ class BatchingCallback(object):
     def __init__(self):
         self.write_count = 0
 
-    def success(self, conf, data: str):
+    def success(self, conf, data: bytes):
         self.write_count += 1
-        print(f"Written batch: {conf}, data: {data}")
+        print(f"Written batch: {conf}, data: {bytes(data)} bytes")
 
-    def error(self, conf, data: str, exception: InfluxDBError):
+    def error(self, conf, data: bytes, exception: InfluxDBError):
         print(f"Cannot write batch: {conf}, data: {data} due: {exception}")
 
-    def retry(self, conf, data: str, exception: InfluxDBError):
-        print(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
+    def retry(self, conf, data: bytes, exception: InfluxDBError):
+        print(f"Retryable error occurred for batch: {conf}, data: {bytes(data)} bytes, retry: {exception}")
 
 
 def main(file_types=("csv",)) -> None:
