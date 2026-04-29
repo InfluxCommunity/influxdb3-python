@@ -11,7 +11,7 @@ from influxdb_client_3 import InfluxDBClient3, flight_client_options
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-with open(f"${dir_path}/cert.pem", 'rb') as f:
+with open(f"{dir_path}/cert.pem", 'rb') as f:
     cert = f.read()
 print(cert)
 
