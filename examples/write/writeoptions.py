@@ -25,7 +25,7 @@ def error_callback(conf, data: bytes, exception: exceptions.InfluxDBError):
 # An illustrative callback - see below
 def success_callback(conf, data: bytes):
     now = datetime.datetime.now()
-    logger.info(f"[{now}] data written: {len(bytes(data, 'utf-8'))} bytes")
+    logger.info(f"[{now}] data written: {len(bytes(data))} bytes")
     logger.debug(f"   conf: {conf}")
 
 

@@ -4,7 +4,7 @@ fileimport.py - is a functional example that shows how to import data directly t
 from other common database types.
 
 The template databases used for this example can be found in `examples/write/source_data`. To create
-fresh databases with current timestamps please run the helper file `Examples/write/source_data/updater.py`
+fresh databases with current timestamps please run the helper file `examples/write/source_data/updater.py`
 before running fileimport.py.
 """
 import logging

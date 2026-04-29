@@ -36,8 +36,13 @@ def install_extra_packages():
         subprocess.check_call([sys.executable, "-m", "pip", "install", f"{package}"])
 
 
-print(f"Installing extra packages {extra_packages}")
-install_extra_packages()
+def main():
+    print(f"Installing extra packages {extra_packages}")
+    install_extra_packages()
 
-print("Setting functional examples executable")
-set_functional_examples_executable()
+    print("Setting functional examples executable")
+    set_functional_examples_executable()
+
+
+if __name__ == "__main__":
+    main()
