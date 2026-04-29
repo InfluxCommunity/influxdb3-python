@@ -154,7 +154,7 @@ jobs:
           name: Checks style consistency across examples.
           command: |
             pip install flake8 --user
-            flake8 Examples/
+            flake8 examples/
   check-twine:
     docker:
       - image: << pipeline.parameters.default-python-image >>
