@@ -159,14 +159,14 @@ def _parse_gzip_threshold(threshold: str) -> int:
 
 def _parse_write_bool(value):
     """
-    Parses and validates the provided write no sync value.
+    Parses a truthy/falsy value for write options.
 
-    This function ensures that the given value is a valid boolean,
-    and it raises an appropriate error if the value is not valid.
+    The input is normalized to string and matched against common truthy values.
+    Any non-truthy value is treated as False.
 
     :param value: The input value to be parsed and validated.
-    :type write_no_sync: Any
-    :return: The validated write no sync value as an boolean.
+    :type value: Any
+    :return: Parsed boolean value.
     :rtype: bool
     """
     return str(value).strip().lower() in ['true', '1', 't', 'y', 'yes']
