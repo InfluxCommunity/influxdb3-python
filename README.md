@@ -47,12 +47,14 @@ You can install 'influxdb3-python' using `pip`:
 pip install influxdb3-python
 ```
 
-Note: This does not include Pandas support. If you would like to use key features such as `to_pandas()`  and `write_file()` you will need to install `pandas` separately.
+Note: This does not include Pandas support. If you would like to use key features such as `to_pandas()`  and `write_file()`, or to use PyArrow data conversion methods with nanosecond timestamp precision, you will need to install `pandas` separately.
 
 *Note: Please make sure you are using 3.9 or above. For the best performance use 3.11+*
 
 # Usage
-One of the easiest ways to get started is to checkout the ["Pokemon Trainer Cookbook"](https://github.com/InfluxCommunity/influxdb3-python/blob/main/Examples/pokemon-trainer/cookbook.ipynb). This scenario takes you through the basics of both the client library and Pyarrow.
+One of the easiest ways to get started is to check out the ["Influxdb3 Python Basic Usage"](https://github.com/InfluxCommunity/influxdb3-python/blob/main/examples/jupyter/basic-write-query.ipynb) notebook. This scenario takes you through the core write and read APIs of the client library.
+
+Additional examples independent of jupyter are detailed in the [`./examples`](./examples/README.md) directory.
 
 ## Importing the Module
 ```python
