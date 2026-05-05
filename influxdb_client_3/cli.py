@@ -81,7 +81,30 @@ _FORMATTERS = {
 }
 
 
-def _format_table(table: pa.Table, output_format: str) -> str:
+def _is_ns_timestamp(field_type) -> bool:
+    return pa.types.is_timestamp(field_type) and field_type.unit == "ns"
+
+
+def _coerce_timestamps(table: pa.Table) -> tuple[pa.Table, bool]:
+    # Python datetime only supports microsecond precision, so to_pylist truncates ns
+    # timestamps anyway; cast explicitly with safe=False to acknowledge the precision loss.
+    if not any(_is_ns_timestamp(field.type) for field in table.schema):
+        return table, False
+    new_fields = [
+        pa.field(field.name, pa.timestamp("us", tz=field.type.tz))
+        if _is_ns_timestamp(field.type)
+        else field
+        for field in table.schema
+    ]
+    return table.cast(pa.schema(new_fields), safe=False), True
+
+
+def _format_table(table: pa.Table, output_format: str, stderr=None) -> str:
+    table, coerced = _coerce_timestamps(table)
+    if coerced and stderr is not None:
+        stderr.write(
+            "Warning: nanosecond precision timestamps truncated to microseconds for display.\n"
+        )
     rows = table.to_pylist()
     fieldnames = table.schema.names
     return _FORMATTERS[output_format](rows, fieldnames)
@@ -166,7 +189,7 @@ def _run_query(args, stdout, stderr, env: Optional[Mapping[str, str]] = None) ->
                 database=database,
             )
 
-        payload = _ensure_trailing_nl(_format_table(table, args.output_format))
+        payload = _ensure_trailing_nl(_format_table(table, args.output_format, stderr=stderr))
         if args.output_file_path:
             with open(args.output_file_path, "w", encoding="utf-8", newline="") as file_handle:
                 file_handle.write(payload)

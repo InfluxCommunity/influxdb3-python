@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pyarrow as pa
 
-from influxdb_client_3.cli import _run_query, build_parser, main
+from influxdb_client_3.cli import _coerce_timestamps, _format_table, _run_query, build_parser, main
 from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
 
 
@@ -237,3 +237,47 @@ def test_main_returns_1_when_database_missing():
 
     assert rc == 1
     assert "Database is required" in stderr.getvalue()
+
+
+def test_coerce_timestamps_converts_nanoseconds():
+    ns_value = 1777981256454646723
+    table = pa.table({"time": pa.array([ns_value], type=pa.timestamp("ns")), "val": [1]})
+    result, coerced = _coerce_timestamps(table)
+    assert coerced is True
+    assert result.schema.field("time").type == pa.timestamp("us")
+    rows = result.to_pylist()
+    assert rows[0]["val"] == 1
+    # Verify no ValueError is raised and datetime is returned
+    assert rows[0]["time"].year == 2026
+
+
+def test_coerce_timestamps_preserves_timezone():
+    ns_value = 1777981256454646723
+    table = pa.table({"time": pa.array([ns_value], type=pa.timestamp("ns", tz="UTC")), "val": [1]})
+    result, coerced = _coerce_timestamps(table)
+    assert coerced is True
+    assert result.schema.field("time").type == pa.timestamp("us", tz="UTC")
+
+
+def test_coerce_timestamps_ignores_non_nanosecond():
+    table = pa.table({"time": pa.array([1000000], type=pa.timestamp("us")), "val": [1]})
+    result, coerced = _coerce_timestamps(table)
+    assert coerced is False
+    # Should be unchanged
+    assert result.schema.field("time").type == pa.timestamp("us")
+    assert result.to_pylist() == table.to_pylist()
+
+
+def test_format_table_emits_warning_for_nanoseconds():
+    ns_value = 1777981256454646723
+    table = pa.table({"time": pa.array([ns_value], type=pa.timestamp("ns")), "val": [1]})
+    stderr = io.StringIO()
+    _format_table(table, "json", stderr=stderr)
+    assert "nanosecond" in stderr.getvalue().lower()
+
+
+def test_format_table_no_warning_for_microseconds():
+    table = pa.table({"time": pa.array([1000000], type=pa.timestamp("us")), "val": [1]})
+    stderr = io.StringIO()
+    _format_table(table, "json", stderr=stderr)
+    assert stderr.getvalue() == ""
