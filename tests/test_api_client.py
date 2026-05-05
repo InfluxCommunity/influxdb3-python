@@ -170,7 +170,8 @@ class ApiClientTests(unittest.TestCase):
             # typed parse fails due line_number type -> raw fallback details
             (
                 "textual line_number falls back to raw",
-                '{"error":"partial write of line protocol occurred","data":[{"error_message":"bad line","line_number":"x","original_line":"bad lp"}]}',
+                '{"error":"partial write of line protocol occurred","data":'
+                '[{"error_message":"bad line","line_number":"x","original_line":"bad lp"}]}',
                 "partial write of line protocol occurred:\n"
                 "\t{\"error_message\":\"bad line\",\"line_number\":\"x\",\"original_line\":\"bad lp\"}",
                 False,
@@ -178,7 +179,8 @@ class ApiClientTests(unittest.TestCase):
             # mixed valid + malformed in array -> raw fallback for whole array
             (
                 "mixed array malformed item falls back to raw",
-                '{"error":"partial write of line protocol occurred","data":[{"error_message":"bad line","line_number":2,"original_line":"bad lp"},1]}',
+                '{"error":"partial write of line protocol occurred","data":'
+                '[{"error_message":"bad line","line_number":2,"original_line":"bad lp"},1]}',
                 "partial write of line protocol occurred:\n"
                 "\t{\"error_message\":\"bad line\",\"line_number\":2,\"original_line\":\"bad lp\"}\n"
                 "\t1",
