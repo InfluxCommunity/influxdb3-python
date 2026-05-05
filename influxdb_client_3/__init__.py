@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 from pyarrow import ArrowException
 
 from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
-from influxdb_client_3.exceptions import InfluxDBError, InfluxDBPartialWriteError
+from influxdb_client_3.exceptions import InfluxDBError
 from influxdb_client_3.query.query_api import QueryApi as _QueryApi, QueryApiOptionsBuilder
 from influxdb_client_3.read_file import UploadFile
 from influxdb_client_3.write_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
@@ -430,10 +430,7 @@ class InfluxDBClient3:
         if database is None:
             database = self._database
 
-        try:
-            return self._write_api.write(bucket=database, record=record, **kwargs)
-        except (InfluxDBError, InfluxDBPartialWriteError) as e:
-            raise e
+        return self._write_api.write(bucket=database, record=record, **kwargs)
 
     def write_dataframe(
         self,
