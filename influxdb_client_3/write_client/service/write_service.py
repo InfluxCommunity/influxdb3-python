@@ -8,6 +8,7 @@ from http import HTTPStatus
 from influxdb_client_3.write_client.domain.write_precision_converter import WritePrecisionConverter
 from influxdb_client_3.write_client.rest import ApiException
 from influxdb_client_3.write_client.service._base_service import _BaseService
+from influxdb_client_3.exceptions import InfluxDBPartialWriteError
 
 
 class WriteService(_BaseService):
@@ -158,11 +159,13 @@ class WriteService(_BaseService):
                 collection_formats={},
                 urlopen_kw=kwargs.get('urlopen_kw', None))
         except ApiException as e:
-            no_sync = 'no_sync' in local_var_params and local_var_params['no_sync']
-            if no_sync and e.status == HTTPStatus.METHOD_NOT_ALLOWED:
-                message = "Server doesn't support write with no_sync=true " \
-                          "(supported by InfluxDB 3 Core/Enterprise servers only)."
+            use_v2_api = 'use_v2_api' in local_var_params and local_var_params['use_v2_api']
+            if not use_v2_api and e.status == HTTPStatus.METHOD_NOT_ALLOWED:
+                message = "Server doesn't support v3 write API. Set use_v2_api=True for v2 compatibility endpoint."
                 raise ApiException(status=0, reason=message)
+            partial = InfluxDBPartialWriteError.from_response(e.response)
+            if partial is not None:
+                raise partial
             raise e
 
     async def post_write_async(self, org, bucket, body, **kwargs):  # noqa: E501,D401,D403
@@ -210,7 +213,8 @@ class WriteService(_BaseService):
     def _post_write_prepare(self, org, bucket, body, **kwargs):  # noqa: E501,D401,D403
         local_var_params = dict(locals())
 
-        all_params = ['org', 'bucket', 'body', 'zap_trace_span', 'content_encoding', 'content_type', 'content_length', 'accept', 'org_id', 'precision', 'no_sync']  # noqa: E501
+        all_params = ['org', 'bucket', 'body', 'zap_trace_span', 'content_encoding', 'content_type', 'content_length',
+                      'accept', 'org_id', 'precision', 'no_sync', 'accept_partial', 'use_v2_api']  # noqa: E501
         self._check_operation_params('post_write', all_params, local_var_params)
         # verify the required parameter 'org' is set
         if ('org' not in local_var_params or
@@ -228,26 +232,30 @@ class WriteService(_BaseService):
         path_params = {}
         query_params = []
 
+        use_v2_api = 'use_v2_api' in local_var_params and local_var_params['use_v2_api']
         no_sync = 'no_sync' in local_var_params and local_var_params['no_sync']
+        accept_partial = local_var_params['accept_partial'] if 'accept_partial' in local_var_params else True
         if 'org' in local_var_params:
             query_params.append(('org', local_var_params['org']))  # noqa: E501
         if 'org_id' in local_var_params:
             query_params.append(('orgID', local_var_params['org_id']))  # noqa: E501
         if 'bucket' in local_var_params:
-            query_params.append(('db' if no_sync else 'bucket', local_var_params['bucket']))  # noqa: E501
-        if no_sync:
-            # Setting no_sync=true is supported only in the v3 API.
-            path = '/api/v3/write_lp'
-            if 'precision' in local_var_params:
-                precision = local_var_params['precision']
-                query_params.append(('precision', WritePrecisionConverter.to_v3_api_string(precision)))  # noqa: E501
-            query_params.append(('no_sync', 'true'))
-        else:
-            # By default, use the v2 API.
+            query_params.append(('bucket' if use_v2_api else 'db', local_var_params['bucket']))  # noqa: E501
+
+        if use_v2_api:
             path = '/api/v2/write'
             if 'precision' in local_var_params:
                 precision = local_var_params['precision']
                 query_params.append(('precision', WritePrecisionConverter.to_v2_api_string(precision)))  # noqa: E501
+        else:
+            path = '/api/v3/write_lp'
+            if 'precision' in local_var_params:
+                precision = local_var_params['precision']
+                query_params.append(('precision', WritePrecisionConverter.to_v3_api_string(precision)))  # noqa: E501
+            if no_sync:
+                query_params.append(('no_sync', 'true'))
+            if accept_partial is False:
+                query_params.append(('accept_partial', 'false'))
 
         header_params = {}
         if 'zap_trace_span' in local_var_params:

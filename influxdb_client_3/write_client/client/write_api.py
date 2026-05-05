@@ -29,6 +29,8 @@ from influxdb_client_3.write_client.rest import _UTF_8_encoding
 
 DEFAULT_WRITE_NO_SYNC = False
 DEFAULT_WRITE_TIMEOUT = 10_000
+DEFAULT_WRITE_ACCEPT_PARTIAL = True
+DEFAULT_WRITE_USE_V2_API = False
 
 # Kwargs consumed during serialization that should not be passed to _post_write
 SERIALIZER_KWARGS = {
@@ -66,6 +68,8 @@ class DefaultWriteOptions(Enum):
     write_type = WriteType.synchronous
     write_precision = DEFAULT_WRITE_PRECISION
     no_sync = DEFAULT_WRITE_NO_SYNC
+    accept_partial = DEFAULT_WRITE_ACCEPT_PARTIAL
+    use_v2_api = DEFAULT_WRITE_USE_V2_API
     timeout = DEFAULT_WRITE_TIMEOUT
 
 
@@ -84,6 +88,8 @@ class WriteOptions(object):
                  write_precision=DEFAULT_WRITE_PRECISION,
                  no_sync=DEFAULT_WRITE_NO_SYNC,
                  tag_order=None,
+                 accept_partial=DEFAULT_WRITE_ACCEPT_PARTIAL,
+                 use_v2_api=DEFAULT_WRITE_USE_V2_API,
                  timeout=DEFAULT_WRITE_TIMEOUT,
                  write_scheduler=ThreadPoolScheduler(max_workers=1)) -> None:
         """
@@ -103,7 +109,9 @@ class WriteOptions(object):
         :param max_close_wait: the maximum time to wait for writes to be flushed if close() is called
         :param write_precision: precision to use when writing points to InfluxDB
         :param no_sync: skip waiting for WAL persistence on write
+        :param accept_partial: allow partial writes when some lines fail
         :param tag_order: optional list of tag names used to prioritize tag serialization order
+        :param use_v2_api: use /api/v2/write compatibility endpoint
         :param timeout: timeout to use when writing to the database in milliseconds. Default is 10_000
         :param write_scheduler:
         """
@@ -121,7 +129,13 @@ class WriteOptions(object):
         self.write_precision = write_precision
         self.timeout = timeout
         self.no_sync = no_sync
+        self.accept_partial = accept_partial
+        self.use_v2_api = use_v2_api
         self.tag_order = sanitize_tag_order(tag_order)
+
+    def validate(self):
+        if self.use_v2_api and self.no_sync:
+            raise ValueError("invalid write options: no_sync cannot be used with use_v2_api")
 
     def to_retry_strategy(self, **kwargs):
         """
@@ -385,6 +399,8 @@ class WriteApi(_BaseWriteApi):
         if write_precision is None:
             write_precision = self._write_options.write_precision
 
+        self._write_options.validate()
+
         if 'tag_order' in kwargs:
             kwargs['tag_order'] = sanitize_tag_order(kwargs.get('tag_order'))
         else:
@@ -395,6 +411,8 @@ class WriteApi(_BaseWriteApi):
                                         write_precision, **kwargs)
 
         no_sync = self._write_options.no_sync
+        accept_partial = self._write_options.accept_partial
+        use_v2_api = self._write_options.use_v2_api
 
         payloads = defaultdict(list)
         self._serialize(record, write_precision, payloads, **kwargs)
@@ -403,7 +421,8 @@ class WriteApi(_BaseWriteApi):
 
         def write_payload(payload):
             final_string = b'\n'.join(payload[1])
-            return self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync, **kwargs)
+            return self._post_write(_async_req, bucket, org, final_string, payload[0], no_sync,
+                                    accept_partial, use_v2_api, **kwargs)
 
         results = list(map(write_payload, payloads.items()))
         if not _async_req:
@@ -584,21 +603,26 @@ class WriteApi(_BaseWriteApi):
             _retry_callback_delegate = None
 
         no_sync = self._write_options.no_sync
+        accept_partial = self._write_options.accept_partial
+        use_v2_api = self._write_options.use_v2_api
 
         retry = self._write_options.to_retry_strategy(retry_callback=_retry_callback_delegate)
 
         self._post_write(False, batch_item.key.bucket, batch_item.key.org, batch_item.data,
-                         batch_item.key.precision, no_sync, urlopen_kw={'retries': retry}, **kwargs)
+                         batch_item.key.precision, no_sync, accept_partial, use_v2_api,
+                         urlopen_kw={'retries': retry}, **kwargs)
 
         logger.debug("Write request finished %s", batch_item)
 
         return _BatchResponse(data=batch_item)
 
-    def _post_write(self, _async_req, bucket, org, body, precision, no_sync, **kwargs):
+    def _post_write(self, _async_req, bucket, org, body, precision, no_sync, accept_partial, use_v2_api, **kwargs):
         # Filter out serializer-specific kwargs before passing to _post_write
         http_kwargs = {k: v for k, v in kwargs.items() if k not in SERIALIZER_KWARGS}
         return self._write_service.post_write(org=org, bucket=bucket, body=body, precision=precision,
                                               no_sync=no_sync,
+                                              accept_partial=accept_partial,
+                                              use_v2_api=use_v2_api,
                                               async_req=_async_req,
                                               content_type="text/plain; charset=utf-8",
                                               **http_kwargs)
