@@ -119,9 +119,14 @@ class TestWriteLocalServer:
         client = InfluxDBClient3(
             host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN")
 
+        expected = ("Server doesn't support v3 write API. "
+                    "Set use_v2_api=True for v2 compatibility endpoint.")
         with pytest.raises(ApiException, match=r".*Server doesn't support v3 write API\. "
-                                               r"Set use_v2_api=True for v2 compatibility endpoint\."):
+                                               r"Set use_v2_api=True for v2 compatibility endpoint\.") as err:
             client.write(self.SAMPLE_RECORD)
+        assert err.value.message == expected
+        assert err.value.reason == expected
+        assert err.value.args == (expected,)
 
         self.assert_request_made(httpserver, RequestMatcher(
             method="POST", uri="/api/v3/write_lp",

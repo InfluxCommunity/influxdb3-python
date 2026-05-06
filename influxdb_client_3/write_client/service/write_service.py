@@ -162,7 +162,10 @@ class WriteService(_BaseService):
             use_v2_api = 'use_v2_api' in local_var_params and local_var_params['use_v2_api']
             if not use_v2_api and e.status == HTTPStatus.METHOD_NOT_ALLOWED:
                 message = "Server doesn't support v3 write API. Set use_v2_api=True for v2 compatibility endpoint."
-                raise ApiException(status=0, reason=message)
+                ex = ApiException(status=0, reason=message)
+                ex.message = message
+                ex.args = (message,)
+                raise ex
             partial = InfluxDBPartialWriteError.from_response(e.response)
             if partial is not None:
                 raise partial
