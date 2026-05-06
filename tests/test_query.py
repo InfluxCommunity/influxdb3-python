@@ -167,6 +167,22 @@ Aw==
         finally:
             self.remove_cert_file(cert_file)
 
+    def test_pem_crlf_normalized_to_lf(self):
+        cert_file = "cert_crlf_test.pem"
+        crlf_content = self.sample_cert.replace("\n", "\r\n")
+        with open(cert_file, "wb") as f:
+            f.write(crlf_content.encode("utf-8"))
+
+        try:
+            options = QueryApiOptionsBuilder()\
+                .root_certs(cert_file)\
+                .build()
+            loaded = options.tls_root_certs.decode("utf-8")
+            assert "\r" not in loaded
+            assert loaded == self.sample_cert
+        finally:
+            self.remove_cert_file(cert_file)
+
     def test_query_client_with_options(self):
         connection = "grpc+tls://localhost:9999"
         token = "my_token"
