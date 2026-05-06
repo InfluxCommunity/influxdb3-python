@@ -10,6 +10,7 @@ from urllib3.exceptions import ConnectTimeoutError
 from influxdb_client_3.write_client._sync.api_client import ApiClient
 from influxdb_client_3.write_client.configuration import Configuration
 from influxdb_client_3.exceptions import InfluxDBError, InfluxDBPartialWriteError
+from influxdb_client_3.exceptions.exceptions import _parse_typed_partial_write_object
 from influxdb_client_3.write_client.service import WriteService
 from influxdb_client_3.version import VERSION
 
@@ -193,6 +194,23 @@ class ApiClientTests(unittest.TestCase):
                 "data not list",
                 False,
             ),
+            # typed object with empty message is dropped
+            (
+                "empty error_message in object",
+                '{"error":"partial write of line protocol occurred","data":'
+                '{"error_message":"","line_number":2,"original_line":"bad lp"}}',
+                "partial write of line protocol occurred",
+                False,
+            ),
+            # typed array parse fails, raw fallback skips null item
+            (
+                "raw fallback skips null details",
+                '{"error":"partial write of line protocol occurred","data":'
+                '[null,{"error_message":123}]}',
+                "partial write of line protocol occurred:\n"
+                "\t{\"error_message\":123}",
+                False,
+            ),
         ]
         for name, response_body, expected, is_partial in cases:
             with self.subTest(name):
@@ -221,6 +239,29 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(1, len(err.exception.line_errors))
         self.assertEqual(0, err.exception.line_errors[0].line_number)
         self.assertEqual("", err.exception.line_errors[0].original_line)
+
+    def test_parse_typed_partial_write_object_guards(self):
+        self.assertIsNone(_parse_typed_partial_write_object(None))
+        self.assertIsNone(_parse_typed_partial_write_object({"error_message": 123}))
+
+    def test_partial_write_from_response_guards(self):
+        self.assertIsNone(InfluxDBPartialWriteError.from_response(None))
+
+        empty_body = response.HTTPResponse(status=400, reason="Bad Request", body=b"")
+        self.assertIsNone(InfluxDBPartialWriteError.from_response(empty_body))
+
+        invalid_json = response.HTTPResponse(status=400, reason="Bad Request", body=b"{")
+        self.assertIsNone(InfluxDBPartialWriteError.from_response(invalid_json))
+
+        non_dict_json = response.HTTPResponse(status=400, reason="Bad Request", body=b"[]")
+        self.assertIsNone(InfluxDBPartialWriteError.from_response(non_dict_json))
+
+        object_without_typed_line_error = response.HTTPResponse(
+            status=400,
+            reason="Bad Request",
+            body=b'{"error":"partial write of line protocol occurred","data":{"error_message":123}}',
+        )
+        self.assertIsNone(InfluxDBPartialWriteError.from_response(object_without_typed_line_error))
 
     def test_api_error_headers(self):
         body = '{"error": "test error"}'
