@@ -60,6 +60,9 @@ setup(
         ]
     },
     install_requires=requires,
+    entry_points={
+        'console_scripts': ['influx3 = influxdb_client_3.cli:main'],
+    },
     python_requires='>=3.9',
     classifiers=[
         'Development Status :: 4 - Beta',
