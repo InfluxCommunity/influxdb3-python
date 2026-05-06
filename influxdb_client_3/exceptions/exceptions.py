@@ -43,7 +43,7 @@ class InfluxDB3ClientQueryError(InfluxDB3ClientError):
 
 
 def _is_partial_write_error(error_message) -> bool:
-    if not isinstance(error_message, str) or len(error_message) == 0:
+    if not isinstance(error_message, str) or not error_message:
         return False
     normalized = error_message.lower()
     return (
@@ -61,7 +61,7 @@ def _parse_partial_write_data_item(item) -> Optional[Tuple[str, int, str]]:
     error_message = item.get("error_message")
     if not isinstance(error_message, str):
         raise ValueError("error_message must be string")
-    if len(error_message) == 0:
+    if not error_message:
         return None
 
     line_number_raw = item.get("line_number")
@@ -101,7 +101,7 @@ def _parse_typed_partial_write_array(data) -> Optional[List[Tuple[str, int, str]
 def _parse_typed_partial_write_object_or_none(data) -> Optional[Tuple[str, int, str]]:
     try:
         return _parse_partial_write_data_item(data)
-    except (TypeError, ValueError):
+    except ValueError:
         return None
 
 
@@ -239,7 +239,7 @@ class InfluxDBPartialWriteError(InfluxDBError):
         if not _is_partial_write_error(error_text):
             return None
         parsed_line_errors, _ = _parse_partial_write_line_error_info(node.get("data"))
-        if len(parsed_line_errors) == 0:
+        if not parsed_line_errors:
             return None
         line_errors = [
             InfluxDBPartialWriteLineError(
