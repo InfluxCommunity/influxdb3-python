@@ -320,6 +320,14 @@ class WriteApi(_BaseWriteApi):
             # TODO above message has link to Influxdb2 API __NOT__ Influxdb3 API !!! - illustrates different API
             warnings.warn(message, DeprecationWarning)
 
+    def _resolve_write_request_options(self, kwargs):
+        no_sync = kwargs.pop('no_sync', self._write_options.no_sync)
+        accept_partial = kwargs.pop('accept_partial', self._write_options.accept_partial)
+        use_v2_api = kwargs.pop('use_v2_api', self._write_options.use_v2_api)
+        if use_v2_api and no_sync:
+            raise ValueError("invalid write options: no_sync cannot be used with use_v2_api")
+        return no_sync, accept_partial, use_v2_api
+
     def write(self, bucket: str, org: str = None,
               record: Union[
                   str, Iterable['str'], Point, Iterable['Point'], dict, Iterable['dict'], bytes, Iterable['bytes'],
@@ -400,6 +408,8 @@ class WriteApi(_BaseWriteApi):
             write_precision = self._write_options.write_precision
 
         self._write_options.validate()
+        kwargs = dict(kwargs)
+        no_sync, accept_partial, use_v2_api = self._resolve_write_request_options(kwargs)
 
         if 'tag_order' in kwargs:
             kwargs['tag_order'] = sanitize_tag_order(kwargs.get('tag_order'))
@@ -407,12 +417,11 @@ class WriteApi(_BaseWriteApi):
             kwargs['tag_order'] = self._write_options.tag_order
 
         if self._write_options.write_type is WriteType.batching:
+            kwargs['no_sync'] = no_sync
+            kwargs['accept_partial'] = accept_partial
+            kwargs['use_v2_api'] = use_v2_api
             return self._write_batching(bucket, org, record,
                                         write_precision, **kwargs)
-
-        no_sync = self._write_options.no_sync
-        accept_partial = self._write_options.accept_partial
-        use_v2_api = self._write_options.use_v2_api
 
         payloads = defaultdict(list)
         self._serialize(record, write_precision, payloads, **kwargs)
@@ -602,9 +611,8 @@ class WriteApi(_BaseWriteApi):
         else:
             _retry_callback_delegate = None
 
-        no_sync = self._write_options.no_sync
-        accept_partial = self._write_options.accept_partial
-        use_v2_api = self._write_options.use_v2_api
+        kwargs = dict(kwargs)
+        no_sync, accept_partial, use_v2_api = self._resolve_write_request_options(kwargs)
 
         retry = self._write_options.to_retry_strategy(retry_callback=_retry_callback_delegate)
 
