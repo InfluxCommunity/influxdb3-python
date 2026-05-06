@@ -231,11 +231,9 @@ class InfluxDBPartialWriteLineError:
 class InfluxDBPartialWriteError(InfluxDBError):
     """Structured partial-write error with per-line failures."""
 
-    def __init__(self, response: HTTPResponse, message: str, line_errors: List[InfluxDBPartialWriteLineError]):
+    def __init__(self, response: HTTPResponse, line_errors: List[InfluxDBPartialWriteLineError]):
         super().__init__(response=response)
-        self.message = message
         self.line_errors = line_errors
-        self.args = (self.message,)
 
     @classmethod
     def from_response(cls, response: HTTPResponse):
@@ -261,5 +259,4 @@ class InfluxDBPartialWriteError(InfluxDBError):
             )
             for error_message, line_number, original_line in parsed_line_errors
         ]
-        message = InfluxDBError(response=response).message
-        return cls(response=response, message=message, line_errors=line_errors)
+        return cls(response=response, line_errors=line_errors)
