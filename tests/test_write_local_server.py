@@ -38,8 +38,8 @@ class TestWriteLocalServer:
         ).write(self.SAMPLE_RECORD)
 
         self.assert_request_made(httpserver, RequestMatcher(
-            method="POST", uri="/api/v2/write",
-            query_string={"org": "ORG", "bucket": "DB", "precision": "ns"}))
+            method="POST", uri="/api/v3/write_lp",
+            query_string={"org": "ORG", "db": "DB", "precision": "nanosecond"}))
 
     def test_write_with_write_options(self, httpserver: HTTPServer):
         self.set_response_status(httpserver, 200)
@@ -56,8 +56,8 @@ class TestWriteLocalServer:
         ).write(self.SAMPLE_RECORD)
 
         self.assert_request_made(httpserver, RequestMatcher(
-            method="POST", uri="/api/v2/write",
-            query_string={"org": "ORG", "bucket": "DB", "precision": "us"}))
+            method="POST", uri="/api/v3/write_lp",
+            query_string={"org": "ORG", "db": "DB", "precision": "microsecond"}))
 
     def test_write_with_no_sync_true(self, httpserver: HTTPServer):
         self.set_response_status(httpserver, 200)
@@ -77,23 +77,88 @@ class TestWriteLocalServer:
             method="POST", uri="/api/v3/write_lp",
             query_string={"org": "ORG", "db": "DB", "precision": "microsecond", "no_sync": "true"}))
 
-    def test_write_with_no_sync_true_on_v2_server(self, httpserver: HTTPServer):
-        self.set_response_status(httpserver, HTTPStatus.METHOD_NOT_ALLOWED)
+    def test_write_with_no_sync_true_in_kwargs(self, httpserver: HTTPServer):
+        self.set_response_status(httpserver, 200)
 
-        client = InfluxDBClient3(
+        InfluxDBClient3(
+            host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN",
+            write_client_options=write_client_options(
+                write_options=WriteOptions(write_type=WriteType.synchronous, write_precision=WritePrecision.US)
+            )
+        ).write(self.SAMPLE_RECORD, no_sync=True)
+
+        self.assert_request_made(httpserver, RequestMatcher(
+            method="POST", uri="/api/v3/write_lp",
+            query_string={"org": "ORG", "db": "DB", "precision": "microsecond", "no_sync": "true"}))
+
+    def test_write_with_accept_partial_false(self, httpserver: HTTPServer):
+        self.set_response_status(httpserver, 200)
+
+        InfluxDBClient3(
             host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN",
             write_client_options=write_client_options(
                 write_options=WriteOptions(
                     write_type=WriteType.synchronous,
-                    no_sync=True)))
-
-        with pytest.raises(ApiException, match=r".*Server doesn't support write with no_sync=true "
-                                               r"\(supported by InfluxDB 3 Core/Enterprise servers only\)."):
-            client.write(self.SAMPLE_RECORD)
+                    accept_partial=False
+                )
+            )
+        ).write(self.SAMPLE_RECORD)
 
         self.assert_request_made(httpserver, RequestMatcher(
             method="POST", uri="/api/v3/write_lp",
-            query_string={"org": "ORG", "db": "DB", "precision": "nanosecond", "no_sync": "true"}))
+            query_string={"org": "ORG", "db": "DB", "precision": "nanosecond", "accept_partial": "false"}))
+
+    def test_write_with_use_v2_api_true(self, httpserver: HTTPServer):
+        self.set_response_status(httpserver, 200)
+
+        InfluxDBClient3(
+            host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN",
+            write_client_options=write_client_options(
+                write_options=WriteOptions(
+                    write_type=WriteType.synchronous,
+                    write_precision=WritePrecision.US,
+                    use_v2_api=True,
+                    accept_partial=False
+                )
+            )
+        ).write(self.SAMPLE_RECORD)
+
+        self.assert_request_made(httpserver, RequestMatcher(
+            method="POST", uri="/api/v2/write",
+            query_string={"org": "ORG", "bucket": "DB", "precision": "us"}))
+
+    def test_write_with_use_v2_api_true_in_kwargs(self, httpserver: HTTPServer):
+        self.set_response_status(httpserver, 200)
+
+        InfluxDBClient3(
+            host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN",
+            write_client_options=write_client_options(
+                write_options=WriteOptions(write_type=WriteType.synchronous, write_precision=WritePrecision.US)
+            )
+        ).write(self.SAMPLE_RECORD, use_v2_api=True, accept_partial=False)
+
+        self.assert_request_made(httpserver, RequestMatcher(
+            method="POST", uri="/api/v2/write",
+            query_string={"org": "ORG", "bucket": "DB", "precision": "us"}))
+
+    def test_write_with_v3_on_v2_server(self, httpserver: HTTPServer):
+        self.set_response_status(httpserver, HTTPStatus.METHOD_NOT_ALLOWED)
+
+        client = InfluxDBClient3(
+            host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN")
+
+        expected = ("Server doesn't support v3 write API. "
+                    "Set use_v2_api=True for v2 compatibility endpoint.")
+        with pytest.raises(ApiException, match=r".*Server doesn't support v3 write API\. "
+                                               r"Set use_v2_api=True for v2 compatibility endpoint\.") as err:
+            client.write(self.SAMPLE_RECORD)
+        assert err.value.message == expected
+        assert err.value.reason == expected
+        assert err.value.args == (expected,)
+
+        self.assert_request_made(httpserver, RequestMatcher(
+            method="POST", uri="/api/v3/write_lp",
+            query_string={"org": "ORG", "db": "DB", "precision": "nanosecond"}))
 
     def test_write_with_no_sync_false_and_gzip(self, httpserver: HTTPServer):
         self.set_response_status(httpserver, 200)
@@ -111,8 +176,8 @@ class TestWriteLocalServer:
         ).write(self.SAMPLE_RECORD)
 
         self.assert_request_made(httpserver, RequestMatcher(
-            method="POST", uri="/api/v2/write",
-            query_string={"org": "ORG", "bucket": "DB", "precision": "us"},
+            method="POST", uri="/api/v3/write_lp",
+            query_string={"org": "ORG", "db": "DB", "precision": "microsecond"},
             headers={"Content-Encoding": "gzip"}, ))
 
     def test_write_with_no_sync_true_and_gzip(self, httpserver: HTTPServer):
@@ -134,6 +199,31 @@ class TestWriteLocalServer:
             method="POST", uri="/api/v3/write_lp",
             query_string={"org": "ORG", "db": "DB", "precision": "microsecond", "no_sync": "true"},
             headers={"Content-Encoding": "gzip"}, ))
+
+    def test_write_invalid_use_v2_api_and_no_sync(self, httpserver: HTTPServer):
+        client = InfluxDBClient3(
+            host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN",
+            write_client_options=write_client_options(
+                write_options=WriteOptions(
+                    write_type=WriteType.synchronous,
+                    use_v2_api=True,
+                    no_sync=True
+                )
+            )
+        )
+        with pytest.raises(ValueError, match=r".*invalid write options: no_sync cannot be used with use_v2_api.*"):
+            client.write(self.SAMPLE_RECORD)
+
+    def test_write_invalid_use_v2_api_and_no_sync_in_kwargs(self, httpserver: HTTPServer):
+        client = InfluxDBClient3(
+            host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN",
+            write_client_options=write_client_options(
+                write_options=WriteOptions(write_type=WriteType.synchronous)
+            )
+        )
+
+        with pytest.raises(ValueError, match=r".*invalid write options: no_sync cannot be used with use_v2_api.*"):
+            client.write(self.SAMPLE_RECORD, use_v2_api=True, no_sync=True)
 
     def test_write_with_timeout_in_write_options(self, httpserver: HTTPServer):
         self.delay_response(httpserver, 0.5)

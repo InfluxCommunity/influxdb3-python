@@ -29,6 +29,8 @@ INFLUX_PRECISION = "INFLUX_PRECISION"
 INFLUX_AUTH_SCHEME = "INFLUX_AUTH_SCHEME"
 INFLUX_GZIP_THRESHOLD = "INFLUX_GZIP_THRESHOLD"
 INFLUX_WRITE_NO_SYNC = "INFLUX_WRITE_NO_SYNC"
+INFLUX_WRITE_ACCEPT_PARTIAL = "INFLUX_WRITE_ACCEPT_PARTIAL"
+INFLUX_WRITE_USE_V2_API = "INFLUX_WRITE_USE_V2_API"
 INFLUX_WRITE_TIMEOUT = "INFLUX_WRITE_TIMEOUT"
 INFLUX_QUERY_TIMEOUT = "INFLUX_QUERY_TIMEOUT"
 INFLUX_DISABLE_GRPC_COMPRESSION = "INFLUX_DISABLE_GRPC_COMPRESSION"
@@ -155,19 +157,23 @@ def _parse_gzip_threshold(threshold: str) -> int:
     return threshold
 
 
-def _parse_write_no_sync(write_no_sync: str):
+def _parse_write_bool(value):
     """
-    Parses and validates the provided write no sync value.
+    Parses a truthy/falsy value for write options.
 
-    This function ensures that the given value is a valid boolean,
-    and it raises an appropriate error if the value is not valid.
+    The input is normalized to string and matched against common truthy values.
+    Any non-truthy value is treated as False.
 
-    :param write_no_sync: The input value to be parsed and validated.
-    :type write_no_sync: Any
-    :return: The validated write no sync value as an boolean.
+    :param value: The input value to be parsed and validated.
+    :type value: Any
+    :return: Parsed boolean value.
     :rtype: bool
     """
-    return write_no_sync.strip().lower() in ['true', '1', 't', 'y', 'yes']
+    return str(value).strip().lower() in ['true', '1', 't', 'y', 'yes']
+
+
+def _parse_write_no_sync(write_no_sync: str):
+    return _parse_write_bool(write_no_sync)
 
 
 def _parse_timeout(to: str) -> int:
@@ -233,6 +239,8 @@ class InfluxDBClient3:
         :key str password: ``password`` to authenticate via username and password credentials to the InfluxDB 2.x
         :key str query_timeout: int value used to set the client query API timeout in milliseconds.
         :key str write_timeout: int value used to set the client write API timeout in milliseconds.
+        :key bool write_accept_partial: allow partial writes when some lines fail.
+        :key bool write_use_v2_api: route writes through /api/v2/write compatibility endpoint.
         :key list[str] profilers: list of enabled Flux profilers
         """
         self._org = org if org is not None else "default"
@@ -243,6 +251,8 @@ class InfluxDBClient3:
         write_type = DefaultWriteOptions.write_type.value
         write_precision = DefaultWriteOptions.write_precision.value
         write_no_sync = DefaultWriteOptions.no_sync.value
+        write_accept_partial = DefaultWriteOptions.accept_partial.value
+        write_use_v2_api = DefaultWriteOptions.use_v2_api.value
         write_timeout = DefaultWriteOptions.timeout.value
 
         if isinstance(write_client_options, dict) and write_client_options.get('write_options') is not None:
@@ -250,15 +260,25 @@ class InfluxDBClient3:
             write_type = getattr(write_opts, 'write_type', write_type)
             write_precision = getattr(write_opts, 'write_precision', write_precision)
             write_no_sync = getattr(write_opts, 'no_sync', write_no_sync)
+            write_accept_partial = getattr(write_opts, 'accept_partial', write_accept_partial)
+            write_use_v2_api = getattr(write_opts, 'use_v2_api', write_use_v2_api)
             write_timeout = getattr(write_opts, 'timeout', write_timeout)
 
         if kw_keys.__contains__('write_timeout'):
             write_timeout = kwargs.get('write_timeout')
 
+        if kw_keys.__contains__('write_accept_partial'):
+            write_accept_partial = _parse_write_bool(kwargs.get('write_accept_partial'))
+
+        if kw_keys.__contains__('write_use_v2_api'):
+            write_use_v2_api = _parse_write_bool(kwargs.get('write_use_v2_api'))
+
         write_options = WriteOptions(
             write_type=write_type,
             write_precision=write_precision,
             no_sync=write_no_sync,
+            accept_partial=write_accept_partial,
+            use_v2_api=write_use_v2_api,
         )
 
         self._write_client_options = {
@@ -347,7 +367,15 @@ class InfluxDBClient3:
 
         write_no_sync = os.getenv(INFLUX_WRITE_NO_SYNC)
         if write_no_sync is not None:
-            write_options.no_sync = _parse_write_no_sync(write_no_sync)
+            write_options.no_sync = _parse_write_bool(write_no_sync)
+
+        write_accept_partial = os.getenv(INFLUX_WRITE_ACCEPT_PARTIAL)
+        if write_accept_partial is not None:
+            write_options.accept_partial = _parse_write_bool(write_accept_partial)
+
+        write_use_v2_api = os.getenv(INFLUX_WRITE_USE_V2_API)
+        if write_use_v2_api is not None:
+            write_options.use_v2_api = _parse_write_bool(write_use_v2_api)
 
         precision = os.getenv(INFLUX_PRECISION)
         if precision is not None:
@@ -402,10 +430,7 @@ class InfluxDBClient3:
         if database is None:
             database = self._database
 
-        try:
-            return self._write_api.write(bucket=database, record=record, **kwargs)
-        except InfluxDBError as e:
-            raise e
+        return self._write_api.write(bucket=database, record=record, **kwargs)
 
     def write_dataframe(
         self,

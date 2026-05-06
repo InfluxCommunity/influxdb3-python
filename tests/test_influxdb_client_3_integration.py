@@ -12,8 +12,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError as Url3TimeoutError
 
 from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, \
     WriteType, InfluxDB3ClientQueryError
-from influxdb_client_3.write_client.rest import ApiException
-from influxdb_client_3.exceptions import InfluxDBError
+from influxdb_client_3.exceptions import InfluxDBError, InfluxDBPartialWriteError
 from tests.util import asyncio_run, lp_to_py_object
 
 
@@ -136,19 +135,12 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
             host=self.host,
             database=self.database,
             token=self.token,
-            write_client_options=write_client_options(
-                write_options=WriteOptions(
-                    write_type=WriteType.synchronous,
-                    no_sync=True
-                )
-            )
+            write_client_options=write_client_options(write_options=WriteOptions(write_type=WriteType.synchronous))
         ) as client:
             try:
                 client.write(lp)
                 self.fail("Expected InfluxDBError from invalid line protocol.")
-            except ApiException as err:
-                if "Server doesn't support write with no_sync=true" in str(err):
-                    self.skipTest("no_sync not supported by this server.")
+            except InfluxDBPartialWriteError as err:
                 msg = err.message
                 self.assertIn("partial write of line protocol occurred", msg)
                 self.assertIn((
