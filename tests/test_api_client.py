@@ -10,7 +10,7 @@ from urllib3.exceptions import ConnectTimeoutError
 from influxdb_client_3.write_client._sync.api_client import ApiClient
 from influxdb_client_3.write_client.configuration import Configuration
 from influxdb_client_3.exceptions import InfluxDBError, InfluxDBPartialWriteError
-from influxdb_client_3.exceptions.exceptions import _parse_typed_partial_write_object
+from influxdb_client_3.exceptions.exceptions import _parse_typed_partial_write_object_or_none
 from influxdb_client_3.write_client.service import WriteService
 from influxdb_client_3.version import VERSION
 
@@ -240,9 +240,9 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(0, err.exception.line_errors[0].line_number)
         self.assertEqual("", err.exception.line_errors[0].original_line)
 
-    def test_parse_typed_partial_write_object_guards(self):
-        self.assertIsNone(_parse_typed_partial_write_object(None))
-        self.assertIsNone(_parse_typed_partial_write_object({"error_message": 123}))
+    def test_parse_typed_partial_write_object_or_none_guards(self):
+        self.assertIsNone(_parse_typed_partial_write_object_or_none(None))
+        self.assertIsNone(_parse_typed_partial_write_object_or_none({"error_message": 123}))
 
     def test_partial_write_from_response_guards(self):
         self.assertIsNone(InfluxDBPartialWriteError.from_response(None))

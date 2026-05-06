@@ -98,25 +98,10 @@ def _parse_typed_partial_write_array(data) -> Optional[List[Tuple[str, int, str]
     return line_errors if len(line_errors) > 0 else None
 
 
-def _parse_raw_array_details(data) -> Optional[List[str]]:
-    if not isinstance(data, list):
-        return None
-    details: List[str] = []
-    for item in data:
-        if item is None:
-            continue
-        raw = json.dumps(item, separators=(',', ':'))
-        if raw and raw.lower() != "null":
-            details.append(raw)
-    return details
-
-
-def _parse_typed_partial_write_object(data) -> Optional[Tuple[str, int, str]]:
-    if data is None:
-        return None
+def _parse_typed_partial_write_object_or_none(data) -> Optional[Tuple[str, int, str]]:
     try:
         return _parse_partial_write_data_item(data)
-    except ValueError:
+    except (TypeError, ValueError):
         return None
 
 
@@ -138,14 +123,19 @@ def _parse_partial_write_line_error_info(data) -> Tuple[List[Tuple[str, int, str
     if typed_array is not None:
         return typed_array, _format_partial_write_details(typed_array)
 
-    raw_details = _parse_raw_array_details(data)
-    if raw_details is not None:
-        return [], raw_details
+    if isinstance(data, list):
+        details: List[str] = []
+        for item in data:
+            if item is None:
+                continue
+            raw = json.dumps(item, separators=(',', ':'))
+            if raw and raw.lower() != "null":
+                details.append(raw)
+        return [], details
 
-    typed_single = _parse_typed_partial_write_object(data)
+    typed_single = _parse_typed_partial_write_object_or_none(data)
     if typed_single is not None:
-        line_errors = [typed_single]
-        return line_errors, _format_partial_write_details(line_errors)
+        return [typed_single], _format_partial_write_details([typed_single])
 
     return [], []
 
