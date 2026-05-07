@@ -2,6 +2,12 @@
 
 ## 0.20.0 [unreleased]
 
+### Breaking Changes
+
+1. [#210](https://github.com/InfluxCommunity/influxdb3-python/pull/210): Adds partial write support and aligns write routing with v3 defaults.
+   See [Partial writes](https://docs.influxdata.com/influxdb3/core/write-data/http-api/v3-write-lp/#partial-writes) for more.
+   For InfluxDB Clustered, set `use_v2_api=True` for writes.
+
 ### Features
 
 1. [#208](https://github.com/InfluxCommunity/influxdb3-python/pull/208): Add `influx3 query` CLI support for executing SQL/InfluxQL queries with JSON/JSONL/CSV/pretty output, including module execution via `python -m influxdb_client_3`.
