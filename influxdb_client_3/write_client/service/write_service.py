@@ -243,7 +243,7 @@ class WriteService(_BaseService):
         path_params = {}
         query_params = []
 
-        use_v2_api = 'use_v2_api' in local_var_params and local_var_params['use_v2_api']
+        use_v2_api = local_var_params['use_v2_api'] if 'use_v2_api' in local_var_params else True
         no_sync = 'no_sync' in local_var_params and local_var_params['no_sync']
         accept_partial = local_var_params['accept_partial'] if 'accept_partial' in local_var_params else True
         if 'org' in local_var_params:
