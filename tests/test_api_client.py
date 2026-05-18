@@ -10,6 +10,7 @@ from urllib3.exceptions import ConnectTimeoutError
 from influxdb_client_3.write_client._sync.api_client import ApiClient
 from influxdb_client_3.write_client.configuration import Configuration
 from influxdb_client_3.exceptions import InfluxDBError, InfluxDBPartialWriteError
+from influxdb_client_3.write_client.rest import ApiException
 from influxdb_client_3.write_client.service import WriteService
 from influxdb_client_3.version import VERSION
 
@@ -348,3 +349,60 @@ class ApiClientTests(unittest.TestCase):
         # Test exact threshold match and less than threshold
         payload = "x" * 1000
         self.assertTrue(ApiClient.should_gzip(payload, enable_gzip=True, gzip_threshold=1000))
+
+    def test_post_write_with_http_info_async_translates_exceptions(self):
+        cases = [
+            (
+                "v2 on v3-only backend",
+                True,
+                response.HTTPResponse(status=405, reason="Method Not Allowed", body=b""),
+                ApiException,
+                "Server doesn't support the V2 API endpoint (/api/v2/write). "
+                "Set use_v2_api=False to use the V3 API endpoint.",
+            ),
+            (
+                "v3 on v2-only backend",
+                False,
+                response.HTTPResponse(status=405, reason="Method Not Allowed", body=b""),
+                ApiException,
+                "Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
+                "Set use_v2_api=True to use the V2 API endpoint.",
+            ),
+            (
+                "v3 partial write response",
+                False,
+                response.HTTPResponse(
+                    status=400,
+                    reason="Bad Request",
+                    body=(
+                        b'{"error":"partial write of line protocol occurred","data":[{"error_message":"bad line",'
+                        b'"line_number":2,"original_line":"home,room=Sunroom temp=\\"hi\\" 1735549200"}]}'
+                    ),
+                ),
+                InfluxDBPartialWriteError,
+                None,
+            ),
+        ]
+        for name, use_v2_api, http_resp, expected_type, expected_message in cases:
+            with self.subTest(name):
+                conf = Configuration()
+                local_client = ApiClient(conf)
+                local_client.call_api = mock.Mock()
+                thread = mock.Mock()
+                thread.get.side_effect = ApiException(http_resp=http_resp)
+                local_client.call_api.return_value = thread
+                service = WriteService(local_client)
+                result = service.post_write_with_http_info(
+                    "TEST_ORG",
+                    "TEST_BUCKET",
+                    "home,room=Sunroom temp=96 1735545600",
+                    async_req=True,
+                    use_v2_api=use_v2_api,
+                )
+                with self.assertRaises(expected_type) as err:
+                    result.get()
+                if expected_message:
+                    self.assertEqual(expected_message, err.exception.message)
+                    self.assertEqual(expected_message, err.exception.reason)
+                else:
+                    self.assertEqual(1, len(err.exception.line_errors))

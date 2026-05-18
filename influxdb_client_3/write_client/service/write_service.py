@@ -141,8 +141,9 @@ class WriteService(_BaseService):
         local_var_params, path, path_params, query_params, header_params, body_params = \
             self._post_write_prepare(org, bucket, body, **kwargs)  # noqa: E501
 
+        use_v2_api = local_var_params['use_v2_api'] if 'use_v2_api' in local_var_params else True
         try:
-            return self.api_client.call_api(
+            result = self.api_client.call_api(
                 path, 'POST',
                 path_params,
                 query_params,
@@ -158,26 +159,40 @@ class WriteService(_BaseService):
                 _request_timeout=local_var_params.get('_request_timeout'),
                 collection_formats={},
                 urlopen_kw=kwargs.get('urlopen_kw', None))
+            if local_var_params.get('async_req'):
+                original_get = result.get
+
+                def translated_get(timeout=None):
+                    try:
+                        return original_get(timeout=timeout)
+                    except ApiException as e:
+                        raise self._translate_write_exception(e, use_v2_api)
+
+                result.get = translated_get
+            return result
         except ApiException as e:
-            use_v2_api = local_var_params['use_v2_api'] if 'use_v2_api' in local_var_params else True
-            if use_v2_api and e.status == HTTPStatus.METHOD_NOT_ALLOWED:
-                message = ("Server doesn't support the V2 API endpoint (/api/v2/write). "
-                           "Set use_v2_api=False to use the V3 API endpoint.")
-                ex = ApiException(status=0, reason=message)
-                ex.message = message
-                ex.args = (message,)
-                raise ex
-            if not use_v2_api and e.status == HTTPStatus.METHOD_NOT_ALLOWED:
-                message = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
-                           "Set use_v2_api=True to use the V2 API endpoint.")
-                ex = ApiException(status=0, reason=message)
-                ex.message = message
-                ex.args = (message,)
-                raise ex
-            partial = InfluxDBPartialWriteError.from_response(e.response)
-            if partial is not None:
-                raise partial
-            raise e
+            raise self._translate_write_exception(e, use_v2_api)
+
+    @staticmethod
+    def _translate_write_exception(exc, use_v2_api):
+        if use_v2_api and exc.status == HTTPStatus.METHOD_NOT_ALLOWED:
+            message = ("Server doesn't support the V2 API endpoint (/api/v2/write). "
+                       "Set use_v2_api=False to use the V3 API endpoint.")
+            ex = ApiException(status=0, reason=message)
+            ex.message = message
+            ex.args = (message,)
+            return ex
+        if not use_v2_api and exc.status == HTTPStatus.METHOD_NOT_ALLOWED:
+            message = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
+                       "Set use_v2_api=True to use the V2 API endpoint.")
+            ex = ApiException(status=0, reason=message)
+            ex.message = message
+            ex.args = (message,)
+            return ex
+        partial = InfluxDBPartialWriteError.from_response(exc.response)
+        if partial is not None:
+            return partial
+        return exc
 
     async def post_write_async(self, org, bucket, body, **kwargs):  # noqa: E501,D401,D403
         """Write data.
