@@ -324,12 +324,12 @@ class TestInfluxDBClient3(unittest.TestCase):
     def test_write_bool_options_from_env(self):
         _base = {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token', 'INFLUX_DATABASE': 'test_db'}
         cases = [
-            ('no_sync true',              {'INFLUX_WRITE_NO_SYNC': 'true'},          'no_sync',        True),
-            ('no_sync TrUe mixed case',   {'INFLUX_WRITE_NO_SYNC': 'TrUe'},          'no_sync',        True),
-            ('no_sync false',             {'INFLUX_WRITE_NO_SYNC': 'false'},         'no_sync',        False),
-            ('no_sync anything-else',     {'INFLUX_WRITE_NO_SYNC': 'anything-else'}, 'no_sync',        False),
-            ('accept_partial false',      {'INFLUX_WRITE_ACCEPT_PARTIAL': 'false'},  'accept_partial', False),
-            ('use_v2_api true',           {'INFLUX_WRITE_USE_V2_API': 'true'},       'use_v2_api',     True),
+            ('no_sync true', {'INFLUX_WRITE_NO_SYNC': 'true'}, 'no_sync', True),
+            ('no_sync TrUe mixed case', {'INFLUX_WRITE_NO_SYNC': 'TrUe'}, 'no_sync', True),
+            ('no_sync false', {'INFLUX_WRITE_NO_SYNC': 'false'}, 'no_sync', False),
+            ('no_sync anything-else', {'INFLUX_WRITE_NO_SYNC': 'anything-else'}, 'no_sync', False),
+            ('accept_partial false', {'INFLUX_WRITE_ACCEPT_PARTIAL': 'false'}, 'accept_partial', False),
+            ('use_v2_api true', {'INFLUX_WRITE_USE_V2_API': 'true'}, 'use_v2_api', True),
         ]
         for name, env_extra, field, expected in cases:
             with self.subTest(name):
@@ -341,9 +341,9 @@ class TestInfluxDBClient3(unittest.TestCase):
     def test_write_bool_options_from_constructor_kwargs(self):
         _base = {'host': 'localhost', 'token': 'test_token', 'database': 'test_db'}
         cases = [
-            ('use_v2_api False',      {'write_use_v2_api': False},   'use_v2_api',     False),
-            ('accept_partial False',  {'write_accept_partial': False}, 'accept_partial', False),
-            ('no_sync True',          {'write_no_sync': True},        'no_sync',        True),
+            ('use_v2_api False', {'write_use_v2_api': False}, 'use_v2_api', False),
+            ('accept_partial False', {'write_accept_partial': False}, 'accept_partial', False),
+            ('no_sync True', {'write_no_sync': True}, 'no_sync', True),
         ]
         for name, kwargs, field, expected in cases:
             with self.subTest(name):
