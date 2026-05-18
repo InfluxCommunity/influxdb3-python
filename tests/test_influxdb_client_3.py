@@ -215,6 +215,23 @@ class TestInfluxDBClient3(unittest.TestCase):
             if sync_client is not None:
                 sync_client.close()
 
+    def test_write_async_multiple_precisions_returns_list(self):
+        import warnings
+        client = InfluxDBClient3(
+            host="localhost", token="test_token", database="test_db",
+            write_client_options=write_client_options(
+                write_options=WriteOptions(write_type=WriteType.asynchronous))
+        )
+        point_s = Point.measurement("m").field("v", 1).time(1, WritePrecision.S)
+        point_ms = Point.measurement("m").field("v", 2).time(1000, WritePrecision.MS)
+        with patch.object(client._write_api, "_post_write", return_value="ok") as mock_post:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                result = client.write(record=[point_s, point_ms])
+        self.assertEqual(mock_post.call_count, 2)
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 2)
+
     def test_default_client(self):
         expected_precision = DefaultWriteOptions.write_precision.value
         expected_write_type = DefaultWriteOptions.write_type.value
