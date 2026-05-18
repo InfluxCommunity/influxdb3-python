@@ -249,14 +249,13 @@ On partial failure, the client raises `InfluxDBPartialWriteError` with structure
 
 ```python
 from influxdb_client_3 import InfluxDBClient3
-from influxdb_client_3 import WriteOptions, write_client_options
 from influxdb_client_3.exceptions import InfluxDBPartialWriteError
 
 client = InfluxDBClient3(
     host="http://localhost:8181",
     token="token",
     database="db",
-    write_client_options=write_client_options(write_options=WriteOptions(use_v2_api=False)),
+    write_use_v2_api=False,
 )
 lp = "home,room=Sunroom temp=96 1735545600\nhome,room=Sunroom temp=\"hi\" 1735549200"
 
@@ -269,18 +268,12 @@ except InfluxDBPartialWriteError as e:
 
 Disable partial writes:
 ```python
-from influxdb_client_3 import WriteOptions, write_client_options
-
 client = InfluxDBClient3(
     host="http://localhost:8181",
     token="token",
     database="db",
-    write_client_options=write_client_options(
-        write_options=WriteOptions(
-            use_v2_api=False,
-            accept_partial=False
-        )
-    ),
+    write_use_v2_api=False,
+    write_accept_partial=False,
 )
 ```
 

@@ -241,6 +241,7 @@ class InfluxDBClient3:
         :key str write_timeout: int value used to set the client write API timeout in milliseconds.
         :key bool write_accept_partial: allow partial writes when some lines fail.
         :key bool write_use_v2_api: route writes through /api/v2/write compatibility endpoint.
+        :key bool write_no_sync: disable sync confirmation on V3 API endpoint writes.
         :key list[str] profilers: list of enabled Flux profilers
         """
         self._org = org if org is not None else "default"
@@ -272,6 +273,9 @@ class InfluxDBClient3:
 
         if kw_keys.__contains__('write_use_v2_api'):
             write_use_v2_api = _parse_write_bool(kwargs.get('write_use_v2_api'))
+
+        if kw_keys.__contains__('write_no_sync'):
+            write_no_sync = _parse_write_bool(kwargs.get('write_no_sync'))
 
         write_options = WriteOptions(
             write_type=write_type,
