@@ -30,7 +30,7 @@ from influxdb_client_3.write_client.rest import _UTF_8_encoding
 DEFAULT_WRITE_NO_SYNC = False
 DEFAULT_WRITE_TIMEOUT = 10_000
 DEFAULT_WRITE_ACCEPT_PARTIAL = True
-DEFAULT_WRITE_USE_V2_API = False
+DEFAULT_WRITE_USE_V2_API = True
 
 # Kwargs consumed during serialization that should not be passed to _post_write
 SERIALIZER_KWARGS = {

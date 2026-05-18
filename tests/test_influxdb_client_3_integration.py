@@ -125,17 +125,19 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         self.assertEqual(123.0, df['value'][0])
 
     def test_v3_error(self):
-        measurement = f'test{random_hex(3)}'.lower()
         lp = "\n".join([
-            f"{measurement} v=1i 1770291280",
-            f"{measurement} v=1 1770291281",
+            "home,room=Sunroom temp=96 1735545600",
+            "home,room=Sunroom temp=\"hi\" 1735549200",
         ])
 
         with InfluxDBClient3(
             host=self.host,
             database=self.database,
             token=self.token,
-            write_client_options=write_client_options(write_options=WriteOptions(write_type=WriteType.synchronous))
+            write_client_options=write_client_options(write_options=WriteOptions(
+                write_type=WriteType.synchronous,
+                use_v2_api=False
+            ))
         ) as client:
             try:
                 client.write(lp)
@@ -144,11 +146,11 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
                 msg = err.message
                 self.assertIn("partial write of line protocol occurred", msg)
                 self.assertIn((
-                    "invalid column type for column 'v', expected iox::column_type::field::integer, "
-                    "got iox::column_type::field::float"
+                    "invalid column type for column 'temp', expected iox::column_type::field::float, "
+                    "got iox::column_type::field::string"
                 ), msg)
                 self.assertIn("line 2", msg)
-                self.assertIn(measurement, msg)
+                self.assertIn("home,room=Sunroom", msg)
 
     def test_auth_error_token(self):
         self.client = InfluxDBClient3(host=self.host, database=self.database, token='fake token')

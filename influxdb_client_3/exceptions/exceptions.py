@@ -108,8 +108,11 @@ def _parse_typed_partial_write_object_or_none(data) -> Optional[Tuple[str, int, 
 def _format_partial_write_details(line_errors: List[Tuple[str, int, str]]) -> List[str]:
     details: List[str] = []
     for error_message, line_number, original_line in line_errors:
-        if line_number != 0 and original_line != "":
-            details.append(f"\tline {line_number}: {error_message} ({original_line})")
+        if line_number != 0:
+            if original_line != "":
+                details.append(f"\tline {line_number}: {error_message} ({original_line})")
+            else:
+                details.append(f"\tline {line_number}: {error_message}")
         elif error_message:
             details.append(f"\t{error_message}")
     return details

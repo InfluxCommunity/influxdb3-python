@@ -239,6 +239,14 @@ class ApiClientTests(unittest.TestCase):
         self.assertEqual(0, err.exception.line_errors[0].line_number)
         self.assertEqual("", err.exception.line_errors[0].original_line)
 
+    def test_api_error_v3_partial_write_with_line_number_without_original_line(self):
+        response_body = ('{"error":"partial write of line protocol occurred","data":'
+                         '{"error_message":"invalid field value","line_number":2}}')
+        with self.assertRaises(InfluxDBPartialWriteError) as err:
+            self._test_api_error(response_body)
+        self.assertEqual(1, len(err.exception.line_errors))
+        self.assertEqual("partial write of line protocol occurred:\n\tline 2: invalid field value", err.exception.message)
+
     def test_partial_write_from_response_guards(self):
         self.assertIsNone(InfluxDBPartialWriteError.from_response(None))
 

@@ -38,8 +38,8 @@ class TestWriteLocalServer:
         ).write(self.SAMPLE_RECORD)
 
         self.assert_request_made(httpserver, RequestMatcher(
-            method="POST", uri="/api/v3/write_lp",
-            query_string={"org": "ORG", "db": "DB", "precision": "nanosecond"}))
+            method="POST", uri="/api/v2/write",
+            query_string={"org": "ORG", "bucket": "DB", "precision": "ns"}))
 
     def test_write_with_write_options(self, httpserver: HTTPServer):
         self.set_response_status(httpserver, 200)
@@ -56,8 +56,8 @@ class TestWriteLocalServer:
         ).write(self.SAMPLE_RECORD)
 
         self.assert_request_made(httpserver, RequestMatcher(
-            method="POST", uri="/api/v3/write_lp",
-            query_string={"org": "ORG", "db": "DB", "precision": "microsecond"}))
+            method="POST", uri="/api/v2/write",
+            query_string={"org": "ORG", "bucket": "DB", "precision": "us"}))
 
     def test_write_with_no_sync_true(self, httpserver: HTTPServer):
         self.set_response_status(httpserver, 200)
@@ -68,7 +68,8 @@ class TestWriteLocalServer:
                 write_options=WriteOptions(
                     write_type=WriteType.synchronous,
                     write_precision=WritePrecision.US,
-                    no_sync=True
+                    no_sync=True,
+                    use_v2_api=False
                 )
             )
         ).write(self.SAMPLE_RECORD)
@@ -85,7 +86,7 @@ class TestWriteLocalServer:
             write_client_options=write_client_options(
                 write_options=WriteOptions(write_type=WriteType.synchronous, write_precision=WritePrecision.US)
             )
-        ).write(self.SAMPLE_RECORD, no_sync=True)
+        ).write(self.SAMPLE_RECORD, no_sync=True, use_v2_api=False)
 
         self.assert_request_made(httpserver, RequestMatcher(
             method="POST", uri="/api/v3/write_lp",
@@ -99,7 +100,8 @@ class TestWriteLocalServer:
             write_client_options=write_client_options(
                 write_options=WriteOptions(
                     write_type=WriteType.synchronous,
-                    accept_partial=False
+                    accept_partial=False,
+                    use_v2_api=False
                 )
             )
         ).write(self.SAMPLE_RECORD)
@@ -145,12 +147,15 @@ class TestWriteLocalServer:
         self.set_response_status(httpserver, HTTPStatus.METHOD_NOT_ALLOWED)
 
         client = InfluxDBClient3(
-            host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN")
+            host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN",
+            write_client_options=write_client_options(
+                write_options=WriteOptions(write_type=WriteType.synchronous, use_v2_api=False)
+            ))
 
-        expected = ("Server doesn't support v3 write API. "
-                    "Set use_v2_api=True for v2 compatibility endpoint.")
-        with pytest.raises(ApiException, match=r".*Server doesn't support v3 write API\. "
-                                               r"Set use_v2_api=True for v2 compatibility endpoint\.") as err:
+        expected = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
+                    "Set use_v2_api=True to use the V2 API endpoint.")
+        with pytest.raises(ApiException, match=r".*Server doesn't support the V3 API endpoint "
+                                               r"\(/api/v3/write_lp\)\. Set use_v2_api=True to use the V2 API endpoint\.") as err:
             client.write(self.SAMPLE_RECORD)
         assert err.value.message == expected
         assert err.value.reason == expected
@@ -159,6 +164,25 @@ class TestWriteLocalServer:
         self.assert_request_made(httpserver, RequestMatcher(
             method="POST", uri="/api/v3/write_lp",
             query_string={"org": "ORG", "db": "DB", "precision": "nanosecond"}))
+
+    def test_write_with_v2_on_v3_server(self, httpserver: HTTPServer):
+        self.set_response_status(httpserver, HTTPStatus.METHOD_NOT_ALLOWED)
+
+        client = InfluxDBClient3(
+            host=(httpserver.url_for("/")), org="ORG", database="DB", token="TOKEN")
+
+        expected = ("Server doesn't support the V2 API endpoint (/api/v2/write). "
+                    "Set use_v2_api=False to use the V3 API endpoint.")
+        with pytest.raises(ApiException, match=r".*Server doesn't support the V2 API endpoint "
+                                               r"\(/api/v2/write\)\. Set use_v2_api=False to use the V3 API endpoint\.") as err:
+            client.write(self.SAMPLE_RECORD)
+        assert err.value.message == expected
+        assert err.value.reason == expected
+        assert err.value.args == (expected,)
+
+        self.assert_request_made(httpserver, RequestMatcher(
+            method="POST", uri="/api/v2/write",
+            query_string={"org": "ORG", "bucket": "DB", "precision": "ns"}))
 
     def test_write_with_no_sync_false_and_gzip(self, httpserver: HTTPServer):
         self.set_response_status(httpserver, 200)
@@ -176,8 +200,8 @@ class TestWriteLocalServer:
         ).write(self.SAMPLE_RECORD)
 
         self.assert_request_made(httpserver, RequestMatcher(
-            method="POST", uri="/api/v3/write_lp",
-            query_string={"org": "ORG", "db": "DB", "precision": "microsecond"},
+            method="POST", uri="/api/v2/write",
+            query_string={"org": "ORG", "bucket": "DB", "precision": "us"},
             headers={"Content-Encoding": "gzip"}, ))
 
     def test_write_with_no_sync_true_and_gzip(self, httpserver: HTTPServer):
@@ -189,7 +213,8 @@ class TestWriteLocalServer:
                 write_options=WriteOptions(
                     write_type=WriteType.synchronous,
                     write_precision=WritePrecision.US,
-                    no_sync=True
+                    no_sync=True,
+                    use_v2_api=False
                 )
             ),
             enable_gzip=True
@@ -236,7 +261,8 @@ class TestWriteLocalServer:
                         write_type=WriteType.synchronous,
                         write_precision=WritePrecision.US,
                         timeout=30,
-                        no_sync=True
+                        no_sync=True,
+                        use_v2_api=False
                     )
                 ),
                 enable_gzip=True
@@ -254,6 +280,7 @@ class TestWriteLocalServer:
                         write_type=WriteType.synchronous,
                         write_precision=WritePrecision.US,
                         no_sync=True,
+                        use_v2_api=False,
                     )
                 ),
                 enable_gzip=True
@@ -270,6 +297,7 @@ class TestWriteLocalServer:
                         write_type=WriteType.synchronous,
                         write_precision=WritePrecision.US,
                         no_sync=True,
+                        use_v2_api=False,
                     )
                 ),
                 enable_gzip=True

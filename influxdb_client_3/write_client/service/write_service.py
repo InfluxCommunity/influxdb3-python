@@ -160,8 +160,16 @@ class WriteService(_BaseService):
                 urlopen_kw=kwargs.get('urlopen_kw', None))
         except ApiException as e:
             use_v2_api = 'use_v2_api' in local_var_params and local_var_params['use_v2_api']
+            if use_v2_api and e.status == HTTPStatus.METHOD_NOT_ALLOWED:
+                message = ("Server doesn't support the V2 API endpoint (/api/v2/write). "
+                           "Set use_v2_api=False to use the V3 API endpoint.")
+                ex = ApiException(status=0, reason=message)
+                ex.message = message
+                ex.args = (message,)
+                raise ex
             if not use_v2_api and e.status == HTTPStatus.METHOD_NOT_ALLOWED:
-                message = "Server doesn't support v3 write API. Set use_v2_api=True for v2 compatibility endpoint."
+                message = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
+                           "Set use_v2_api=True to use the V2 API endpoint.")
                 ex = ApiException(status=0, reason=message)
                 ex.message = message
                 ex.args = (message,)
