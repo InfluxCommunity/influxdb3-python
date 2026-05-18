@@ -7,6 +7,7 @@ from pytest_httpserver import HTTPServer
 from influxdb_client_3 import InfluxDBClient3, WritePrecision, DefaultWriteOptions, Point, WriteOptions, WriteType, \
     write_client_options
 from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
+from influxdb_client_3.write_client.client.write_api import _BatchItemKey
 from influxdb_client_3.write_client.rest import ApiException
 from tests.util import asyncio_run
 from tests.util.mocks import ConstantFlightServer, ConstantData, ErrorFlightServer
@@ -131,6 +132,27 @@ class TestInfluxDBClient3(unittest.TestCase):
                          client._write_client_options["write_options"].write_precision)
         self.assertEqual(DefaultWriteOptions.timeout.value, client._write_client_options["write_options"].timeout)
         self.assertEqual([], client._write_client_options["write_options"].tag_order)
+
+    def test_batch_item_key_includes_write_routing_options(self):
+        k1 = _BatchItemKey("bucket", "org", WritePrecision.NS,
+                           use_v2_api=True, no_sync=False, accept_partial=True)
+        k2 = _BatchItemKey("bucket", "org", WritePrecision.NS,
+                           use_v2_api=False, no_sync=False, accept_partial=True)
+        k3 = _BatchItemKey("bucket", "org", WritePrecision.NS,
+                           use_v2_api=True, no_sync=True, accept_partial=True)
+        k4 = _BatchItemKey("bucket", "org", WritePrecision.NS,
+                           use_v2_api=True, no_sync=False, accept_partial=False)
+
+        self.assertNotEqual(k1, k2)
+        self.assertNotEqual(k1, k3)
+        self.assertNotEqual(k1, k4)
+        self.assertNotEqual(hash(k1), hash(k2))
+        self.assertNotEqual(hash(k1), hash(k3))
+        self.assertNotEqual(hash(k1), hash(k4))
+
+        k1_same = _BatchItemKey("bucket", "org", WritePrecision.NS,
+                                use_v2_api=True, no_sync=False, accept_partial=True)
+        self.assertEqual(k1, k1_same)
 
     @asyncio_run
     async def test_query_async(self):

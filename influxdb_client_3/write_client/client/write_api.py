@@ -205,15 +205,23 @@ class _BatchItemKey(object):
         self.bucket = bucket
         self.org = org
         self.precision = precision
+        self.no_sync = kwargs.get('no_sync', DEFAULT_WRITE_NO_SYNC)
+        self.accept_partial = kwargs.get('accept_partial', DEFAULT_WRITE_ACCEPT_PARTIAL)
+        self.use_v2_api = kwargs.get('use_v2_api', DEFAULT_WRITE_USE_V2_API)
         self.kwargs = kwargs
         pass
 
     def __hash__(self) -> int:
-        return hash((self.bucket, self.org, self.precision))
+        return hash((self.bucket, self.org, self.precision, self.no_sync, self.accept_partial, self.use_v2_api))
 
     def __eq__(self, o: object) -> bool:
         return isinstance(o, self.__class__) \
-            and self.bucket == o.bucket and self.org == o.org and self.precision == o.precision
+            and self.bucket == o.bucket \
+            and self.org == o.org \
+            and self.precision == o.precision \
+            and self.no_sync == o.no_sync \
+            and self.accept_partial == o.accept_partial \
+            and self.use_v2_api == o.use_v2_api
 
     def __str__(self) -> str:
         return '_BatchItemKey[bucket:\'{}\', org:\'{}\', precision:\'{}\', kwargs: \'{}\']' \
