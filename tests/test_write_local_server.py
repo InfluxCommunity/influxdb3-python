@@ -155,7 +155,8 @@ class TestWriteLocalServer:
         expected = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
                     "Set use_v2_api=True to use the V2 API endpoint.")
         with pytest.raises(ApiException, match=r".*Server doesn't support the V3 API endpoint "
-                                               r"\(/api/v3/write_lp\)\. Set use_v2_api=True to use the V2 API endpoint\.") as err:
+                                               r"\(/api/v3/write_lp\)\. "
+                                               r"Set use_v2_api=True to use the V2 API endpoint\.") as err:
             client.write(self.SAMPLE_RECORD)
         assert err.value.message == expected
         assert err.value.reason == expected
@@ -174,7 +175,8 @@ class TestWriteLocalServer:
         expected = ("Server doesn't support the V2 API endpoint (/api/v2/write). "
                     "Set use_v2_api=False to use the V3 API endpoint.")
         with pytest.raises(ApiException, match=r".*Server doesn't support the V2 API endpoint "
-                                               r"\(/api/v2/write\)\. Set use_v2_api=False to use the V3 API endpoint\.") as err:
+                                               r"\(/api/v2/write\)\. "
+                                               r"Set use_v2_api=False to use the V3 API endpoint\.") as err:
             client.write(self.SAMPLE_RECORD)
         assert err.value.message == expected
         assert err.value.reason == expected

@@ -245,7 +245,8 @@ class ApiClientTests(unittest.TestCase):
         with self.assertRaises(InfluxDBPartialWriteError) as err:
             self._test_api_error(response_body)
         self.assertEqual(1, len(err.exception.line_errors))
-        self.assertEqual("partial write of line protocol occurred:\n\tline 2: invalid field value", err.exception.message)
+        self.assertEqual("partial write of line protocol occurred:\n\tline 2: invalid field value",
+                         err.exception.message)
 
     def test_partial_write_from_response_guards(self):
         self.assertIsNone(InfluxDBPartialWriteError.from_response(None))
