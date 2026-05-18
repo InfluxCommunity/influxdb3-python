@@ -282,8 +282,8 @@ Writes use the V2 API endpoint by default, so no additional configuration is req
 
 `use_v2_api` can be configured by:
 - `WriteOptions(use_v2_api=False)` (for V3 API endpoint features)
-- constructor kwarg: `write_use_v2_api=True`
-- env var: `INFLUX_WRITE_USE_V2_API=true`
+- constructor kwarg: `write_use_v2_api=False`
+- env var: `INFLUX_WRITE_USE_V2_API=false`
 
 When `use_v2_api=True`:
 - `accept_partial` is not used
