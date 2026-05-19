@@ -130,27 +130,55 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
             "home,room=Sunroom temp=\"hi\" 1735549200",
         ])
 
-        with InfluxDBClient3(
-            host=self.host,
-            database=self.database,
-            token=self.token,
-            write_client_options=write_client_options(write_options=WriteOptions(
-                write_type=WriteType.synchronous,
-                use_v2_api=False
-            ))
-        ) as client:
-            try:
-                client.write(lp)
-                self.fail("Expected InfluxDBError from invalid line protocol.")
-            except InfluxDBPartialWriteError as err:
-                msg = err.message
-                self.assertIn("partial write of line protocol occurred", msg)
+        for accept_partial in [True, False]:
+            with self.subTest(accept_partial=accept_partial):
+                with InfluxDBClient3(
+                    host=self.host,
+                    database=self.database,
+                    token=self.token,
+                    write_client_options=write_client_options(write_options=WriteOptions(
+                        write_type=WriteType.synchronous,
+                        use_v2_api=False,
+                        accept_partial=accept_partial
+                    ))
+                ) as client:
+                    with self.assertRaises(InfluxDBPartialWriteError) as err:
+                        client.write(lp)
+
+                msg = err.exception.message
+                self.assertTrue(
+                    "partial write of line protocol occurred" in msg or "parsing failed for write_lp endpoint" in msg
+                )
                 self.assertIn((
                     "invalid column type for column 'temp', expected iox::column_type::field::float, "
                     "got iox::column_type::field::string"
                 ), msg)
                 self.assertIn("line 2", msg)
                 self.assertIn("home,room=Sunroom", msg)
+
+    def test_v2_error(self):
+        lp = "\n".join([
+            "home,room=Sunroom temp=96 1735545600",
+            "home,room=Sunroom temp=\"hi\" 1735549200",
+        ])
+
+        with InfluxDBClient3(
+            host=self.host,
+            database=self.database,
+            token=self.token,
+            write_client_options=write_client_options(write_options=WriteOptions(
+                write_type=WriteType.synchronous,
+                use_v2_api=True,
+                accept_partial=False
+            ))
+        ) as client:
+            with self.assertRaises(InfluxDBError) as err:
+                client.write(lp)
+
+        self.assertNotIsInstance(err.exception, InfluxDBPartialWriteError)
+        self.assertIsNotNone(err.exception.response)
+        self.assertEqual(400, err.exception.response.status)
+        self.assertTrue(err.exception.message)
 
     def test_auth_error_token(self):
         self.client = InfluxDBClient3(host=self.host, database=self.database, token='fake token')
