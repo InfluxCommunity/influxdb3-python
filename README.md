@@ -244,7 +244,7 @@ client.write_dataframe(
 ```
 
 ### Accept partial writes and inspect failed lines
-`accept_partial` defaults to `True` and allows partial success when a batch contains invalid lines.
+`accept_partial` defaults to `True` and allows partial success when writing through the V3 API endpoint (`use_v2_api=False`) and a batch contains invalid lines.
 On partial failure, the client raises `InfluxDBPartialWriteError` with structured `line_errors`.
 
 ```python
