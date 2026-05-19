@@ -383,6 +383,11 @@ class TestInfluxDBClient3(unittest.TestCase):
             ('use_v2_api False', {'write_use_v2_api': False}, 'use_v2_api', False),
             ('accept_partial False', {'write_accept_partial': False}, 'accept_partial', False),
             ('no_sync True', {'write_no_sync': True}, 'no_sync', True),
+            ('use_v2_api None keeps default', {'write_use_v2_api': None},
+             'use_v2_api', DefaultWriteOptions.use_v2_api.value),
+            ('accept_partial None keeps default', {'write_accept_partial': None},
+             'accept_partial', DefaultWriteOptions.accept_partial.value),
+            ('no_sync None keeps default', {'write_no_sync': None}, 'no_sync', DefaultWriteOptions.no_sync.value),
         ]
         for name, kwargs, field, expected in cases:
             with self.subTest(name):

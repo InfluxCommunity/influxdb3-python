@@ -172,10 +172,6 @@ def _parse_write_bool(value):
     return str(value).strip().lower() in ['true', '1', 't', 'y', 'yes']
 
 
-def _parse_write_no_sync(write_no_sync: str):
-    return _parse_write_bool(write_no_sync)
-
-
 def _parse_timeout(to: str) -> int:
     try:
         timeout = int(to)
@@ -268,13 +264,13 @@ class InfluxDBClient3:
         if kw_keys.__contains__('write_timeout'):
             write_timeout = kwargs.get('write_timeout')
 
-        if kw_keys.__contains__('write_accept_partial'):
+        if kw_keys.__contains__('write_accept_partial') and kwargs.get('write_accept_partial') is not None:
             write_accept_partial = _parse_write_bool(kwargs.get('write_accept_partial'))
 
-        if kw_keys.__contains__('write_use_v2_api'):
+        if kw_keys.__contains__('write_use_v2_api') and kwargs.get('write_use_v2_api') is not None:
             write_use_v2_api = _parse_write_bool(kwargs.get('write_use_v2_api'))
 
-        if kw_keys.__contains__('write_no_sync'):
+        if kw_keys.__contains__('write_no_sync') and kwargs.get('write_no_sync') is not None:
             write_no_sync = _parse_write_bool(kwargs.get('write_no_sync'))
 
         write_options = WriteOptions(
