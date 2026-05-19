@@ -1,3 +1,4 @@
+import asyncio
 import json
 import unittest
 import uuid
@@ -406,3 +407,28 @@ class ApiClientTests(unittest.TestCase):
                     self.assertEqual(expected_message, err.exception.reason)
                 else:
                     self.assertEqual(1, len(err.exception.line_errors))
+
+    def test_post_write_async_translates_v3_unsupported(self):
+        conf = Configuration()
+        local_client = ApiClient(conf)
+        local_client.call_api = mock.AsyncMock(
+            side_effect=ApiException(
+                http_resp=response.HTTPResponse(status=405, reason="Method Not Allowed", body=b"")
+            )
+        )
+        service = WriteService(local_client)
+
+        async def run():
+            await service.post_write_async(
+                "TEST_ORG",
+                "TEST_BUCKET",
+                "home,room=Sunroom temp=96 1735545600",
+                use_v2_api=False,
+            )
+
+        with self.assertRaises(ApiException) as err:
+            asyncio.run(run())
+
+        expected = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
+                    "Set use_v2_api=True to use the V2 API endpoint.")
+        self.assertEqual(expected, err.exception.message)

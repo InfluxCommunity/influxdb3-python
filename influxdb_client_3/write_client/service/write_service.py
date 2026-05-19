@@ -218,23 +218,27 @@ class WriteService(_BaseService):
         """  # noqa: E501
         local_var_params, path, path_params, query_params, header_params, body_params = \
             self._post_write_prepare(org, bucket, body, **kwargs)  # noqa: E501
+        use_v2_api = local_var_params['use_v2_api'] if 'use_v2_api' in local_var_params else True
 
-        return await self.api_client.call_api(
-            path, 'POST',
-            path_params,
-            query_params,
-            header_params,
-            body=body_params,
-            post_params=[],
-            files={},
-            response_type=None,  # noqa: E501
-            auth_settings=[],
-            async_req=local_var_params.get('async_req'),
-            _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
-            _preload_content=local_var_params.get('_preload_content', True),
-            _request_timeout=local_var_params.get('_request_timeout'),
-            collection_formats={},
-            urlopen_kw=kwargs.get('urlopen_kw', None))
+        try:
+            return await self.api_client.call_api(
+                path, 'POST',
+                path_params,
+                query_params,
+                header_params,
+                body=body_params,
+                post_params=[],
+                files={},
+                response_type=None,  # noqa: E501
+                auth_settings=[],
+                async_req=local_var_params.get('async_req'),
+                _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
+                _preload_content=local_var_params.get('_preload_content', True),
+                _request_timeout=local_var_params.get('_request_timeout'),
+                collection_formats={},
+                urlopen_kw=kwargs.get('urlopen_kw', None))
+        except ApiException as e:
+            raise self._translate_write_exception(e, use_v2_api)
 
     def _post_write_prepare(self, org, bucket, body, **kwargs):  # noqa: E501,D401,D403
         local_var_params = dict(locals())
