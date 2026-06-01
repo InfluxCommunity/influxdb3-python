@@ -1,0 +1,6 @@
+"""Shared default values for write options."""
+
+DEFAULT_WRITE_NO_SYNC = False
+DEFAULT_WRITE_TIMEOUT = 10_000
+DEFAULT_WRITE_ACCEPT_PARTIAL = True
+DEFAULT_WRITE_USE_V2_API = True

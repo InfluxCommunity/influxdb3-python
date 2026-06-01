@@ -26,11 +26,19 @@ from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRI
 from influxdb_client_3.write_client.client.write.retry import WritesRetry
 from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.rest import _UTF_8_encoding
+from influxdb_client_3.write_client.write_defaults import (
+    DEFAULT_WRITE_ACCEPT_PARTIAL as _DEFAULT_WRITE_ACCEPT_PARTIAL,
+    DEFAULT_WRITE_NO_SYNC as _DEFAULT_WRITE_NO_SYNC,
+    DEFAULT_WRITE_TIMEOUT as _DEFAULT_WRITE_TIMEOUT,
+    DEFAULT_WRITE_USE_V2_API as _DEFAULT_WRITE_USE_V2_API,
+)
 
-DEFAULT_WRITE_NO_SYNC = False
-DEFAULT_WRITE_TIMEOUT = 10_000
-DEFAULT_WRITE_ACCEPT_PARTIAL = True
-DEFAULT_WRITE_USE_V2_API = True
+# Deprecated compatibility aliases.
+# New code should import these defaults from `influxdb_client_3.write_client.write_defaults`.
+DEFAULT_WRITE_NO_SYNC = _DEFAULT_WRITE_NO_SYNC
+DEFAULT_WRITE_TIMEOUT = _DEFAULT_WRITE_TIMEOUT
+DEFAULT_WRITE_ACCEPT_PARTIAL = _DEFAULT_WRITE_ACCEPT_PARTIAL
+DEFAULT_WRITE_USE_V2_API = _DEFAULT_WRITE_USE_V2_API
 
 # Kwargs consumed during serialization that should not be passed to _post_write
 SERIALIZER_KWARGS = {

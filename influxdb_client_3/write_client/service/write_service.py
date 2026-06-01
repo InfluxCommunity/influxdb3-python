@@ -9,6 +9,11 @@ from influxdb_client_3.write_client.domain.write_precision_converter import Writ
 from influxdb_client_3.write_client.rest import ApiException
 from influxdb_client_3.write_client.service._base_service import _BaseService
 from influxdb_client_3.exceptions import InfluxDBPartialWriteError
+from influxdb_client_3.write_client.write_defaults import (
+    DEFAULT_WRITE_ACCEPT_PARTIAL,
+    DEFAULT_WRITE_NO_SYNC,
+    DEFAULT_WRITE_USE_V2_API,
+)
 
 
 class WriteService(_BaseService):
@@ -141,7 +146,7 @@ class WriteService(_BaseService):
         local_var_params, path, path_params, query_params, header_params, body_params = \
             self._post_write_prepare(org, bucket, body, **kwargs)  # noqa: E501
 
-        use_v2_api = local_var_params['use_v2_api'] if 'use_v2_api' in local_var_params else True
+        use_v2_api = local_var_params['use_v2_api']
         try:
             result = self.api_client.call_api(
                 path, 'POST',
@@ -218,7 +223,7 @@ class WriteService(_BaseService):
         """  # noqa: E501
         local_var_params, path, path_params, query_params, header_params, body_params = \
             self._post_write_prepare(org, bucket, body, **kwargs)  # noqa: E501
-        use_v2_api = local_var_params['use_v2_api'] if 'use_v2_api' in local_var_params else True
+        use_v2_api = local_var_params['use_v2_api']
 
         try:
             return await self.api_client.call_api(
@@ -246,6 +251,9 @@ class WriteService(_BaseService):
         all_params = ['org', 'bucket', 'body', 'zap_trace_span', 'content_encoding', 'content_type', 'content_length',
                       'accept', 'org_id', 'precision', 'no_sync', 'accept_partial', 'use_v2_api']  # noqa: E501
         self._check_operation_params('post_write', all_params, local_var_params)
+        local_var_params.setdefault('use_v2_api', DEFAULT_WRITE_USE_V2_API)
+        local_var_params.setdefault('no_sync', DEFAULT_WRITE_NO_SYNC)
+        local_var_params.setdefault('accept_partial', DEFAULT_WRITE_ACCEPT_PARTIAL)
         # verify the required parameter 'org' is set
         if ('org' not in local_var_params or
                 local_var_params['org'] is None):
@@ -262,9 +270,9 @@ class WriteService(_BaseService):
         path_params = {}
         query_params = []
 
-        use_v2_api = local_var_params['use_v2_api'] if 'use_v2_api' in local_var_params else True
-        no_sync = 'no_sync' in local_var_params and local_var_params['no_sync']
-        accept_partial = local_var_params['accept_partial'] if 'accept_partial' in local_var_params else True
+        use_v2_api = local_var_params['use_v2_api']
+        no_sync = local_var_params['no_sync']
+        accept_partial = local_var_params['accept_partial']
         if 'org' in local_var_params:
             query_params.append(('org', local_var_params['org']))  # noqa: E501
         if 'org_id' in local_var_params:
