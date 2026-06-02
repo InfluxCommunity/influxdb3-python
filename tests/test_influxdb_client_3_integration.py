@@ -12,8 +12,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError as Url3TimeoutError
 
 from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, \
     WriteType, InfluxDB3ClientQueryError
-from influxdb_client_3.write_client.rest import ApiException
-from influxdb_client_3.exceptions import InfluxDBError
+from influxdb_client_3.exceptions import InfluxDBError, InfluxDBPartialWriteError
 from tests.util import asyncio_run, lp_to_py_object
 
 
@@ -126,37 +125,60 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         self.assertEqual(123.0, df['value'][0])
 
     def test_v3_error(self):
-        measurement = f'test{random_hex(3)}'.lower()
         lp = "\n".join([
-            f"{measurement} v=1i 1770291280",
-            f"{measurement} v=1 1770291281",
+            "home,room=Sunroom temp=96 1735545600",
+            "home,room=Sunroom temp=\"hi\" 1735549200",
+        ])
+
+        for accept_partial in [True, False]:
+            with self.subTest(accept_partial=accept_partial):
+                with InfluxDBClient3(
+                    host=self.host,
+                    database=self.database,
+                    token=self.token,
+                    write_client_options=write_client_options(write_options=WriteOptions(
+                        write_type=WriteType.synchronous,
+                        use_v2_api=False,
+                        accept_partial=accept_partial
+                    ))
+                ) as client:
+                    with self.assertRaises(InfluxDBPartialWriteError) as err:
+                        client.write(lp)
+
+                msg = err.exception.message
+                self.assertTrue(
+                    "partial write of line protocol occurred" in msg or "parsing failed for write_lp endpoint" in msg
+                )
+                self.assertIn((
+                    "invalid column type for column 'temp', expected iox::column_type::field::float, "
+                    "got iox::column_type::field::string"
+                ), msg)
+                self.assertIn("line 2", msg)
+                self.assertIn("home,room=Sunroom", msg)
+
+    def test_v2_error(self):
+        lp = "\n".join([
+            "home,room=Sunroom temp=96 1735545600",
+            "home,room=Sunroom temp=\"hi\" 1735549200",
         ])
 
         with InfluxDBClient3(
             host=self.host,
             database=self.database,
             token=self.token,
-            write_client_options=write_client_options(
-                write_options=WriteOptions(
-                    write_type=WriteType.synchronous,
-                    no_sync=True
-                )
-            )
+            write_client_options=write_client_options(write_options=WriteOptions(
+                write_type=WriteType.synchronous,
+                use_v2_api=True,
+                accept_partial=False
+            ))
         ) as client:
-            try:
+            with self.assertRaises(InfluxDBError) as err:
                 client.write(lp)
-                self.fail("Expected InfluxDBError from invalid line protocol.")
-            except ApiException as err:
-                if "Server doesn't support write with no_sync=true" in str(err):
-                    self.skipTest("no_sync not supported by this server.")
-                msg = err.message
-                self.assertIn("partial write of line protocol occurred", msg)
-                self.assertIn((
-                    "invalid column type for column 'v', expected iox::column_type::field::integer, "
-                    "got iox::column_type::field::float"
-                ), msg)
-                self.assertIn("line 2", msg)
-                self.assertIn(measurement, msg)
+
+        self.assertNotIsInstance(err.exception, InfluxDBPartialWriteError)
+        self.assertIsNotNone(err.exception.response)
+        self.assertEqual(400, err.exception.response.status)
+        self.assertTrue(err.exception.message)
 
     def test_auth_error_token(self):
         self.client = InfluxDBClient3(host=self.host, database=self.database, token='fake token')

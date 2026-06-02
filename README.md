@@ -243,6 +243,56 @@ client.write_dataframe(
 )
 ```
 
+### Accept partial writes and inspect failed lines
+`accept_partial` defaults to `True` and allows partial success when writing through the V3 API endpoint (`use_v2_api=False`) and a batch contains invalid lines.
+On partial failure, the client raises `InfluxDBPartialWriteError` with structured `line_errors`.
+
+```python
+from influxdb_client_3 import InfluxDBClient3
+from influxdb_client_3.exceptions import InfluxDBPartialWriteError
+
+client = InfluxDBClient3(
+    host="http://localhost:8181",
+    token="token",
+    database="db",
+    write_use_v2_api=False,
+)
+lp = "home,room=Sunroom temp=96 1735545600\nhome,room=Sunroom temp=\"hi\" 1735549200"
+
+try:
+    client.write(lp)  # accept_partial=True by default on V3 API endpoint
+except InfluxDBPartialWriteError as e:
+    for line_err in e.line_errors:
+        print(f"line {line_err.line_number} failed: {line_err.error_message} ({line_err.original_line})")
+```
+
+Disable partial writes:
+```python
+client = InfluxDBClient3(
+    host="http://localhost:8181",
+    token="token",
+    database="db",
+    write_use_v2_api=False,
+    write_accept_partial=False,
+)
+```
+
+### Compatibility with InfluxDB Clustered and InfluxDB Cloud Dedicated/Serverless
+Writes use the V2 API endpoint by default, so no additional configuration is required for these products.
+
+`use_v2_api` can be configured by:
+- `WriteOptions(use_v2_api=False)` (for V3 API endpoint features)
+- constructor kwarg: `write_use_v2_api=False`
+- env var: `INFLUX_WRITE_USE_V2_API=false`
+
+When `use_v2_api=True`:
+- `accept_partial` is not used
+- `no_sync=True` is invalid and rejected before dispatch with:
+  `invalid write options: no_sync cannot be used with use_v2_api`
+
+To use `no_sync` or `accept_partial` controls, set `use_v2_api=False`
+(for example with InfluxDB 3 Core/Enterprise).
+
 ## Querying
 
 ### Querying with SQL

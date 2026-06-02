@@ -1,3 +1,4 @@
+import asyncio
 import json
 import unittest
 import uuid
@@ -9,7 +10,8 @@ from urllib3.exceptions import ConnectTimeoutError
 
 from influxdb_client_3.write_client._sync.api_client import ApiClient
 from influxdb_client_3.write_client.configuration import Configuration
-from influxdb_client_3.exceptions import InfluxDBError
+from influxdb_client_3.exceptions import InfluxDBError, InfluxDBPartialWriteError
+from influxdb_client_3.write_client.rest import ApiException
 from influxdb_client_3.write_client.service import WriteService
 from influxdb_client_3.version import VERSION
 
@@ -114,7 +116,8 @@ class ApiClientTests(unittest.TestCase):
                          'in line protocol for field \'val\' on line 1"}}')
         with self.assertRaises(InfluxDBError) as err:
             self._test_api_error(response_body)
-        self.assertEqual('invalid field value in line protocol for field \'val\' on line 1', err.exception.message)
+        self.assertEqual("parsing failed for write_lp endpoint:\n\tinvalid field value in line protocol for field "
+                         "'val' on line 1", err.exception.message)
 
     def test_api_error_unknown(self):
         response_body = '{"detail":"no info"}'
@@ -138,6 +141,7 @@ class ApiClientTests(unittest.TestCase):
                 "got iox::column_type::field::uinteger (**.DBG.remote_***)\n"
                 "\tline 3: invalid column type for column 'v', expected iox::column_type::field::float, "
                 "got iox::column_type::field::uinteger (***.INF.remote_***)",
+                True,
             ),
             # error_message only (no line_number/original_line)
             (
@@ -146,6 +150,7 @@ class ApiClientTests(unittest.TestCase):
                 '{"error_message":"only error message"}]}',
                 "partial write of line protocol occurred:\n"
                 "\tonly error message",
+                True,
             ),
             # non-dict item in data list is skipped
             (
@@ -154,25 +159,115 @@ class ApiClientTests(unittest.TestCase):
                 '{"error_message":"bad line","line_number":2,"original_line":"bad lp"}]}',
                 "partial write of line protocol occurred:\n"
                 "\tline 2: bad line (bad lp)",
+                True,
             ),
             # details empty -> return error_text
             (
                 "no detail fields",
                 '{"error":"partial write of line protocol occurred","data":[{"line_number":2}]}',
-                "partial write of line protocol occurred",
+                "partial write of line protocol occurred:\n"
+                "\t{\"line_number\":2}",
+                False,
+            ),
+            # typed parse fails due line_number type -> raw fallback details
+            (
+                "textual line_number falls back to raw",
+                '{"error":"partial write of line protocol occurred","data":'
+                '[{"error_message":"bad line","line_number":"x","original_line":"bad lp"}]}',
+                "partial write of line protocol occurred:\n"
+                "\t{\"error_message\":\"bad line\",\"line_number\":\"x\",\"original_line\":\"bad lp\"}",
+                False,
+            ),
+            # mixed valid + malformed in array -> raw fallback for whole array
+            (
+                "mixed array malformed item falls back to raw",
+                '{"error":"partial write of line protocol occurred","data":'
+                '[{"error_message":"bad line","line_number":2,"original_line":"bad lp"},1]}',
+                "partial write of line protocol occurred:\n"
+                "\t{\"error_message\":\"bad line\",\"line_number\":2,\"original_line\":\"bad lp\"}\n"
+                "\t1",
+                False,
             ),
             # data is not a dict when resolving fallback keys
             (
                 "data not dict for fallback",
                 '{"error":"data not list","data":"oops"}',
                 "data not list",
+                False,
+            ),
+            # typed object with empty message is dropped
+            (
+                "empty error_message in object",
+                '{"error":"partial write of line protocol occurred","data":'
+                '{"error_message":"","line_number":2,"original_line":"bad lp"}}',
+                "partial write of line protocol occurred",
+                False,
+            ),
+            # typed array parse fails, raw fallback skips null item
+            (
+                "raw fallback skips null details",
+                '{"error":"partial write of line protocol occurred","data":'
+                '[null,{"error_message":123}]}',
+                "partial write of line protocol occurred:\n"
+                "\t{\"error_message\":123}",
+                False,
             ),
         ]
-        for name, response_body, expected in cases:
+        for name, response_body, expected, is_partial in cases:
             with self.subTest(name):
                 with self.assertRaises(InfluxDBError) as err:
                     self._test_api_error(response_body)
                 self.assertEqual(expected, err.exception.message)
+                if is_partial:
+                    self.assertIsInstance(err.exception, InfluxDBPartialWriteError)
+                    self.assertGreaterEqual(len(err.exception.line_errors), 1)
+                else:
+                    self.assertNotIsInstance(err.exception, InfluxDBPartialWriteError)
+
+    def test_api_error_v3_parsing_failed_object_returns_partial_error(self):
+        response_body = ('{"error":"parsing failed for write_lp endpoint","data":'
+                         '{"error_message":"invalid field value","line_number":2,"original_line":"m,t=a f=bad"}}')
+        with self.assertRaises(InfluxDBPartialWriteError) as err:
+            self._test_api_error(response_body)
+        self.assertEqual(1, len(err.exception.line_errors))
+        self.assertEqual(2, err.exception.line_errors[0].line_number)
+
+    def test_api_error_v3_partial_write_with_message_only_object_returns_partial_error(self):
+        response_body = ('{"error":"partial write of line protocol occurred","data":'
+                         '{"error_message":"only error message"}}')
+        with self.assertRaises(InfluxDBPartialWriteError) as err:
+            self._test_api_error(response_body)
+        self.assertEqual(1, len(err.exception.line_errors))
+        self.assertEqual(0, err.exception.line_errors[0].line_number)
+        self.assertEqual("", err.exception.line_errors[0].original_line)
+
+    def test_api_error_v3_partial_write_with_line_number_without_original_line(self):
+        response_body = ('{"error":"partial write of line protocol occurred","data":'
+                         '{"error_message":"invalid field value","line_number":2}}')
+        with self.assertRaises(InfluxDBPartialWriteError) as err:
+            self._test_api_error(response_body)
+        self.assertEqual(1, len(err.exception.line_errors))
+        self.assertEqual("partial write of line protocol occurred:\n\tline 2: invalid field value",
+                         err.exception.message)
+
+    def test_partial_write_from_response_guards(self):
+        self.assertIsNone(InfluxDBPartialWriteError.from_response(None))
+
+        empty_body = response.HTTPResponse(status=400, reason="Bad Request", body=b"")
+        self.assertIsNone(InfluxDBPartialWriteError.from_response(empty_body))
+
+        invalid_json = response.HTTPResponse(status=400, reason="Bad Request", body=b"{")
+        self.assertIsNone(InfluxDBPartialWriteError.from_response(invalid_json))
+
+        non_dict_json = response.HTTPResponse(status=400, reason="Bad Request", body=b"[]")
+        self.assertIsNone(InfluxDBPartialWriteError.from_response(non_dict_json))
+
+        object_without_typed_line_error = response.HTTPResponse(
+            status=400,
+            reason="Bad Request",
+            body=b'{"error":"partial write of line protocol occurred","data":{"error_message":123}}',
+        )
+        self.assertIsNone(InfluxDBPartialWriteError.from_response(object_without_typed_line_error))
 
     def test_api_error_headers(self):
         body = '{"error": "test error"}'
@@ -255,3 +350,85 @@ class ApiClientTests(unittest.TestCase):
         # Test exact threshold match and less than threshold
         payload = "x" * 1000
         self.assertTrue(ApiClient.should_gzip(payload, enable_gzip=True, gzip_threshold=1000))
+
+    def test_post_write_with_http_info_async_translates_exceptions(self):
+        cases = [
+            (
+                "v2 on v3-only backend",
+                True,
+                response.HTTPResponse(status=405, reason="Method Not Allowed", body=b""),
+                ApiException,
+                "Server doesn't support the V2 API endpoint (/api/v2/write). "
+                "Set use_v2_api=False to use the V3 API endpoint.",
+            ),
+            (
+                "v3 on v2-only backend",
+                False,
+                response.HTTPResponse(status=405, reason="Method Not Allowed", body=b""),
+                ApiException,
+                "Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
+                "Set use_v2_api=True to use the V2 API endpoint.",
+            ),
+            (
+                "v3 partial write response",
+                False,
+                response.HTTPResponse(
+                    status=400,
+                    reason="Bad Request",
+                    body=(
+                        b'{"error":"partial write of line protocol occurred","data":[{"error_message":"bad line",'
+                        b'"line_number":2,"original_line":"home,room=Sunroom temp=\\"hi\\" 1735549200"}]}'
+                    ),
+                ),
+                InfluxDBPartialWriteError,
+                None,
+            ),
+        ]
+        for name, use_v2_api, http_resp, expected_type, expected_message in cases:
+            with self.subTest(name):
+                conf = Configuration()
+                local_client = ApiClient(conf)
+                local_client.call_api = mock.Mock()
+                thread = mock.Mock()
+                thread.get.side_effect = ApiException(http_resp=http_resp)
+                local_client.call_api.return_value = thread
+                service = WriteService(local_client)
+                result = service.post_write_with_http_info(
+                    "TEST_ORG",
+                    "TEST_BUCKET",
+                    "home,room=Sunroom temp=96 1735545600",
+                    async_req=True,
+                    use_v2_api=use_v2_api,
+                )
+                with self.assertRaises(expected_type) as err:
+                    result.get()
+                if expected_message:
+                    self.assertEqual(expected_message, err.exception.message)
+                    self.assertEqual(expected_message, err.exception.reason)
+                else:
+                    self.assertEqual(1, len(err.exception.line_errors))
+
+    def test_post_write_async_translates_v3_unsupported(self):
+        conf = Configuration()
+        local_client = ApiClient(conf)
+        local_client.call_api = mock.AsyncMock(
+            side_effect=ApiException(
+                http_resp=response.HTTPResponse(status=405, reason="Method Not Allowed", body=b"")
+            )
+        )
+        service = WriteService(local_client)
+
+        async def run():
+            await service.post_write_async(
+                "TEST_ORG",
+                "TEST_BUCKET",
+                "home,room=Sunroom temp=96 1735545600",
+                use_v2_api=False,
+            )
+
+        with self.assertRaises(ApiException) as err:
+            asyncio.run(run())
+
+        expected = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
+                    "Set use_v2_api=True to use the V2 API endpoint.")
+        self.assertEqual(expected, err.exception.message)

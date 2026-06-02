@@ -7,6 +7,7 @@ from pytest_httpserver import HTTPServer
 from influxdb_client_3 import InfluxDBClient3, WritePrecision, DefaultWriteOptions, Point, WriteOptions, WriteType, \
     write_client_options
 from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
+from influxdb_client_3.write_client.client.write_api import _BatchItemKey
 from influxdb_client_3.write_client.rest import ApiException
 from tests.util import asyncio_run
 from tests.util.mocks import ConstantFlightServer, ConstantData, ErrorFlightServer
@@ -123,10 +124,35 @@ class TestInfluxDBClient3(unittest.TestCase):
         self.assertEqual(DefaultWriteOptions.write_type.value,
                          client._write_client_options["write_options"].write_type)
         self.assertEqual(DefaultWriteOptions.no_sync.value, client._write_client_options["write_options"].no_sync)
+        self.assertEqual(DefaultWriteOptions.accept_partial.value,
+                         client._write_client_options["write_options"].accept_partial)
+        self.assertEqual(DefaultWriteOptions.use_v2_api.value,
+                         client._write_client_options["write_options"].use_v2_api)
         self.assertEqual(DefaultWriteOptions.write_precision.value,
                          client._write_client_options["write_options"].write_precision)
         self.assertEqual(DefaultWriteOptions.timeout.value, client._write_client_options["write_options"].timeout)
         self.assertEqual([], client._write_client_options["write_options"].tag_order)
+
+    def test_batch_item_key_includes_write_routing_options(self):
+        k1 = _BatchItemKey("bucket", "org", WritePrecision.NS,
+                           use_v2_api=True, no_sync=False, accept_partial=True)
+        k2 = _BatchItemKey("bucket", "org", WritePrecision.NS,
+                           use_v2_api=False, no_sync=False, accept_partial=True)
+        k3 = _BatchItemKey("bucket", "org", WritePrecision.NS,
+                           use_v2_api=True, no_sync=True, accept_partial=True)
+        k4 = _BatchItemKey("bucket", "org", WritePrecision.NS,
+                           use_v2_api=True, no_sync=False, accept_partial=False)
+
+        self.assertNotEqual(k1, k2)
+        self.assertNotEqual(k1, k3)
+        self.assertNotEqual(k1, k4)
+        self.assertNotEqual(hash(k1), hash(k2))
+        self.assertNotEqual(hash(k1), hash(k3))
+        self.assertNotEqual(hash(k1), hash(k4))
+
+        k1_same = _BatchItemKey("bucket", "org", WritePrecision.NS,
+                                use_v2_api=True, no_sync=False, accept_partial=True)
+        self.assertEqual(k1, k1_same)
 
     @asyncio_run
     async def test_query_async(self):
@@ -211,10 +237,29 @@ class TestInfluxDBClient3(unittest.TestCase):
             if sync_client is not None:
                 sync_client.close()
 
+    def test_write_async_multiple_precisions_returns_list(self):
+        import warnings
+        client = InfluxDBClient3(
+            host="localhost", token="test_token", database="test_db",
+            write_client_options=write_client_options(
+                write_options=WriteOptions(write_type=WriteType.asynchronous))
+        )
+        point_s = Point.measurement("m").field("v", 1).time(1, WritePrecision.S)
+        point_ms = Point.measurement("m").field("v", 2).time(1000, WritePrecision.MS)
+        with patch.object(client._write_api, "_post_write", return_value="ok") as mock_post:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                result = client.write(record=[point_s, point_ms])
+        self.assertEqual(mock_post.call_count, 2)
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 2)
+
     def test_default_client(self):
         expected_precision = DefaultWriteOptions.write_precision.value
         expected_write_type = DefaultWriteOptions.write_type.value
         expected_no_sync = DefaultWriteOptions.no_sync.value
+        expected_accept_partial = DefaultWriteOptions.accept_partial.value
+        expected_use_v2_api = DefaultWriteOptions.use_v2_api.value
 
         import os
         try:
@@ -237,11 +282,15 @@ class TestInfluxDBClient3(unittest.TestCase):
             self.assertEqual(write_options.write_precision, expected_precision)
             self.assertEqual(write_options.write_type, expected_write_type)
             self.assertEqual(write_options.no_sync, expected_no_sync)
+            self.assertEqual(write_options.accept_partial, expected_accept_partial)
+            self.assertEqual(write_options.use_v2_api, expected_use_v2_api)
             self.assertEqual(write_options.tag_order, [])
 
             self.assertEqual(c._write_api._write_options.write_precision, expected_precision)
             self.assertEqual(c._write_api._write_options.write_type, expected_write_type)
             self.assertEqual(c._write_api._write_options.no_sync, expected_no_sync)
+            self.assertEqual(c._write_api._write_options.accept_partial, expected_accept_partial)
+            self.assertEqual(c._write_api._write_options.use_v2_api, expected_use_v2_api)
             self.assertEqual(c._write_api._write_options.tag_order, [])
 
         env_client = InfluxDBClient3.from_env()
@@ -254,6 +303,7 @@ class TestInfluxDBClient3(unittest.TestCase):
                                'INFLUX_DATABASE': 'test_db', 'INFLUX_ORG': 'test_org',
                                'INFLUX_PRECISION': WritePrecision.MS, 'INFLUX_AUTH_SCHEME': 'custom_scheme',
                                'INFLUX_GZIP_THRESHOLD': '2000', 'INFLUX_WRITE_NO_SYNC': 'true',
+                               'INFLUX_WRITE_ACCEPT_PARTIAL': 'false', 'INFLUX_WRITE_USE_V2_API': 'true',
                                'INFLUX_WRITE_TIMEOUT': '1234', 'INFLUX_QUERY_TIMEOUT': '5678'})
     def test_from_env_all_env_vars_set(self):
         client = InfluxDBClient3.from_env()
@@ -268,6 +318,8 @@ class TestInfluxDBClient3(unittest.TestCase):
         write_options = client._write_client_options.get("write_options")
         self.assertEqual(write_options.write_precision, WritePrecision.MS)
         self.assertEqual(write_options.no_sync, True)
+        self.assertEqual(write_options.accept_partial, False)
+        self.assertEqual(write_options.use_v2_api, True)
         self.assertEqual(1234, write_options.timeout)
         self.assertEqual(5.678, client._query_api._default_timeout)
 
@@ -308,37 +360,40 @@ class TestInfluxDBClient3(unittest.TestCase):
             InfluxDBClient3.from_env()
         self.assertIn("Invalid precision value: invalid_value", str(context.exception))
 
-    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
-                               'INFLUX_DATABASE': 'test_db', 'INFLUX_WRITE_NO_SYNC': 'true'})
-    def test_parse_write_no_sync_true(self):
-        client = InfluxDBClient3.from_env()
-        self.assertIsInstance(client, InfluxDBClient3)
-        write_options = client._write_client_options.get("write_options")
-        self.assertEqual(write_options.no_sync, True)
+    def test_write_bool_options_from_env(self):
+        _base = {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token', 'INFLUX_DATABASE': 'test_db'}
+        cases = [
+            ('no_sync true', {'INFLUX_WRITE_NO_SYNC': 'true'}, 'no_sync', True),
+            ('no_sync TrUe mixed case', {'INFLUX_WRITE_NO_SYNC': 'TrUe'}, 'no_sync', True),
+            ('no_sync false', {'INFLUX_WRITE_NO_SYNC': 'false'}, 'no_sync', False),
+            ('no_sync anything-else', {'INFLUX_WRITE_NO_SYNC': 'anything-else'}, 'no_sync', False),
+            ('accept_partial false', {'INFLUX_WRITE_ACCEPT_PARTIAL': 'false'}, 'accept_partial', False),
+            ('use_v2_api true', {'INFLUX_WRITE_USE_V2_API': 'true'}, 'use_v2_api', True),
+        ]
+        for name, env_extra, field, expected in cases:
+            with self.subTest(name):
+                with patch.dict('os.environ', {**_base, **env_extra}):
+                    client = InfluxDBClient3.from_env()
+                    write_options = client._write_client_options.get("write_options")
+                    self.assertEqual(getattr(write_options, field), expected)
 
-    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
-                               'INFLUX_DATABASE': 'test_db', 'INFLUX_WRITE_NO_SYNC': 'TrUe'})
-    def test_parse_write_no_sync_true_mixed_chars(self):
-        client = InfluxDBClient3.from_env()
-        self.assertIsInstance(client, InfluxDBClient3)
-        write_options = client._write_client_options.get("write_options")
-        self.assertEqual(write_options.no_sync, True)
-
-    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
-                               'INFLUX_DATABASE': 'test_db', 'INFLUX_WRITE_NO_SYNC': 'false'})
-    def test_parse_write_no_sync_false(self):
-        client = InfluxDBClient3.from_env()
-        self.assertIsInstance(client, InfluxDBClient3)
-        write_options = client._write_client_options.get("write_options")
-        self.assertEqual(write_options.no_sync, False)
-
-    @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
-                               'INFLUX_DATABASE': 'test_db', 'INFLUX_WRITE_NO_SYNC': 'anything-else'})
-    def test_parse_write_no_sync_anything_else_is_false(self):
-        client = InfluxDBClient3.from_env()
-        self.assertIsInstance(client, InfluxDBClient3)
-        write_options = client._write_client_options.get("write_options")
-        self.assertEqual(write_options.no_sync, False)
+    def test_write_bool_options_from_constructor_kwargs(self):
+        _base = {'host': 'localhost', 'token': 'test_token', 'database': 'test_db'}
+        cases = [
+            ('use_v2_api False', {'write_use_v2_api': False}, 'use_v2_api', False),
+            ('accept_partial False', {'write_accept_partial': False}, 'accept_partial', False),
+            ('no_sync True', {'write_no_sync': True}, 'no_sync', True),
+            ('use_v2_api None keeps default', {'write_use_v2_api': None},
+             'use_v2_api', DefaultWriteOptions.use_v2_api.value),
+            ('accept_partial None keeps default', {'write_accept_partial': None},
+             'accept_partial', DefaultWriteOptions.accept_partial.value),
+            ('no_sync None keeps default', {'write_no_sync': None}, 'no_sync', DefaultWriteOptions.no_sync.value),
+        ]
+        for name, kwargs, field, expected in cases:
+            with self.subTest(name):
+                client = InfluxDBClient3(**_base, **kwargs)
+                write_options = client._write_client_options.get("write_options")
+                self.assertEqual(getattr(write_options, field), expected)
 
     @patch.dict('os.environ', {'INFLUX_HOST': 'localhost', 'INFLUX_TOKEN': 'test_token',
                                'INFLUX_DATABASE': 'test_db', 'INFLUX_WRITE_TIMEOUT': '6789'})

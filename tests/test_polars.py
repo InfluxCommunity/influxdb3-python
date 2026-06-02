@@ -207,6 +207,8 @@ class TestWritePolars(unittest.TestCase):
             bucket=ANY,
             precision=ANY,
             no_sync=ANY,
+            accept_partial=ANY,
+            use_v2_api=ANY,
             async_req=ANY,
             content_type=ANY,
             urlopen_kw=ANY,
