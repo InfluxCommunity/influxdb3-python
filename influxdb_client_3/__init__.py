@@ -228,11 +228,6 @@ class InfluxDBClient3:
                                           Defaults to "multiprocessing.cpu_count() * 5".
         :key urllib3.util.retry.Retry retries: Set the default retry strategy that is used for all HTTP requests
                                                except batching writes. As a default there is no one retry strategy.
-        :key bool auth_basic: Set this to true to enable basic authentication when talking to a InfluxDB 1.8.x that
-                              does not use auth-enabled but is protected by a reverse proxy with basic authentication.
-                              (defaults to false, don't set to true when talking to InfluxDB 2)
-        :key str username: ``username`` to authenticate via username and password credentials to the InfluxDB 2.x
-        :key str password: ``password`` to authenticate via username and password credentials to the InfluxDB 2.x
         :key str query_timeout: int value used to set the client query API timeout in milliseconds.
         :key str write_timeout: int value used to set the client write API timeout in milliseconds.
         :key bool write_accept_partial: allow partial writes when some lines fail.

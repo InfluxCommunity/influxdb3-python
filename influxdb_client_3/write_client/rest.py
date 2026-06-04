@@ -6,7 +6,6 @@ import logging
 from typing import Dict
 
 from influxdb_client_3.exceptions import InfluxDBError
-from influxdb_client_3.write_client.configuration import Configuration
 
 _UTF_8_encoding = 'utf-8'
 
@@ -63,12 +62,3 @@ class _BaseRESTClient(object):
             if 'authorization' == key.lower():
                 value = '***'
             _BaseRESTClient.logger.debug(f"{prefix} {key}: {value}")
-
-
-def _requires_create_user_session(configuration: Configuration, cookie: str, resource_path: str):
-    _unauthorized = ['/api/v2/signin', '/api/v2/signout']
-    return configuration.username and configuration.password and not cookie and resource_path not in _unauthorized
-
-
-def _requires_expire_user_session(configuration: Configuration, cookie: str):
-    return configuration.username and configuration.password and cookie

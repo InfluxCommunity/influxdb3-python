@@ -45,11 +45,6 @@ class InfluxDBClient(_BaseClient):
                                           Defaults to "multiprocessing.cpu_count() * 5".
         :key urllib3.util.retry.Retry retries: Set the default retry strategy that is used for all HTTP requests
                                                except batching writes. As a default there is no one retry strategy.
-        :key bool auth_basic: Set this to true to enable basic authentication when talking to a InfluxDB 1.8.x that
-                              does not use auth-enabled but is protected by a reverse proxy with basic authentication.
-                              (defaults to false, don't set to true when talking to InfluxDB 2)
-        :key str username: ``username`` to authenticate via username and password credentials to the InfluxDB 2.x
-        :key str password: ``password`` to authenticate via username and password credentials to the InfluxDB 2.x
         :key list[str] profilers: list of enabled Flux profilers
         """
         super().__init__(url=url, token=token, debug=debug, timeout=timeout, enable_gzip=enable_gzip,
@@ -109,7 +104,6 @@ class InfluxDBClient(_BaseClient):
             - cert_key_file
             - cert_key_password
             - connection_pool_maxsize
-            - auth_basic
             - profilers
             - proxy
 
@@ -122,7 +116,6 @@ class InfluxDBClient(_BaseClient):
             token=my-token
             timeout=6000
             connection_pool_maxsize=25
-            auth_basic=false
             profilers=query,operator
             proxy=http:proxy.domain.org:8080
 
@@ -139,7 +132,6 @@ class InfluxDBClient(_BaseClient):
                 org = "my-org"
                 timeout = 6000
                 connection_pool_maxsize = 25
-                auth_basic = false
                 profilers="query, operator"
                 proxy = "http://proxy.domain.org:8080"
 
@@ -157,7 +149,6 @@ class InfluxDBClient(_BaseClient):
                 "active": true,
                 "timeout": 6000,
                 "connection_pool_maxsize": 55,
-                "auth_basic": false,
                 "profilers": "query, operator",
                 "tags": {
                     "id": "132-987-655",
@@ -198,7 +189,6 @@ class InfluxDBClient(_BaseClient):
             - INFLUXDB_V2_CERT_KEY_FILE
             - INFLUXDB_V2_CERT_KEY_PASSWORD
             - INFLUXDB_V2_CONNECTION_POOL_MAXSIZE
-            - INFLUXDB_V2_AUTH_BASIC
             - INFLUXDB_V2_PROFILERS
             - INFLUXDB_V2_TAG
         """
