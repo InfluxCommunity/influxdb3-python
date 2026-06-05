@@ -12,11 +12,8 @@ from multiprocessing.pool import ThreadPool
 from urllib.parse import quote
 
 import influxdb_client_3.write_client.domain
-from influxdb_client_3.write_client import SigninService
-from influxdb_client_3.write_client import SignoutService
 from influxdb_client_3.write_client._sync import rest
 from influxdb_client_3.write_client.configuration import Configuration
-from influxdb_client_3.write_client.rest import _requires_create_user_session, _requires_expire_user_session
 
 
 class ApiClient(object):
@@ -25,8 +22,6 @@ class ApiClient(object):
     :param header_name: a header to pass when making calls to the API.
     :param header_value: a header value to pass when making calls to
         the API.
-    :param cookie: a cookie to include in the header when making calls
-        to the API
     :param pool_threads: The number of threads to use for async requests
         to the API. More threads means more concurrent API requests.
     """
@@ -45,7 +40,7 @@ class ApiClient(object):
     _pool = None
 
     def __init__(self, configuration=None, header_name=None, header_value=None,
-                 cookie=None, pool_threads=None, retries=False):
+                 pool_threads=None, retries=False):
         """Initialize generic API client."""
         if configuration is None:
             configuration = Configuration()
@@ -56,14 +51,12 @@ class ApiClient(object):
         self.default_headers = {}
         if header_name is not None:
             self.default_headers[header_name] = header_value
-        self.cookie = cookie
         # Set default User-Agent.
         from influxdb_client_3.version import USER_AGENT
         self.user_agent = USER_AGENT
 
     def __del__(self):
         """Dispose pools."""
-        self._signout()
         if self._pool:
             self._pool.close()
             self._pool.join()
@@ -134,7 +127,6 @@ class ApiClient(object):
             _preload_content=True, _request_timeout=None, urlopen_kw=None):
 
         config = self.configuration
-        self._signin(resource_path=resource_path)
 
         # body
         should_gzip = False
@@ -147,8 +139,6 @@ class ApiClient(object):
         header_params = header_params or {}
         config.update_request_header_params(resource_path, header_params, should_gzip)
         header_params.update(self.default_headers)
-        if self.cookie:
-            header_params['Cookie'] = self.cookie
         if header_params:
             header_params = self.sanitize_for_serialization(header_params)
             header_params = dict(self.parameters_to_tuples(header_params,
@@ -670,13 +660,3 @@ class ApiClient(object):
             if klass_name:
                 instance = self.__deserialize(data, klass_name)
         return instance
-
-    def _signin(self, resource_path: str):
-        if _requires_create_user_session(self.configuration, self.cookie, resource_path):
-            http_info = SigninService(self).post_signin_with_http_info()
-            self.cookie = http_info[2]['set-cookie']
-
-    def _signout(self):
-        if _requires_expire_user_session(self.configuration, self.cookie):
-            SignoutService(self).post_signout()
-            self.cookie = None

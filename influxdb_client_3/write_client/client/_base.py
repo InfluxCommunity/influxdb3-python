@@ -1,7 +1,6 @@
 """Commons function for Sync and Async client."""
 from __future__ import absolute_import
 
-import base64
 import configparser
 import logging
 import os
@@ -66,8 +65,6 @@ class _BaseClient(object):
             self.conf.loggers[client_logger] = logging.getLogger(client_logger)
         self.conf.debug = debug
 
-        self.conf.username = kwargs.get('username', None)
-        self.conf.password = kwargs.get('password', None)
         # defaults
         self.auth_header_name = None
         self.auth_header_value = None
@@ -76,15 +73,6 @@ class _BaseClient(object):
             auth_scheme = kwargs.get('auth_scheme', "Token")
             self.auth_header_name = "Authorization"
             self.auth_header_value = f"{auth_scheme} {token}"
-        # by HTTP basic
-        auth_basic = kwargs.get('auth_basic', False)
-        if auth_basic:
-            self.auth_header_name = "Authorization"
-            self.auth_header_value = "Basic " + base64.b64encode(token.encode()).decode()
-        # by username, password
-        if self.conf.username and self.conf.password:
-            self.auth_header_name = None
-            self.auth_header_value = None
 
         self.retries = kwargs.get('retries', False)
 
@@ -149,10 +137,6 @@ class _BaseClient(object):
         if _has_option('connection_pool_maxsize'):
             connection_pool_maxsize = _config_value('connection_pool_maxsize')
 
-        auth_basic = False
-        if _has_option('auth_basic'):
-            auth_basic = _config_value('auth_basic')
-
         default_tags = None
         if _has_section('tags'):
             if is_json:
@@ -172,8 +156,7 @@ class _BaseClient(object):
         return cls(url, token, debug=debug, timeout=_to_int(timeout), org=org, default_tags=default_tags,
                    enable_gzip=enable_gzip, verify_ssl=_to_bool(verify_ssl), ssl_ca_cert=ssl_ca_cert,
                    cert_file=cert_file, cert_key_file=cert_key_file, cert_key_password=cert_key_password,
-                   connection_pool_maxsize=_to_int(connection_pool_maxsize), auth_basic=_to_bool(auth_basic),
-                   profilers=profilers, proxy=proxy, **kwargs)
+                   connection_pool_maxsize=_to_int(connection_pool_maxsize), profilers=profilers, proxy=proxy, **kwargs)
 
     @classmethod
     @deprecated('Use InfluxDBClient3.from_env() instead.')
@@ -188,7 +171,6 @@ class _BaseClient(object):
         cert_key_file = os.getenv('INFLUXDB_V2_CERT_KEY_FILE', None)
         cert_key_password = os.getenv('INFLUXDB_V2_CERT_KEY_PASSWORD', None)
         connection_pool_maxsize = os.getenv('INFLUXDB_V2_CONNECTION_POOL_MAXSIZE', None)
-        auth_basic = os.getenv('INFLUXDB_V2_AUTH_BASIC', "False")
 
         prof = os.getenv("INFLUXDB_V2_PROFILERS", None)
         profilers = None
@@ -204,8 +186,7 @@ class _BaseClient(object):
         return cls(url, token, debug=debug, timeout=_to_int(timeout), org=org, default_tags=default_tags,
                    enable_gzip=enable_gzip, verify_ssl=_to_bool(verify_ssl), ssl_ca_cert=ssl_ca_cert,
                    cert_file=cert_file, cert_key_file=cert_key_file, cert_key_password=cert_key_password,
-                   connection_pool_maxsize=_to_int(connection_pool_maxsize), auth_basic=_to_bool(auth_basic),
-                   profilers=profilers, **kwargs)
+                   connection_pool_maxsize=_to_int(connection_pool_maxsize), profilers=profilers, **kwargs)
 
 
 class _BaseWriteApi(object):
@@ -276,8 +257,6 @@ class _Configuration(Configuration):
     def __init__(self):
         Configuration.__init__(self)
         self.enable_gzip = False
-        self.username = None
-        self.password = None
 
     def update_request_header_params(self, path: str, params: dict, should_gzip: bool = False):
         super().update_request_header_params(path, params, should_gzip)

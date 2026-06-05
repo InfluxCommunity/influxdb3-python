@@ -7,8 +7,6 @@ import logging
 import multiprocessing
 import sys
 
-import urllib3
-
 
 class TypeWithDefault(type):
 
@@ -42,10 +40,6 @@ class Configuration(object, metaclass=TypeWithDefault):
         self.api_key = {}
         # dict to store API prefix (e.g. Bearer)
         self.api_key_prefix = {}
-        # Username for HTTP basic authentication
-        self.username = ""
-        # Password for HTTP basic authentication
-        self.password = ""
 
         # Logging Settings
         self.loggers = {}
@@ -87,9 +81,6 @@ class Configuration(object, metaclass=TypeWithDefault):
         # Timeout setting for a request. If one number provided, it will be total request timeout.
         # It can also be a pair (tuple) of (connection, read) timeouts.
         self.timeout = None
-
-        # Set to True/False to enable basic authentication when using proxied InfluxDB 1.8.x with no auth-enabled
-        self.auth_basic = False
 
         # Proxy URL
         self.proxy = None
@@ -204,28 +195,12 @@ class Configuration(object, metaclass=TypeWithDefault):
         elif self.api_key.get(identifier):
             return self.api_key[identifier]
 
-    def get_basic_auth_token(self):
-        """Get HTTP basic authentication header (string).
-
-        :return: The token for basic HTTP authentication.
-        """
-        return urllib3.util.make_headers(
-            basic_auth=self.username + ':' + self.password
-        ).get('authorization')
-
     def auth_settings(self):
         """Get Auth Settings dict for api client.
 
         :return: The Auth Settings information dict.
         """
         return {
-            'BasicAuthentication':
-                {
-                    'type': 'basic',
-                    'in': 'header',
-                    'key': 'Authorization',
-                    'value': self.get_basic_auth_token()
-                },
             'TokenAuthentication':
                 {
                     'type': 'api_key',
