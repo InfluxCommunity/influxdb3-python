@@ -1,12 +1,8 @@
 # Change Log
 
+## 0.21.0 [unreleased]
+
 ## 0.20.0 [2026-06-11]
-
-### Others
-
-1. [#215](https://github.com/InfluxCommunity/influxdb3-python/pull/215):
-   - Remove cookie/session-based signin/signout support from the writing client.
-   - Remove basic authentication with a username and password.
 
 ### Features
 
@@ -15,9 +11,11 @@
    See [Partial writes](https://docs.influxdata.com/influxdb3/core/write-data/http-api/v3-write-lp/#partial-writes) for more.
    `no_sync` requires `use_v2_api=False`; `accept_partial` applies only to V3 API endpoint writes.
 
-### Bug Fixes
+### Others
 
-1. [#208](https://github.com/InfluxCommunity/influxdb3-python/pull/208): Normalize PEM certificate line endings when loading Flight query root certificates to ensure consistent SSL option behavior on Windows.
+1. [#215](https://github.com/InfluxCommunity/influxdb3-python/pull/215):
+    - Remove cookie/session-based signin/signout support from the writing client.
+    - Remove basic authentication with a username and password.
 
 ## 0.19.0 [2026-04-23]
 
