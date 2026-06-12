@@ -2,6 +2,12 @@
 
 ## 0.21.0 [unreleased]
 
+### Others
+
+1. [#217](https://github.com/InfluxCommunity/influxdb3-python/pull/217):
+    - Refactor Write API.
+    - Refactor Multiprocessing helper class.
+
 ## 0.20.0 [2026-06-11]
 
 ### Features
