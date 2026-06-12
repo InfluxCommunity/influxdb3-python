@@ -2,6 +2,29 @@
 
 ## 0.21.0 [unreleased]
 
+### Breaking Changes
+
+1. [#217](https://github.com/InfluxCommunity/influxdb3-python/pull/217): Makes the writing API simpler and more consistent with other v3 clients.
+    - Removes unused `InfluxLoggingHandler` class.
+    - `WriteApi` now handles all functions to write to InfluxDB.
+        - The following internal classes have been removed:
+            - `Configuration`
+            - `ApiClient`
+            - `WriteService`
+            - `InfluxDBClient`
+        - The following internal classes have been refactored:
+            - `write_client._sync.RestClient` - this class is now responsible for low-level handling of transport requests. End users should not need to use it directly.
+            - `write_client.client.WriteApi` - all internal settings needed for writing are now encapsulated within this Api.
+    - Refactors Multiprocessing helper class.
+    - __Migration Guidance__
+        - `InfluxDBClient3` constructor now has additional parameters for configuring the internal `WriteApi` and `RestClient`.
+            - `auth_scheme` - string - the token authentation scheme, typically `Token` or `Bearer`.
+            - `enable_gzip` - boolean - whether or not to compress data in writing payloads.
+            - `gzip_threshold` - int - minimum payload size to trigger gzip compression when `enable_gzip` is True.
+            - `point_settings` - PointSettings - default settings used when writing Points, primarily used to wrap default tags to be added to Point data.
+            - `debug` - boolean - toggle debug level logging.
+        - Any clients explicitly using the `Configuration`, `ApiClient`, `WriteService` or _legacy_ `InfluxDBClient` classes, will need to migrate their settings to the `InfluxDBClient3` constructor.
+
 ## 0.20.0 [2026-06-11]
 
 ### Features

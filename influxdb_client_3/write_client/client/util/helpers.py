@@ -1,5 +1,5 @@
 """Functions to share utility across client classes."""
-from influxdb_client_3.write_client.rest import ApiException
+from influxdb_client_3.write_client.write_exceptions import ApiException
 
 
 def _is_id(value):
