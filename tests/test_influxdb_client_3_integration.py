@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -14,8 +15,13 @@ from urllib3.exceptions import MaxRetryError, TimeoutError as Url3TimeoutError
 from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, \
     WriteType, InfluxDB3ClientQueryError
 from influxdb_client_3.exceptions import InfluxDBError, InfluxDBPartialWriteError
-from influxdb_client_3.write_client.rest import ApiException
+from influxdb_client_3.write_client import WriteApi
+from influxdb_client_3.write_client._sync import rest_client
+from influxdb_client_3.write_client.client.util.multiprocessing_helper import MultiprocessingWriter
+from influxdb_client_3.write_client.write_exceptions import ApiException
 from tests.util import asyncio_run, lp_to_py_object
+
+running_on_posix = os.name == 'posix'
 
 
 def random_hex(len=6):
@@ -125,6 +131,37 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         self.assertEqual(1, len(df))
         self.assertEqual(test_id, df['test_id'][0])
         self.assertEqual(123.0, df['value'][0])
+
+    def test_write_directly_with_write_api(self):
+        default_header = {
+            'Authorization': f'Token {self.token}'
+        }
+        rest = rest_client.RestClient(
+            base_url=self.host,
+            default_header=default_header,
+        )
+
+        write_api = WriteApi(
+            bucket=self.database,
+            org='my-org',
+            default_header=default_header,
+            rest_client=rest,
+        )
+
+        test_id = time.time_ns()
+        write_api.write(record=f"integration_test_python,type=used value=456.0,test_id={test_id}i")
+        write_api.close()
+        time.sleep(0.5)
+        df = self.client.query(
+            query='SELECT * FROM integration_test_python where type=$type and test_id=$test_id',
+            mode="pandas",
+            query_parameters={'type': 'used', 'test_id': test_id}
+        )
+
+        self.assertIsNotNone(df)
+        self.assertEqual(1, len(df))
+        self.assertEqual(test_id, df['test_id'][0])
+        self.assertEqual(456.0, df['value'][0])
 
     def test_v3_error(self):
         lp = "\n".join([
@@ -305,6 +342,29 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
             reader: pyarrow.Table = r_client.query(query, mode="")
             list_results = reader.to_pylist()
             self.assertEqual(data_size, len(list_results))
+
+    @pytest.mark.skipif(running_on_posix, reason="Skipping this test in POSIX environments")
+    def test_multiprocessing_helper(self):
+        org = 'my-org'
+        writer = MultiprocessingWriter(
+            host=self.host,
+            database=self.database,
+            token=self.token,
+            org=org,
+            write_options=WriteOptions(batch_size=1))
+        writer.start()
+        measurement = f'test{random_hex(6)}'.lower()
+        for x in range(1, 10):
+            time.sleep(0.2)
+            writer.write(
+                bucket=self.database,
+                record=f"{measurement},tag=a value=\"number{x}\" {time.time_ns()}"
+            )
+        writer.__del__()
+
+        time.sleep(1)
+        df = self.client.query(f'select * from {measurement}', mode="pandas")
+        self.assertEqual(9, len(df))
 
     test_cert = """-----BEGIN CERTIFICATE-----
 MIIDUzCCAjugAwIBAgIUZB55ULutbc9gy6xLp1BkTQU7siowDQYJKoZIhvcNAQEL
@@ -715,3 +775,14 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
             finally:
                 if proxy:
                     proxy.stop()
+
+    def test_call_async_no_exception(self):
+        async def run():
+            await self.client._write_api.post_write_async(
+                "my-org",
+                self.database,
+                "home,room=Sunroom temp=96 1735545600",
+                use_v2_api=False
+            )
+
+        asyncio.run(run())

@@ -48,7 +48,7 @@ def test_influx_default_query_headers():
         client = InfluxDBClient3(
             host=f'http://localhost:{server.port}',
             org='test_org',
-            databse='test_db',
+            database='test_db',
             token='TEST_TOKEN'
         )
         client.query('SELECT * FROM test')
@@ -340,7 +340,7 @@ Aw==
             client = InfluxDBClient3(
                 host=f'http://localhost:{server.port}',
                 org='test_org',
-                databse='test_db',
+                database='test_db',
                 token='TEST_TOKEN',
                 flight_client_options=flight_client_options(middleware=middleware)
             )
@@ -356,7 +356,7 @@ Aw==
             client = InfluxDBClient3(
                 host=f'http://localhost:{server.port}',
                 org='test_org',
-                databse='test_db',
+                database='test_db',
                 token='TEST_TOKEN'
             )
 

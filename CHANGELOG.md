@@ -2,6 +2,65 @@
 
 ## 0.21.0 [unreleased]
 
+### Breaking Changes
+
+1. [#217](https://github.com/InfluxCommunity/influxdb3-python/pull/217): Make Write API simpler and consistent with other v3 clients.
+    - Remove unused `InfluxLoggingHandler` class.
+    - WriteApi now has all functions to write to InfluxDB. `Configuration`, `ApiClient`, `WriteService`, `InfluxDBClient` are no longer needed.
+    All settings needed for writing now can be passed to the constructor of WriteApi.
+    ``` python
+        import time
+        from influxdb_client_3.write_client import WriteApi
+        from influxdb_client_3.write_client._sync import rest_client
+        from influxdb_client_3 import WriteOptions, write_client_options
+
+        default_header = {
+            'Authorization': 'Token my-token'
+        }
+        rest = rest_client.RestClient(
+            base_url='http://localhost:8181',
+            default_header=default_header,
+            verify_ssl=True,
+            ssl_ca_cert=None,
+            cert_file=None,
+            cert_key_file=None,
+            cert_key_password=None,
+            ssl_context=None,
+            proxy=None,
+            proxy_headers=None,
+            retries=False,
+            debug=False,
+            connection_pool_maxsize=25
+        )
+        
+        wco=write_client_options(write_options=WriteOptions(batch_size=100)))
+        write_api = WriteApi(
+            bucket='bucket_name',
+            org='my-org',
+            default_header=default_header,
+            gzip_threshold=None,
+            enable_gzip=False,
+            auth_scheme='Token',
+            timeout=None,
+            rest_client=rest,
+            point_settings=None,
+            **wco
+        )
+
+        test_id = time.time_ns()
+        write_api.write(record=f"cpu,type=used ram=16,test_id={test_id}i")
+        write_api.close()
+
+    ``` 
+    - rest_client.RestClient will now be responsible for low-level handling the HTTP requests. 
+    - `InfluxDBClient3` constructor will have additional parameters for configuring the RestClient and WriteApi.
+      - auth_scheme,
+      - enable_gzip,
+      - gzip_threshold,   
+      - point_settings,
+      - debug,   
+    - Refactor Multiprocessing helper class.
+
 ## 0.20.0 [2026-06-11]
 
 ### Features
