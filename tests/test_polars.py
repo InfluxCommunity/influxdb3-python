@@ -1,10 +1,9 @@
 import importlib.util
 import time
 import unittest
-from unittest.mock import Mock, ANY
+from unittest import mock
 
-from influxdb_client_3 import PointSettings, InfluxDBClient3, write_client_options, WriteOptions
-from influxdb_client_3.write_client import WriteService
+from influxdb_client_3 import PointSettings, InfluxDBClient3, WriteOptions, write_client_options
 from influxdb_client_3.write_client.client.write.polars_dataframe_serializer import polars_data_frame_to_list_of_points
 
 
@@ -164,7 +163,8 @@ class TestWritePolars(unittest.TestCase):
             "time": pl.Series(["2024-08-01 00:00:00", "2024-08-01 01:00:00"]).str.to_datetime(time_unit='ns'),
             "temperature": [22.4, 21.8],
         })
-        self.client._write_api._write_service = Mock(spec=WriteService)
+
+        self.client._write_api._call_api = mock.Mock()
 
         self.client.write(
             database="database",
@@ -173,7 +173,7 @@ class TestWritePolars(unittest.TestCase):
             data_frame_timestamp_column="time",
         )
 
-        actual = self.client._write_api._write_service.post_write.call_args[1]['body']
+        actual = self.client._write_api._call_api.call_args.args[4]
         self.assertEqual(b'measurement temperature=22.4 1722470400000000000\n'
                          b'measurement temperature=21.8 1722474000000000000', actual)
 
@@ -192,7 +192,8 @@ class TestWritePolars(unittest.TestCase):
             )
         )
         self.client._write_api._write_options = WriteOptions(batch_size=2)
-        self.client._write_api._write_service = Mock(spec=WriteService)
+
+        self.client._write_api._call_api = mock.Mock()
 
         self.client.write(
             database="database",
@@ -202,14 +203,8 @@ class TestWritePolars(unittest.TestCase):
         )
 
         time.sleep(0.5)
-        self.client._write_api._write_service.post_write.assert_called_once_with(
-            org=ANY,
-            bucket=ANY,
-            precision=ANY,
-            no_sync=ANY,
-            accept_partial=ANY,
-            use_v2_api=ANY,
-            async_req=ANY,
-            content_type=ANY,
-            urlopen_kw=ANY,
-            body=b'measurement temperature=22.4 1722470400000000000\nmeasurement temperature=21.8 1722474000000000000')
+        args = self.client._write_api._call_api.call_args.args
+        body = args[4]
+        self.assertEqual(self.client._write_api._call_api.call_count, 1)
+        self.assertEqual(b'measurement temperature=22.4 1722470400000000000\nmeasurement '
+                         b'temperature=21.8 1722474000000000000', body)

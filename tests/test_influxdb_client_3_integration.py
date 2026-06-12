@@ -17,6 +17,8 @@ from influxdb_client_3.exceptions import InfluxDBError, InfluxDBPartialWriteErro
 from influxdb_client_3.write_client.rest import ApiException
 from tests.util import asyncio_run, lp_to_py_object
 
+running_on_circleci = os.getenv("CIRCLECI") == "true"
+
 
 def random_hex(len=6):
     return ''.join(random.choice(string.hexdigits) for i in range(len))
@@ -305,6 +307,29 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
             reader: pyarrow.Table = r_client.query(query, mode="")
             list_results = reader.to_pylist()
             self.assertEqual(data_size, len(list_results))
+
+    @pytest.mark.skipif(running_on_circleci, reason="Skipping this test on CircleCI")
+    def test_multiprocessing_helper(self):
+        org = 'my-org'
+        writer = MultiprocessingWriter(
+            host=self.host,
+            database=self.database,
+            token=self.token,
+            org=org,
+            write_options=WriteOptions(batch_size=1))
+        writer.start()
+        measurement = f'test{random_hex(6)}'.lower()
+        for x in range(1, 10):
+            time.sleep(0.2)
+            writer.write(
+                bucket=self.database,
+                record=f"{measurement},tag=a value=\"number{x}\" {time.time_ns()}"
+            )
+        writer.__del__()
+
+        time.sleep(1)
+        df = self.client.query(f'select * from {measurement}', mode="pandas")
+        self.assertEqual(9, len(df))
 
     test_cert = """-----BEGIN CERTIFICATE-----
 MIIDUzCCAjugAwIBAgIUZB55ULutbc9gy6xLp1BkTQU7siowDQYJKoZIhvcNAQEL
