@@ -8,7 +8,7 @@ from pytest_httpserver import HTTPServer, RequestMatcher
 from urllib3.exceptions import TimeoutError as urllib3_TimeoutError
 
 from influxdb_client_3 import InfluxDBClient3, WriteOptions, WritePrecision, write_client_options, WriteType
-from influxdb_client_3.write_client.rest import ApiException
+from influxdb_client_3.write_client.write_exceptions import ApiException
 
 
 class TestWriteLocalServer:
