@@ -7,9 +7,9 @@ For more information how the multiprocessing works see Python's
 import logging
 import multiprocessing
 
-from influxdb_client_3 import InfluxDBClient3, write_client_options
-from influxdb_client_3.write_client import WriteOptions
+from influxdb_client_3 import write_client_options
 from influxdb_client_3.exceptions import InfluxDBError
+from influxdb_client_3.write_client import WriteOptions, WriteApi
 
 logger = logging.getLogger('influxdb_client.client.util.multiprocessing_helper')
 
@@ -35,9 +35,9 @@ class _PoisonPill:
     pass
 
 
-class MultiprocessingWriter(multiprocessing.Process):
+class MultiprocessingWriter:
     """
-    The Helper class to write data into InfluxDB in independent OS process.
+    The Helper class to write data into InfluxDB in an independent OS process.
 
     Example:
         .. code-block:: python
@@ -119,27 +119,27 @@ class MultiprocessingWriter(multiprocessing.Process):
     __started__ = False
     __disposed__ = False
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, start_method='spawn', **kwargs) -> None:
         """
         Initialize defaults.
 
-        For more information how to initialize the writer see the examples above.
+        For more information on how to initialize the writer, see the examples above.
 
-        :param kwargs: arguments are passed into ``__init__`` function of ``InfluxDBClient`` and ``write_api``.
+        :param kwargs: arguments are passed into the `` _ _init__`` function of ``InfluxDBClient`` and ``write_api``.
         """
-        multiprocessing.Process.__init__(self)
+        self.ctx = multiprocessing.get_context(start_method)
+        self.process = self.ctx.Process(target=self.run)
         self.kwargs = kwargs
-        self.client = None
         self.write_api = None
-        self.queue_ = multiprocessing.Manager().Queue()
+        self.queue_ = self.ctx.JoinableQueue()
 
     def write(self, **kwargs) -> None:
         """
-        Append time-series data into underlying queue.
+        Append time-series data into the underlying queue.
 
-        For more information how to pass arguments see the examples above.
+        For more information on how to pass arguments, see the examples above.
 
-        :param kwargs: arguments are passed into ``write`` function of ``WriteApi``
+        :param kwargs: arguments are passed into the `` write `` function of ``WriteApi``
         :return: None
         """
         assert self.__disposed__ is False, 'Cannot write data: the writer is closed.'
@@ -155,16 +155,13 @@ class MultiprocessingWriter(multiprocessing.Process):
                                    retry_callback=self.kwargs.get('retry_callback', _retry_callback)
                                    )
 
-        # Still need to create the InfluxDBClient3 because the init logics of InfluxDBClient3 will create the WriteApi.
-        # it will make WriteApi class created properly.
-        self.client = InfluxDBClient3(write_client_options=wco, **self.kwargs)
-
-        # Close and set _query_api to None because query_api is not needed in this process.
-        # We only need write_api.
-        self.client._query_api.close()
-        self.client._query_api = None
-
-        self.write_api = self.client._write_api
+        self.write_api = WriteApi(
+            bucket=self.kwargs.get('database'),
+            org=self.kwargs.get('org'),
+            default_header=self.kwargs.get('default_header'),
+            rest_client=self.kwargs.get('rest_client'),
+            **wco
+        )
         # Infinite loop - until poison pill
         while True:
             next_record = self.queue_.get()
@@ -177,25 +174,25 @@ class MultiprocessingWriter(multiprocessing.Process):
             self.queue_.task_done()
 
     def start(self) -> None:
-        """Start independent process for writing data into InfluxDB."""
-        super().start()
+        """Start an independent process for writing data into InfluxDB."""
+        self.process.start()
         self.__started__ = True
 
     def terminate(self) -> None:
         """
-        Cleanup resources in independent process.
+        Cleanup resources in an independent process.
 
         This function **cannot be used** to terminate the ``MultiprocessingWriter``.
-        If you want to finish your writes please call: ``__del__``.
+        If you want to finish your writes, please call: ``__del__``.
         """
         if self.write_api:
             logger.info("flushing data...")
-            self.write_api.__del__()
+            self.write_api.close()
             self.write_api = None
-        if self.client:
-            self.client.close()
-            self.client = None
             logger.info("closed")
+
+    def get_start_processing_method(self):
+        return self.ctx.get_start_method()
 
     def __enter__(self):
         """Enter the runtime context related to this object."""
@@ -207,11 +204,11 @@ class MultiprocessingWriter(multiprocessing.Process):
         self.__del__()
 
     def __del__(self):
-        """Dispose the client and write_api."""
+        """Dispose of the client and write_api."""
         if self.__started__:
             self.queue_.put(_PoisonPill())
             self.queue_.join()
-            self.join()
+            self.process.join()
             self.queue_ = None
         self.__started__ = False
         self.__disposed__ = True
