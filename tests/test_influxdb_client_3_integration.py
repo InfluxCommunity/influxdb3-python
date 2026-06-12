@@ -1,11 +1,13 @@
+import asyncio
 import json
 import logging
+import multiprocessing
 import os
 import random
 import string
 import time
-import asyncio
 import unittest
+from functools import partial
 
 import pandas as pd
 import pyarrow
@@ -21,11 +23,13 @@ from influxdb_client_3.write_client.client.util.multiprocessing_helper import Mu
 from influxdb_client_3.write_client.write_exceptions import ApiException
 from tests.util import asyncio_run, lp_to_py_object
 
-running_on_posix = os.name == 'posix'
-
 
 def random_hex(len=6):
     return ''.join(random.choice(string.hexdigits) for i in range(len))
+
+
+def on_shutdown_callback(number):
+    number.value = 20
 
 
 @pytest.mark.integration
@@ -343,28 +347,103 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
             list_results = reader.to_pylist()
             self.assertEqual(data_size, len(list_results))
 
-    @pytest.mark.skipif(running_on_posix, reason="Skipping this test in POSIX environments")
     def test_multiprocessing_helper(self):
-        org = 'my-org'
-        writer = MultiprocessingWriter(
-            host=self.host,
-            database=self.database,
-            token=self.token,
-            org=org,
-            write_options=WriteOptions(batch_size=1))
-        writer.start()
-        measurement = f'test{random_hex(6)}'.lower()
-        for x in range(1, 10):
-            time.sleep(0.2)
-            writer.write(
-                bucket=self.database,
-                record=f"{measurement},tag=a value=\"number{x}\" {time.time_ns()}"
-            )
-        writer.__del__()
+        with MultiprocessingWriter(
+                host=self.host,
+                database=self.database,
+                token=self.token,
+                org='my-org',
+                write_options=WriteOptions(batch_size=1)) as mp:
+            self.assertEqual(mp.get_start_processing_method(), 'spawn')
+
+            measurement = f'test{random_hex(6)}'.lower()
+            for x in range(1, 5):
+                time.sleep(0.5)
+                mp.write(
+                    bucket=self.database,
+                    record=f"{measurement},tag=a value=\"number{x}\" {time.time_ns()}"
+                )
 
         time.sleep(1)
         df = self.client.query(f'select * from {measurement}', mode="pandas")
-        self.assertEqual(9, len(df))
+        self.assertEqual(4, len(df))
+
+    def test_multiprocessing_helper_with_ttl(self):
+
+        with MultiprocessingWriter(
+                host=self.host,
+                database=self.database,
+                token=self.token,
+                org='my-org',
+                process_ttl=2,
+                write_options=WriteOptions(batch_size=1)) as mp:
+
+            time.sleep(4)
+
+            try:
+                # Child process already closed because of two seconds `process_ttl`,
+                # subsequent call to `write()` will throws an error.
+                mp.write(
+                    bucket=self.database,
+                    record=f"{f'test{random_hex(6)}'.lower()},tag=a value=\"number1\" {time.time_ns()}"
+                )
+            except Exception as e:
+                self.assertEqual(str(e), 'Cannot write data: the writer is closed.')
+
+    def test_multiprocessing_start_method_forkserver(self):
+        with MultiprocessingWriter(
+                host=self.host,
+                database=self.database,
+                token=self.token,
+                org='my-org',
+                write_options=WriteOptions(batch_size=1),
+                start_method='forkserver'
+        ) as mp:
+            self.assertEqual(mp.get_start_processing_method(), 'forkserver')
+
+    def test_multiprocessing_start_method_fork(self):
+
+        with MultiprocessingWriter(
+                host=self.host,
+                database=self.database,
+                token=self.token,
+                org='my-org',
+                write_options=WriteOptions(batch_size=1),
+                start_method='fork'
+        ) as mp:
+            self.assertEqual(mp.get_start_processing_method(), 'fork')
+
+    def test_multiprocessing_helper_with_on_shutdown(self):
+        # on_shutdown() call back will be called in child process.
+        ctx = multiprocessing.get_context('spawn')
+        number = ctx.Value('i', 0)
+        with MultiprocessingWriter(
+                host=self.host,
+                database=self.database,
+                token=self.token,
+                org='my-org',
+                process_ttl=1,
+                on_shutdown=partial(on_shutdown_callback, number),
+                write_options=WriteOptions(batch_size=1)) as mp:
+            self.assertEqual(number.value, 0)
+            time.sleep(3)
+        self.assertEqual(number.value, 20)
+
+        # on_shutdown() call back will be called in `__del__()` function in main porcess
+        number1 = ctx.Value('i', 0)
+        with MultiprocessingWriter(
+                host=self.host,
+                database=self.database,
+                token=self.token,
+                org='my-org',
+                on_shutdown=partial(on_shutdown_callback, number1),
+                write_options=WriteOptions(batch_size=1)) as mp:
+            self.assertEqual(number1.value, 0)
+            mp.write(
+                bucket=self.database,
+                record=f"{f'test{random_hex(6)}'.lower()},tag=a value=\"number1\" {time.time_ns()}"
+            )
+        self.assertEqual(number1.value, 20)
 
     test_cert = """-----BEGIN CERTIFICATE-----
 MIIDUzCCAjugAwIBAgIUZB55ULutbc9gy6xLp1BkTQU7siowDQYJKoZIhvcNAQEL
@@ -602,7 +681,7 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         )
 
         with self.assertRaisesRegex(InfluxDB3ClientQueryError, ".*Deadline Exceeded.*"):
-            localClient.query("SELECT * FROM data", timeout=0.0001)
+            localClient.query("SELECT * FROM data", timeout=0.000001)
 
     def test_write_timeout_per_call_override(self):
 
