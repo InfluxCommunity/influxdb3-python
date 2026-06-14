@@ -4,28 +4,33 @@
 # TODO Remove after this program no longer supports Python 3.8.*
 from __future__ import annotations
 
+import datetime
 import logging
 import os
 import warnings
 from collections import defaultdict
-from datetime import timedelta
 from enum import Enum
+from http import HTTPStatus
+from multiprocessing.pool import ThreadPool
 from random import random
 from time import sleep
 from typing import Union, Any, Iterable, NamedTuple
 
 import reactivex as rx
+import urllib3
 from reactivex import operators as ops, Observable
 from reactivex.scheduler import ThreadPoolScheduler
 from reactivex.subject import Subject
 
-from influxdb_client_3.write_client.client._base import _BaseWriteApi, _HAS_DATACLASS
-from influxdb_client_3.write_client.client.util.helpers import get_org_query_param
+from influxdb_client_3.exceptions import InfluxDBPartialWriteError
+from influxdb_client_3.write_client._sync.rest_client import RestClient
+from influxdb_client_3.write_client.client._base import _HAS_DATACLASS
 from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
 from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION, sanitize_tag_order
 from influxdb_client_3.write_client.client.write.retry import WritesRetry
 from influxdb_client_3.write_client.domain import WritePrecision
-from influxdb_client_3.write_client.rest import _UTF_8_encoding
+from influxdb_client_3.write_client.domain.write_precision_converter import WritePrecisionConverter
+from influxdb_client_3.write_client.rest import _UTF_8_encoding, ApiException
 from influxdb_client_3.write_client.write_defaults import (
     DEFAULT_WRITE_ACCEPT_PARTIAL as _DEFAULT_WRITE_ACCEPT_PARTIAL,
     DEFAULT_WRITE_NO_SYNC as _DEFAULT_WRITE_NO_SYNC,
@@ -266,7 +271,10 @@ def _body_reduce(batch_items):
     return b'\n'.join(map(lambda batch_item: batch_item.data, batch_items))
 
 
-class WriteApi(_BaseWriteApi):
+class WriteApi:
+    PRIMITIVE_TYPES = (float, bool, bytes, str, int)
+    _pool = None
+
     """
     Implementation for '/api/v2/write' and '/api/v3/write_lp' endpoint.
 
@@ -283,7 +291,16 @@ class WriteApi(_BaseWriteApi):
     """
 
     def __init__(self,
-                 influxdb_client,
+                 token: str,
+                 bucket: str,
+                 org: str,
+                 gzip_threshold=None,
+                 enable_gzip=False,
+                 auth_scheme=None,
+                 timeout=None,
+                 pool_threads=None,
+                 default_header=None,
+                 rest_client: RestClient = None,
                  write_options: WriteOptions = WriteOptions(),
                  point_settings: PointSettings = PointSettings(),
                  **kwargs) -> None:
@@ -317,7 +334,18 @@ class WriteApi(_BaseWriteApi):
 
                              **[batching mode]**
         """
-        super().__init__(influxdb_client=influxdb_client, point_settings=point_settings)
+        self.rest_client = rest_client
+        self.token = token
+        self.bucket = bucket
+        self.org = org
+        self.enable_gzip = enable_gzip
+        self.gzip_threshold = gzip_threshold
+        self.auth_scheme = auth_scheme
+        self.timeout = timeout
+        self.pool_threads = pool_threads
+        self._point_settings = point_settings
+        self.default_header = default_header
+
         self._write_options = write_options
         # TODO - callbacks seem to be used with batching type only - could they be used with sync or async?
         self._success_callback = kwargs.get('success_callback', None)
@@ -336,20 +364,15 @@ class WriteApi(_BaseWriteApi):
             # TODO above message has link to Influxdb2 API __NOT__ Influxdb3 API !!! - illustrates different API
             warnings.warn(message, DeprecationWarning)
 
-    def _resolve_write_request_options(self, kwargs):
-        no_sync = kwargs.pop('no_sync', self._write_options.no_sync)
-        accept_partial = kwargs.pop('accept_partial', self._write_options.accept_partial)
-        use_v2_api = kwargs.pop('use_v2_api', self._write_options.use_v2_api)
-        if use_v2_api and no_sync:
-            raise ValueError("invalid write options: no_sync cannot be used with use_v2_api")
-        return no_sync, accept_partial, use_v2_api
-
-    def write(self, bucket: str, org: str = None,
+    def write(self,
+              bucket=None,
+              org=None,
               record: Union[
                   str, Iterable['str'], Point, Iterable['Point'], dict, Iterable['dict'], bytes, Iterable['bytes'],
                   Observable, NamedTuple, Iterable['NamedTuple'], 'dataclass', Iterable['dataclass']
               ] = None,
-              write_precision: WritePrecision = None, **kwargs) -> Any:
+              write_precision: WritePrecision = None,
+              **kwargs) -> Any:
         """
         Write time-series data into InfluxDB.
 
@@ -416,7 +439,9 @@ class WriteApi(_BaseWriteApi):
                 data_frame.index = pd.to_datetime(data_frame.index, unit='s')
 
         """  # noqa: E501
-        org = get_org_query_param(org=org, client=self._influxdb_client)
+
+        org = org if org is not None else self.org
+        bucket = bucket if bucket is not None else self.bucket
 
         self._append_default_tags(record)
 
@@ -464,7 +489,7 @@ class WriteApi(_BaseWriteApi):
         disposable = subject.pipe(
             # Split incoming data to windows by batch_size or flush_interval
             ops.window_with_time_or_count(count=self._write_options.batch_size,
-                                          timespan=timedelta(milliseconds=self._write_options.flush_interval)),
+                                          timespan=datetime.timedelta(milliseconds=self._write_options.flush_interval)),
             # Map  window into groups defined by 'organization', 'bucket' and 'precision'
             ops.flat_map(lambda window: window.pipe(    # type: ignore
                 # Group window by 'organization', 'bucket' and 'precision'
@@ -482,82 +507,6 @@ class WriteApi(_BaseWriteApi):
             .subscribe(self._on_next, self._on_error, self._on_complete)
 
         return subject, disposable
-
-    def flush(self):
-        """
-        Flush any buffered writes to InfluxDB without closing the client.
-
-        This method immediately sends all buffered data points to the server
-        when using batching write mode. After flushing, the client remains
-        open and ready for more writes.
-
-        For synchronous or asynchronous write modes, this is a no-op since
-        data is written immediately.
-        """
-        if self._write_options.write_type is not WriteType.batching:
-            return  # Nothing to flush for synchronous/asynchronous writes
-
-        self.close()  # Close existing batching pipeline
-
-        # Recreate the batching pipeline for continued use
-        self._subject, self._disposable = self._create_batching_pipeline()
-
-    def close(self):
-        """Flush data and dispose a batching buffer."""
-        if self._subject is None:
-            return  # Already closed
-
-        self._subject.on_completed()
-        self._subject.dispose()
-        self._subject = None
-
-        """
-        We impose a maximum wait time to ensure that we do not cause a deadlock if the
-        background thread has exited abnormally
-
-        Each iteration waits 100ms, but sleep expects the unit to be seconds so convert
-        the maximum wait time to seconds.
-
-        We keep a counter of how long we've waited
-        """
-        max_wait_time = self._write_options.max_close_wait / 1000
-        waited = 0
-        sleep_period = 0.1
-
-        # Wait for writing to finish
-        while not self._disposable.is_disposed:
-            sleep(sleep_period)
-            waited += sleep_period
-
-            # Have we reached the upper limit?
-            if waited >= max_wait_time:
-                logger.warning(
-                    "Reached max_close_wait (%s seconds) waiting for batches to finish writing. Force closing",
-                    max_wait_time
-                )
-                break
-
-        if self._disposable:
-            self._disposable = None
-
-    def __enter__(self):
-        """
-        Enter the runtime context related to this object.
-
-        It will bind this method’s return value to the target(s)
-        specified in the `as` clause of the statement.
-
-        return: self instance
-        """
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Exit the runtime context related to this object and close the WriteApi."""
-        self.close()
-
-    def __del__(self):
-        """Close WriteApi."""
-        self.close()
 
     def _write_batching(self, bucket, org, data,
                         precision=None,
@@ -643,16 +592,461 @@ class WriteApi(_BaseWriteApi):
     def _post_write(self, _async_req, bucket, org, body, precision, no_sync, accept_partial, use_v2_api, **kwargs):
         # Filter out serializer-specific kwargs before passing to _post_write
         http_kwargs = {k: v for k, v in kwargs.items() if k not in SERIALIZER_KWARGS}
-        return self._write_service.post_write(org=org, bucket=bucket, body=body, precision=precision,
-                                              no_sync=no_sync,
-                                              accept_partial=accept_partial,
-                                              use_v2_api=use_v2_api,
-                                              async_req=_async_req,
-                                              content_type="text/plain; charset=utf-8",
-                                              **http_kwargs)
 
-    def _to_response(self, data: _BatchItem, delay: timedelta):
+        # TODO refactor this
+        http_kwargs['precision'] = precision
+        http_kwargs['no_sync'] = no_sync
+        http_kwargs['accept_partial'] = accept_partial
+        http_kwargs['use_v2_api'] = use_v2_api
 
+        #TODO Do we need this
+        kwargs['_return_http_data_only'] = True
+
+        local_var_params, path, path_params, query_params, header_params, body_params = \
+            self._post_write_prepare(org, bucket, body, self.default_header, **http_kwargs)  # noqa: E501
+
+        use_v2_api = local_var_params['use_v2_api']
+        try:
+            result = self.call_api(
+                path, 'POST',
+                query_params,
+                header_params,
+                body=body_params,
+                async_req=local_var_params.get('async_req'),
+                _request_timeout=local_var_params.get('_request_timeout'),
+                urlopen_kw=http_kwargs.get('urlopen_kw', None))
+            if local_var_params.get('async_req'):
+                original_get = result.get
+
+                def translated_get(timeout=None):
+                    try:
+                        return original_get(timeout=timeout)
+                    except ApiException as e:
+                        raise self._translate_write_exception(e, use_v2_api)
+
+                result.get = translated_get
+            return result
+        except ApiException as e:
+            raise self._translate_write_exception(e, use_v2_api)
+
+    def __call_api(
+            self, resource_path, method,
+            query_params=None, header_params=None, body=None,
+            _request_timeout=None, urlopen_kw=None):
+
+        # body
+        should_gzip = False
+        if body:
+            should_gzip = WriteApi.should_gzip(body, self.enable_gzip, self.gzip_threshold)
+            body = self.sanitize_for_serialization(body)
+            body = self.update_request_body(resource_path, body, should_gzip)
+
+        # header parameters
+        header_params = header_params or {}
+        self.update_request_header_params(resource_path, header_params, should_gzip)
+        if header_params:
+            header_params = self.sanitize_for_serialization(header_params)
+
+        # query parameters
+        if query_params:
+            query_params = self.sanitize_for_serialization(query_params)
+
+        urlopen_kw = urlopen_kw or {}
+
+        timeout = None
+        _configured_timeout = _request_timeout or self.timeout
+        if _configured_timeout:
+            if isinstance(_configured_timeout, (int, float,)):  # noqa: E501,F821
+                timeout = urllib3.Timeout(total=_configured_timeout / 1_000)
+            elif (isinstance(_configured_timeout, tuple) and
+                  len(_configured_timeout) == 2):
+                timeout = urllib3.Timeout(
+                    connect=_configured_timeout[0] / 1_000, read=_configured_timeout[1] / 1_000)
+
+        # perform request and return response
+        response_data = self.rest_client.request(
+            method=method,
+            url=resource_path,
+            query_params=query_params,
+            headers=header_params,
+            body=body,
+            timeout=timeout,
+            **urlopen_kw
+        )
+
+        self.last_response = response_data
+
+        return response_data
+
+    def call_api(self, resource_path, method,
+                 query_params=None, header_params=None,
+                 body=None, async_req=None, _request_timeout=None, urlopen_kw=None):
+        """Make the HTTP request (synchronous) and Return deserialized data.
+
+        To make an async_req request, set the async_req parameter.
+
+        :param resource_path: Path to method endpoint.
+        :param method: Method to call.
+        :param path_params: Path parameters in the url.
+        :param query_params: Query parameters in the url.
+        :param header_params: Header parameters to be
+            placed in the request header.
+        :param body: Request body.
+        :param post_params dict: Request post form parameters,
+            for `application/x-www-form-urlencoded`, `multipart/form-data`.
+        :param auth_settings list: Auth Settings names for the request.
+        :param response: Response data type.
+        :param files dict: key -> filename, value -> filepath,
+            for `multipart/form-data`.
+        :param async_req bool: execute request asynchronously
+        :param _return_http_data_only: response data without head status code
+                                       and headers
+        :param collection_formats: dict of collection formats for path, query,
+            header, and post parameters.
+        :param _preload_content: if False, the urllib3.HTTPResponse object will
+                                 be returned without reading/decoding response
+                                 data. Default is True.
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :param urlopen_kw: Additional parameters are passed to
+                           :meth:`urllib3.request.RequestMethods.request`
+        :return:
+            If async_req parameter is True,
+            the request will be called asynchronously.
+            The method will return the request thread.
+            If parameter async_req is False or missing,
+            then the method will return the response directly.
+        """
+        if not async_req:
+            return self.__call_api(resource_path, method,
+                                   query_params, header_params,
+                                   body, _request_timeout, urlopen_kw)
+
+        else:
+            # TODO possible refactor - async handler inside package `_sync`?
+            thread = self.pool.apply_async(self.__call_api, (resource_path,
+                                                             method, query_params,
+                                                             header_params, body, _request_timeout, urlopen_kw))
+        return thread
+
+    # TODO cant remove because of test Ales, ask him why
+    async def post_write_async(self, org, bucket, body, **kwargs):  # noqa: E501,D401,D403
+        """Write data.
+
+        Writes data to a bucket.  Use this endpoint to send data in [line protocol](https://docs.influxdata.com/influxdb/latest/reference/syntax/line-protocol/) format to InfluxDB.  #### InfluxDB Cloud  - Does the following when you send a write request:    1. Validates the request and queues the write.   2. If queued, responds with _success_ (HTTP `2xx` status code); _error_ otherwise.   3. Handles the delete asynchronously and reaches eventual consistency.    To ensure that InfluxDB Cloud handles writes and deletes in the order you request them,   wait for a success response (HTTP `2xx` status code) before you send the next request.    Because writes and deletes are asynchronous, your change might not yet be readable   when you receive the response.  #### InfluxDB OSS  - Validates the request and handles the write synchronously. - If all points were written successfully, responds with HTTP `2xx` status code;   otherwise, returns the first line that failed.  #### Required permissions  - `write-buckets` or `write-bucket BUCKET_ID`.   *`BUCKET_ID`* is the ID of the destination bucket.  #### Rate limits (with InfluxDB Cloud)  `write` rate limits apply. For more information, see [limits and adjustable quotas](https://docs.influxdata.com/influxdb/cloud/account-management/limits/).  #### Related guides  - [Write data with the InfluxDB API](https://docs.influxdata.com/influxdb/latest/write-data/developer-tools/api) - [Optimize writes to InfluxDB](https://docs.influxdata.com/influxdb/latest/write-data/best-practices/optimize-writes/) - [Troubleshoot issues writing data](https://docs.influxdata.com/influxdb/latest/write-data/troubleshoot/)
+        This method makes an asynchronous HTTP request.
+
+        :param async_req bool
+        :param str org: An organization name or ID.  #### InfluxDB Cloud  - Doesn't use the `org` parameter or `orgID` parameter. - Writes data to the bucket in the organization   associated with the authorization (API token).  #### InfluxDB OSS  - Requires either the `org` parameter or the `orgID` parameter. - If you pass both `orgID` and `org`, they must both be valid. - Writes data to the bucket in the specified organization. (required)
+        :param str bucket: A bucket name or ID. InfluxDB writes all points in the batch to the specified bucket. (required)
+        :param str body: In the request body, provide data in [line protocol format](https://docs.influxdata.com/influxdb/latest/reference/syntax/line-protocol/).  To send compressed data, do the following:    1. Use [GZIP](https://www.gzip.org/) to compress the line protocol data.   2. In your request, send the compressed data and the      `Content-Encoding: gzip` header.  #### Related guides  - [Best practices for optimizing writes](https://docs.influxdata.com/influxdb/latest/write-data/best-practices/optimize-writes/)  (required)
+        :param str zap_trace_span: OpenTracing span context
+        :param str content_encoding: The compression applied to the line protocol in the request payload. To send a GZIP payload, pass `Content-Encoding: gzip` header.
+        :param str content_type: The format of the data in the request body. To send a line protocol payload, pass `Content-Type: text/plain; charset=utf-8`.
+        :param int content_length: The size of the entity-body, in bytes, sent to InfluxDB. If the length is greater than the `max body` configuration option, the server responds with status code `413`.
+        :param str accept: The content type that the client can understand. Writes only return a response body if they fail--for example, due to a formatting problem or quota limit.  #### InfluxDB Cloud    - Returns only `application/json` for format and limit errors.   - Returns only `text/html` for some quota limit errors.  #### InfluxDB OSS    - Returns only `application/json` for format and limit errors.  #### Related guides  - [Troubleshoot issues writing data](https://docs.influxdata.com/influxdb/latest/write-data/troubleshoot/)
+        :param str org_id: An organization ID.  #### InfluxDB Cloud  - Doesn't use the `org` parameter or `orgID` parameter. - Writes data to the bucket in the organization   associated with the authorization (API token).  #### InfluxDB OSS  - Requires either the `org` parameter or the `orgID` parameter. - If you pass both `orgID` and `org`, they must both be valid. - Writes data to the bucket in the specified organization.
+        :param WritePrecision precision: The precision for unix timestamps in the line protocol batch.
+        :param bool no_sync: Instructs the server whether to wait with the response until WAL persistence completes. True value means faster write but without the confirmation that the data was persisted. Note: This option is supported by InfluxDB 3 Core and Enterprise servers only. For other InfluxDB 3 server types (InfluxDB Clustered, InfluxDB Clould Serverless/Dedicated) the write operation will fail with an error.
+        :return: None
+                 If the method is called asynchronously,
+                 returns the request thread.
+        """  # noqa: E501
+        local_var_params, path, path_params, query_params, header_params, body_params = \
+            self._post_write_prepare(org, bucket, body, **kwargs)  # noqa: E501
+        use_v2_api = local_var_params['use_v2_api']
+
+        try:
+            return await self.call_api(
+                resource_path=path,
+                method='POST',
+                query_params=query_params,
+                header_params=header_params,
+                body=body,
+                async_req=local_var_params.get('async_req'),
+                _request_timeout=local_var_params.get('_request_timeout'),
+                urlopen_kw=kwargs.get('urlopen_kw', None))
+        except ApiException as e:
+            raise self._translate_write_exception(e, use_v2_api)
+
+    # ------------------------------------------------------------
+
+    def _post_write_prepare(self, org, bucket, body, default_header, **kwargs):  # noqa: E501,D401,D403
+        local_var_params = dict(locals())
+
+        all_params = ['org', 'bucket', 'body', 'zap_trace_span', 'content_encoding', 'content_type', 'content_length',
+                      'accept', 'org_id', 'precision', 'no_sync', 'accept_partial', 'use_v2_api']  # noqa: E501
+        self._check_operation_params('post_write', all_params, local_var_params)
+        local_var_params.setdefault('use_v2_api', DEFAULT_WRITE_USE_V2_API)
+        local_var_params.setdefault('no_sync', DEFAULT_WRITE_NO_SYNC)
+        local_var_params.setdefault('accept_partial', DEFAULT_WRITE_ACCEPT_PARTIAL)
+        # verify the required parameter 'org' is set
+        if ('org' not in local_var_params or
+                local_var_params['org'] is None):
+            raise ValueError("Missing the required parameter `org` when calling `post_write`")  # noqa: E501
+        # verify the required parameter 'bucket' is set
+        if ('bucket' not in local_var_params or
+                local_var_params['bucket'] is None):
+            raise ValueError("Missing the required parameter `bucket` when calling `post_write`")  # noqa: E501
+        # verify the required parameter 'body' is set
+        if ('body' not in local_var_params or
+                local_var_params['body'] is None):
+            raise ValueError("Missing the required parameter `body` when calling `post_write`")  # noqa: E501
+
+        path_params = {}
+        query_params = []
+
+        use_v2_api = local_var_params['use_v2_api']
+        no_sync = local_var_params['no_sync']
+        accept_partial = local_var_params['accept_partial']
+        if 'org' in local_var_params:
+            query_params.append(('org', local_var_params['org']))  # noqa: E501
+        if 'org_id' in local_var_params:
+            query_params.append(('orgID', local_var_params['org_id']))  # noqa: E501
+        if 'bucket' in local_var_params:
+            query_params.append(('bucket' if use_v2_api else 'db', local_var_params['bucket']))  # noqa: E501
+
+        if use_v2_api:
+            path = '/api/v2/write'
+            if 'precision' in local_var_params:
+                precision = local_var_params['precision']
+                query_params.append(('precision', WritePrecisionConverter.to_v2_api_string(precision)))  # noqa: E501
+        else:
+            path = '/api/v3/write_lp'
+            if 'precision' in local_var_params:
+                precision = local_var_params['precision']
+                query_params.append(('precision', WritePrecisionConverter.to_v3_api_string(precision)))  # noqa: E501
+            if no_sync:
+                query_params.append(('no_sync', 'true'))
+            if accept_partial is False:
+                query_params.append(('accept_partial', 'false'))
+
+        header_params = default_header if default_header is not None else {}
+
+        if 'content_encoding' in local_var_params:
+            header_params['Content-Encoding'] = local_var_params['content_encoding']  # noqa: E501
+
+        if 'content_type' in local_var_params:
+            header_params['Content-Type'] = 'text/plain; charset=utf-8'
+
+        body_params = None
+        if 'body' in local_var_params:
+            body_params = local_var_params['body']
+
+        return local_var_params, path, path_params, query_params, header_params, body_params
+
+    @property
+    def pool(self):
+        """Create thread pool on first request avoids instantiating unused threadpool for blocking clients."""
+        if self._pool is None:
+            self._pool = ThreadPool(self.pool_threads)
+        return self._pool
+
+    def _check_operation_params(self, operation_id, supported_params, local_params):
+        supported_params.append('async_req')
+        supported_params.append('_return_http_data_only')
+        supported_params.append('_preload_content')
+        supported_params.append('_request_timeout')
+        supported_params.append('urlopen_kw')
+        for key, val in local_params['kwargs'].items():
+            if key not in supported_params:
+                raise TypeError(
+                    f"Got an unexpected keyword argument '{key}'"
+                    f" to method {operation_id}"
+                )
+            local_params[key] = val
+        del local_params['kwargs']
+
+    def update_request_header_params(self, path: str, params: dict, should_gzip: bool = False):
+        if should_gzip:
+            # GZIP Request
+            if path == '/api/v2/write' or path == '/api/v3/write_lp':
+                params["Content-Encoding"] = "gzip"
+                params["Accept-Encoding"] = "identity"
+                pass
+            # GZIP Response
+            if path == '/api/v2/query':
+                # params["Content-Encoding"] = "gzip"
+                params["Accept-Encoding"] = "gzip"
+                pass
+            pass
+        pass
+
+    def update_request_body(self, path: str, body, should_gzip: bool = False):
+        # TODO why
+        _body = body
+        if should_gzip:
+            # GZIP Request
+            if path == '/api/v2/write' or path == '/api/v3/write_lp':
+                import gzip
+                if isinstance(_body, bytes):
+                    return gzip.compress(data=_body)
+                else:
+                    return gzip.compress(bytes(_body, _UTF_8_encoding))
+
+        return _body
+
+    def flush(self):
+        """
+        Flush any buffered writes to InfluxDB without closing the client.
+
+        This method immediately sends all buffered data points to the server
+        when using batching write mode. After flushing, the client remains
+        open and ready for more writes.
+
+        For synchronous or asynchronous write modes, this is a no-op since
+        data is written immediately.
+        """
+        if self._write_options.write_type is not WriteType.batching:
+            return  # Nothing to flush for synchronous/asynchronous writes
+
+        self.close()  # Close existing batching pipeline
+
+        # Recreate the batching pipeline for continued use
+        self._subject, self._disposable = self._create_batching_pipeline()
+
+    def close(self):
+        """Flush data and dispose a batching buffer."""
+        if self._subject is None:
+            return  # Already closed
+
+        self._subject.on_completed()
+        self._subject.dispose()
+        self._subject = None
+
+        """
+        We impose a maximum wait time to ensure that we do not cause a deadlock if the
+        background thread has exited abnormally
+
+        Each iteration waits 100ms, but sleep expects the unit to be seconds so convert
+        the maximum wait time to seconds.
+
+        We keep a counter of how long we've waited
+        """
+        max_wait_time = self._write_options.max_close_wait / 1000
+        waited = 0
+        sleep_period = 0.1
+
+        # Wait for writing to finish
+        while not self._disposable.is_disposed:
+            sleep(sleep_period)
+            waited += sleep_period
+
+            # Have we reached the upper limit?
+            if waited >= max_wait_time:
+                logger.warning(
+                    "Reached max_close_wait (%s seconds) waiting for batches to finish writing. Force closing",
+                    max_wait_time
+                )
+                break
+
+        if self._disposable:
+            self._disposable = None
+
+    def sanitize_for_serialization(self, obj):
+        """Build a JSON POST object.
+
+        If obj is None, return None.
+        If obj is str, int, long, float, bool, return directly.
+        If obj is datetime.datetime, datetime.date
+            convert to string in iso8601 format.
+        If obj is list, sanitize each element in the list.
+        If obj is dict, return the dict.
+        If obj is OpenAPI model, return the properties dict.
+
+        :param obj: The data to serialize.
+        :return: The serialized form of data.
+        """
+        if obj is None:
+            return None
+        elif isinstance(obj, self.PRIMITIVE_TYPES):
+            return obj
+        elif isinstance(obj, list):
+            return [self.sanitize_for_serialization(sub_obj)
+                    for sub_obj in obj]
+        elif isinstance(obj, tuple):
+            return tuple(self.sanitize_for_serialization(sub_obj)
+                         for sub_obj in obj)
+        elif isinstance(obj, (datetime.datetime, datetime.date)):
+            return obj.isoformat()
+
+        if isinstance(obj, dict):
+            obj_dict = obj
+        else:
+            # Convert model obj to dict except
+            # attributes `openapi_types`, `attribute_map`
+            # and attributes which value is not None.
+            # Convert attribute name to json key in
+            # model definition for request.
+            obj_dict = {obj.attribute_map[attr]: getattr(obj, attr)
+                        for attr, _ in obj.openapi_types.items()
+                        if getattr(obj, attr) is not None}
+
+        return {key: self.sanitize_for_serialization(val)
+                for key, val in obj_dict.items()}
+
+    @staticmethod
+    def _translate_write_exception(exc, use_v2_api):
+        if use_v2_api and exc.status == HTTPStatus.METHOD_NOT_ALLOWED:
+            message = ("Server doesn't support the V2 API endpoint (/api/v2/write). "
+                       "Set use_v2_api=False to use the V3 API endpoint.")
+            ex = ApiException(status=0, reason=message)
+            ex.message = message
+            ex.args = (message,)
+            return ex
+        if not use_v2_api and exc.status == HTTPStatus.METHOD_NOT_ALLOWED:
+            message = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
+                       "Set use_v2_api=True to use the V2 API endpoint.")
+            ex = ApiException(status=0, reason=message)
+            ex.message = message
+            ex.args = (message,)
+            return ex
+        partial = InfluxDBPartialWriteError.from_response(exc.response)
+        if partial is not None:
+            return partial
+        return exc
+
+    @staticmethod
+    def should_gzip(payload: str, enable_gzip: bool = False, gzip_threshold: int = None) -> bool:
+        """
+        Determines whether gzip compression should be applied to the given payload based
+        on the specified conditions. This method evaluates the `enable_gzip` flag and
+        considers the size of the payload in relation to the optional `gzip_threshold`.
+        If `enable_gzip` is set to True and no threshold is provided, gzip compression
+        is advised without any size condition. If a threshold is specified, compression
+        is applied only when the size of the payload meets or exceeds the threshold.
+        By default, no compression is performed if `enable_gzip` is False.
+
+        :param payload: The payload data as a string for which gzip determination is to
+            be made.
+        :type payload: str
+        :param enable_gzip: A flag indicating whether gzip compression is enabled. By
+            default, this flag is False.
+        :type enable_gzip: bool, optional
+        :param gzip_threshold: Optional threshold specifying the minimum size (in bytes)
+            of the payload to trigger gzip compression. Only considered if
+            `enable_gzip` is True.
+        :type gzip_threshold: int, optional
+        :return: A boolean value indicating True if gzip compression should be applied
+            based on the payload size, the enable_gzip flag, and the gzip_threshold.
+        :rtype: bool
+        """
+        if enable_gzip is not False:
+            if gzip_threshold is not None:
+                payload_size = len(payload.encode('utf-8'))
+                return payload_size >= gzip_threshold
+            if enable_gzip is True:
+                return True
+
+        return False
+
+    @staticmethod
+    def _on_error(ex):
+        logger.error("unexpected error during batching: %s", ex)
+
+    def _to_response(self, data: _BatchItem, delay: datetime.timedelta):
         return rx.of(data).pipe(
             ops.subscribe_on(self._write_options.write_scheduler),
             # use delay if its specified
@@ -662,9 +1056,6 @@ class WriteApi(_BaseWriteApi):
             # catch exception to fail batch response
             ops.catch(handler=lambda exception, source: rx.just(_BatchResponse(exception=exception, data=data))),
         )
-
-    def _jitter_delay(self):
-        return timedelta(milliseconds=random() * self._write_options.jitter_interval)
 
     def _on_next(self, response: _BatchResponse):
         if response.exception:
@@ -690,13 +1081,93 @@ class WriteApi(_BaseWriteApi):
                 except Exception as e:
                     logger.error("The configured success callback threw an exception: %s", e)
 
-    @staticmethod
-    def _on_error(ex):
-        logger.error("unexpected error during batching: %s", ex)
-
     def _on_complete(self):
         self._disposable.dispose()
         logger.debug("the batching processor was disposed")
+
+    def _append_default_tag(self, key, val, record):
+        from influxdb_client_3.write_client import Point
+        if isinstance(record, bytes) or isinstance(record, str):
+            pass
+        elif isinstance(record, Point):
+            record.tag(key, val)
+        elif isinstance(record, dict):
+            record.setdefault("tags", {})
+            record.get("tags")[key] = val
+        elif isinstance(record, Iterable):
+            for item in record:
+                self._append_default_tag(key, val, item)
+
+    def _append_default_tags(self, record):
+        if self._point_settings.defaultTags and record is not None:
+            for key, val in self._point_settings.defaultTags.items():
+                self._append_default_tag(key, val, record)
+
+    def _resolve_write_request_options(self, kwargs):
+        no_sync = kwargs.pop('no_sync', self._write_options.no_sync)
+        accept_partial = kwargs.pop('accept_partial', self._write_options.accept_partial)
+        use_v2_api = kwargs.pop('use_v2_api', self._write_options.use_v2_api)
+        if use_v2_api and no_sync:
+            raise ValueError("invalid write options: no_sync cannot be used with use_v2_api")
+        return no_sync, accept_partial, use_v2_api
+
+    def _jitter_delay(self):
+        return datetime.timedelta(milliseconds=random() * self._write_options.jitter_interval)
+
+    def _serialize(self, record, write_precision, payload, **kwargs):
+        from influxdb_client_3.write_client.client.write.point import Point
+        if isinstance(record, bytes):
+            payload[write_precision].append(record)
+
+        elif isinstance(record, str):
+            self._serialize(record.encode(_UTF_8_encoding), write_precision, payload, **kwargs)
+
+        elif isinstance(record, Point):
+            precision_from_point = kwargs.get('precision_from_point', True)
+            precision = record.write_precision if precision_from_point else write_precision
+            self._serialize(record.to_line_protocol(precision=precision, tag_order=kwargs.get('tag_order')),
+                            precision, payload, **kwargs)
+
+        elif isinstance(record, dict):
+            self._serialize(Point.from_dict(record, write_precision=write_precision, **kwargs),
+                            write_precision, payload, **kwargs)
+        elif 'polars' in str(type(record)):
+            from influxdb_client_3.write_client.client.write.polars_dataframe_serializer import \
+                PolarsDataframeSerializer
+            serializer = PolarsDataframeSerializer(record, self._point_settings, write_precision, **kwargs)
+            self._serialize(serializer.serialize(), write_precision, payload, **kwargs)
+
+        elif 'pandas' in str(type(record)):
+            serializer = DataframeSerializer(record, self._point_settings, write_precision, **kwargs)
+            self._serialize(serializer.serialize(), write_precision, payload, **kwargs)
+
+        elif hasattr(record, "_asdict"):
+            # noinspection PyProtectedMember
+            self._serialize(record._asdict(), write_precision, payload, **kwargs)
+        elif _HAS_DATACLASS and dataclasses.is_dataclass(record):
+            self._serialize(dataclasses.asdict(record), write_precision, payload, **kwargs)
+        elif isinstance(record, Iterable):
+            for item in record:
+                self._serialize(item, write_precision, payload, **kwargs)
+
+    def __enter__(self):
+        """
+        Enter the runtime context related to this object.
+
+        It will bind this method’s return value to the target(s)
+        specified in the `as` clause of the statement.
+
+        return: self instance
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit the runtime context related to this object and close the WriteApi."""
+        self.close()
+
+    def __del__(self):
+        """Close WriteApi."""
+        self.close()
 
     def __getstate__(self):
         """Return a dict of attributes that you want to pickle."""
@@ -711,8 +1182,7 @@ class WriteApi(_BaseWriteApi):
         """Set your object with the provided dict."""
         self.__dict__.update(state)
         # Init Rx
-        self.__init__(self._influxdb_client,
-                      self._write_options,
+        self.__init__(self._write_options,
                       self._point_settings,
                       success_callback=self._success_callback,
                       error_callback=self._error_callback,

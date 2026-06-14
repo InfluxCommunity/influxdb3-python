@@ -1,9 +1,13 @@
 import importlib.util
+import json
 import os
 import urllib.parse
 from typing import Any, List, Literal, Optional, TYPE_CHECKING
 
 import pyarrow as pa
+
+from influxdb_client_3.version import USER_AGENT
+from influxdb_client_3.write_client._sync import rest_client as rest
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -14,7 +18,7 @@ from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
 from influxdb_client_3.exceptions import InfluxDBError
 from influxdb_client_3.query.query_api import QueryApi as _QueryApi, QueryApiOptionsBuilder
 from influxdb_client_3.read_file import UploadFile
-from influxdb_client_3.write_client import InfluxDBClient as _InfluxDBClient, WriteOptions, Point
+from influxdb_client_3.write_client import WriteOptions, Point
 from influxdb_client_3.write_client.client.write_api import WriteApi as _WriteApi, SYNCHRONOUS, ASYNCHRONOUS, \
     PointSettings, DefaultWriteOptions, WriteType
 from influxdb_client_3.write_client.domain.write_precision import WritePrecision
@@ -189,6 +193,9 @@ class InfluxDBClient3:
             org=None,
             database=None,
             token=None,
+            auth_scheme=None,
+            enable_gzip=False,
+            gzip_threshold=None,
             write_client_options=None,
             flight_client_options=None,
             write_port_overwrite=None,
@@ -229,6 +236,8 @@ class InfluxDBClient3:
         :key urllib3.util.retry.Retry retries: Set the default retry strategy that is used for all HTTP requests
                                                except batching writes. As a default there is no one retry strategy.
         :key str query_timeout: int value used to set the client query API timeout in milliseconds.
+        :key str enable_gzip: TODO ???
+        :key str gzip_threshold: TODO ???
         :key str write_timeout: int value used to set the client write API timeout in milliseconds.
         :key bool write_accept_partial: allow partial writes when some lines fail.
         :key bool write_use_v2_api: route writes through /api/v2/write compatibility endpoint.
@@ -293,14 +302,35 @@ class InfluxDBClient3:
         if write_port_overwrite is not None:
             port = write_port_overwrite
 
-        self._client = _InfluxDBClient(
-            url=f"{scheme}://{hostname}:{port}",
-            token=self._token,
-            org=self._org,
-            timeout=write_timeout,
-            **kwargs)
+        # TODO fix retries
+        retries = None
 
-        self._write_api = _WriteApi(influxdb_client=self._client, **self._write_client_options)
+        # TODO refactor
+        auth_schema = 'Token' if auth_scheme is None else auth_scheme
+        default_header = {
+            'Authorization': f'{auth_schema} {token}',
+            'User-Agent': USER_AGENT
+        }
+
+        self.rest_client = rest.RestClient(
+            base_url=f"{scheme}://{hostname}:{port}",
+            default_header=default_header,
+            retries=retries)
+
+        # TODO point_settings??
+        # TODO enable_gzip and gzip_threshold be in WriteOptions
+        # self.base_url = f"{scheme}://{hostname}:{port}"
+        self._write_api = _WriteApi(
+            token=self._token,
+            bucket=self._database,
+            org=self._org,
+            gzip_threshold=gzip_threshold,
+            enable_gzip=enable_gzip,
+            auth_scheme=auth_scheme,
+            timeout=write_timeout,
+            rest_client=self.rest_client,
+            **self._write_client_options
+        )
 
         if query_port_overwrite is not None:
             port = query_port_overwrite
@@ -658,32 +688,26 @@ class InfluxDBClient3:
         except ArrowException as e:
             raise InfluxDB3ClientQueryError(f"Error while executing query: {e}")
 
-    def get_server_version(self) -> str:
+    def get_server_version(self) -> Any | None:
         """
-        Get the version of the connected InfluxDB server.
+        Get the influxdb_version of the connected InfluxDB server.
 
-        This method makes a ping request to the server and extracts the version information
+        This method makes a ping request to the server and extracts the influxdb_version information
         from either the response headers or response body.
 
-        :return: The version string of the InfluxDB server.
+        :return: The influxdb_version string of the InfluxDB server.
         :rtype: str
         """
-        version = None
-        (resp_body, _, header) = self._client.api_client.call_api(
-            resource_path="/ping",
-            method="GET",
-            response_type=object
-        )
-
-        for key, value in header.items():
+        resp = self.rest_client.request(url='/ping', method="GET")
+        for key, value in resp.getheaders().items():
             if key.lower() == "x-influxdb-version":
-                version = value
-                break
+                return value
 
-        if version is None and isinstance(resp_body, dict):
-            version = resp_body['version']
-
-        return version
+        # TODO refactor this
+        string = resp.get_string_body()
+        if string is not None:
+            return json.loads(string)['version']
+        return None
 
     def flush(self):
         """
@@ -702,7 +726,6 @@ class InfluxDBClient3:
         """Close the client and clean up resources."""
         self._write_api.close()
         self._query_api.close()
-        self._client.close()
 
     def __enter__(self):
         return self
