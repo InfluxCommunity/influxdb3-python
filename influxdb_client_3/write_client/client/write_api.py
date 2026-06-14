@@ -294,11 +294,12 @@ class WriteApi:
                  token: str,
                  bucket: str,
                  org: str,
-                 gzip_threshold: None,
+                 gzip_threshold=None,
                  enable_gzip=False,
                  auth_scheme=None,
                  timeout=None,
                  pool_threads=None,
+                 default_header=None,
                  rest_client: RestClient = None,
                  write_options: WriteOptions = WriteOptions(),
                  point_settings: PointSettings = PointSettings(),
@@ -343,6 +344,7 @@ class WriteApi:
         self.timeout = timeout
         self.pool_threads = pool_threads
         self._point_settings = point_settings
+        self.default_header = default_header
 
         self._write_options = write_options
         # TODO - callbacks seem to be used with batching type only - could they be used with sync or async?
@@ -363,8 +365,8 @@ class WriteApi:
             warnings.warn(message, DeprecationWarning)
 
     def write(self,
-              bucket: str,
-              org: str = None,
+              bucket=None,
+              org=None,
               record: Union[
                   str, Iterable['str'], Point, Iterable['Point'], dict, Iterable['dict'], bytes, Iterable['bytes'],
                   Observable, NamedTuple, Iterable['NamedTuple'], 'dataclass', Iterable['dataclass']
@@ -439,6 +441,7 @@ class WriteApi:
         """  # noqa: E501
 
         org = org if org is not None else self.org
+        bucket = bucket if bucket is not None else self.bucket
 
         self._append_default_tags(record)
 
@@ -600,7 +603,7 @@ class WriteApi:
         kwargs['_return_http_data_only'] = True
 
         local_var_params, path, path_params, query_params, header_params, body_params = \
-            self._post_write_prepare(org, bucket, body, **http_kwargs)  # noqa: E501
+            self._post_write_prepare(org, bucket, body, self.default_header, **http_kwargs)  # noqa: E501
 
         use_v2_api = local_var_params['use_v2_api']
         try:
@@ -770,7 +773,7 @@ class WriteApi:
 
     # ------------------------------------------------------------
 
-    def _post_write_prepare(self, org, bucket, body, **kwargs):  # noqa: E501,D401,D403
+    def _post_write_prepare(self, org, bucket, body, default_header, **kwargs):  # noqa: E501,D401,D403
         local_var_params = dict(locals())
 
         all_params = ['org', 'bucket', 'body', 'zap_trace_span', 'content_encoding', 'content_type', 'content_length',
@@ -820,7 +823,7 @@ class WriteApi:
             if accept_partial is False:
                 query_params.append(('accept_partial', 'false'))
 
-        header_params = {}
+        header_params = default_header if default_header is not None else {}
 
         if 'content_encoding' in local_var_params:
             header_params['Content-Encoding'] = local_var_params['content_encoding']  # noqa: E501
