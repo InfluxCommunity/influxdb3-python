@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import random
@@ -13,6 +14,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError as Url3TimeoutError
 from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, \
     WriteType, InfluxDB3ClientQueryError
 from influxdb_client_3.exceptions import InfluxDBError, InfluxDBPartialWriteError
+from influxdb_client_3.write_client.rest import ApiException
 from tests.util import asyncio_run, lp_to_py_object
 
 
@@ -133,28 +135,37 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
         for accept_partial in [True, False]:
             with self.subTest(accept_partial=accept_partial):
                 with InfluxDBClient3(
-                    host=self.host,
-                    database=self.database,
-                    token=self.token,
-                    write_client_options=write_client_options(write_options=WriteOptions(
-                        write_type=WriteType.synchronous,
-                        use_v2_api=False,
-                        accept_partial=accept_partial
-                    ))
+                        host=self.host,
+                        database=self.database,
+                        token=self.token,
+                        write_client_options=write_client_options(write_options=WriteOptions(
+                            write_type=WriteType.synchronous,
+                            use_v2_api=False,
+                            accept_partial=accept_partial
+                        ))
                 ) as client:
-                    with self.assertRaises(InfluxDBPartialWriteError) as err:
-                        client.write(lp)
+                    if accept_partial:
+                        with self.assertRaises(InfluxDBPartialWriteError) as err:
+                            client.write(lp)
 
-                msg = err.exception.message
-                self.assertTrue(
-                    "partial write of line protocol occurred" in msg or "parsing failed for write_lp endpoint" in msg
-                )
-                self.assertIn((
-                    "invalid column type for column 'temp', expected iox::column_type::field::float, "
-                    "got iox::column_type::field::string"
-                ), msg)
-                self.assertIn("line 2", msg)
-                self.assertIn("home,room=Sunroom", msg)
+                        self.assertEqual(1, len(err.exception.line_errors))
+                        line_error = err.exception.line_errors[0]
+                        self.assertEqual(2, line_error.line_number)
+                        self.assertIn("invalid column type for column 'temp'", line_error.error_message)
+                        self.assertIn("home,room=Sunroom", line_error.original_line)
+                    else:
+                        with self.assertRaises(ApiException) as err:
+                            client.write(lp)
+
+                        self.assertEqual(400, err.exception.status)
+                        self.assertEqual("line protocol parsing error", err.exception.message)
+                        body = json.loads(err.exception.body)
+                        self.assertEqual("line protocol parsing error", body["error"])
+                        self.assertEqual(2, body["data"]["line_number"])
+                        self.assertIn(
+                            "invalid column type for column 'temp'",
+                            body["data"]["error_message"],
+                        )
 
     def test_v2_error(self):
         lp = "\n".join([
@@ -162,23 +173,26 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
             "home,room=Sunroom temp=\"hi\" 1735549200",
         ])
 
-        with InfluxDBClient3(
-            host=self.host,
-            database=self.database,
-            token=self.token,
-            write_client_options=write_client_options(write_options=WriteOptions(
-                write_type=WriteType.synchronous,
-                use_v2_api=True,
-                accept_partial=False
-            ))
-        ) as client:
-            with self.assertRaises(InfluxDBError) as err:
-                client.write(lp)
+        for accept_partial in [True, False]:
+            with self.subTest(accept_partial=accept_partial):
+                with InfluxDBClient3(
+                        host=self.host,
+                        database=self.database,
+                        token=self.token,
+                        write_client_options=write_client_options(write_options=WriteOptions(
+                            write_type=WriteType.synchronous,
+                            use_v2_api=True,
+                            accept_partial=accept_partial
+                        ))
+                ) as client:
+                    with self.assertRaises(ApiException) as err:
+                        client.write(lp)
 
-        self.assertNotIsInstance(err.exception, InfluxDBPartialWriteError)
-        self.assertIsNotNone(err.exception.response)
-        self.assertEqual(400, err.exception.response.status)
-        self.assertTrue(err.exception.message)
+                self.assertEqual(400, err.exception.status)
+                self.assertNotIsInstance(err.exception, InfluxDBPartialWriteError)
+                body = json.loads(err.exception.body)
+                self.assertEqual("invalid", body["code"])
+                self.assertIn("write buffer error", body["message"])
 
     def test_auth_error_token(self):
         self.client = InfluxDBClient3(host=self.host, database=self.database, token='fake token')
