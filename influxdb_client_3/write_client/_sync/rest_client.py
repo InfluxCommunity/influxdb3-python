@@ -158,6 +158,8 @@ class RestClient(object):
         r.data = r.data.decode('utf8')
 
         if not 200 <= r.status <= 299:
+            print('hahaha')
+            print(r.data)
             raise ApiException(http_resp=r)
 
         return r

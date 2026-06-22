@@ -14,6 +14,7 @@ from urllib3.exceptions import MaxRetryError, TimeoutError as Url3TimeoutError
 from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, \
     WriteType, InfluxDB3ClientQueryError
 from influxdb_client_3.exceptions import InfluxDBError, InfluxDBPartialWriteError
+from influxdb_client_3.write_client.client.util.multiprocessing_helper import MultiprocessingWriter
 from influxdb_client_3.write_client.rest import ApiException
 from tests.util import asyncio_run, lp_to_py_object
 

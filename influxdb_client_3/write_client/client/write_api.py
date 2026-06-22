@@ -961,49 +961,6 @@ class WriteApi:
 
         return False
 
-    @staticmethod
-    def _on_error(ex):
-        logger.error("unexpected error during batching: %s", ex)
-
-    def _to_response(self, data: _BatchItem, delay: datetime.timedelta):
-        return rx.of(data).pipe(
-            ops.subscribe_on(self._write_options.write_scheduler),
-            # use delay if its specified
-            ops.delay(duetime=delay, scheduler=self._write_options.write_scheduler),
-            # invoke http call
-            ops.map(lambda x: self._http(x, **x.key.kwargs)),
-            # catch exception to fail batch response
-            ops.catch(handler=lambda exception, source: rx.just(_BatchResponse(exception=exception, data=data))),
-        )
-
-    def _on_next(self, response: _BatchResponse):
-        if response.exception:
-            logger.error("The batch item wasn't processed successfully because: %s", response.exception)
-            if self._error_callback:
-                try:
-                    self._error_callback(response.data.to_key_tuple(), response.data.data, response.exception)
-                except Exception as e:
-                    """
-                    Unfortunately, because callbacks are user-provided generic code, exceptions can be entirely
-                    arbitrary
-
-                    We trap it, log that it occurred and then proceed - there's not much more that we can
-                    really do.
-                    """
-                    logger.error("The configured error callback threw an exception: %s", e)
-
-        else:
-            logger.debug("The batch item: %s was processed successfully.", response)
-            if self._success_callback:
-                try:
-                    self._success_callback(response.data.to_key_tuple(), response.data.data)
-                except Exception as e:
-                    logger.error("The configured success callback threw an exception: %s", e)
-
-    def _on_complete(self):
-        self._disposable.dispose()
-        logger.debug("the batching processor was disposed")
-
     def _append_default_tag(self, key, val, record):
         from influxdb_client_3.write_client import Point
         if isinstance(record, bytes) or isinstance(record, str):
@@ -1087,6 +1044,49 @@ class WriteApi:
     def __del__(self):
         """Close WriteApi."""
         self.close()
+
+    @staticmethod
+    def _on_error(ex):
+        logger.error("unexpected error during batching: %s", ex)
+
+    def _on_complete(self):
+        self._disposable.dispose()
+        logger.debug("the batching processor was disposed")
+
+    def _to_response(self, data: _BatchItem, delay: datetime.timedelta):
+        return rx.of(data).pipe(
+            ops.subscribe_on(self._write_options.write_scheduler),
+            # use delay if its specified
+            ops.delay(duetime=delay, scheduler=self._write_options.write_scheduler),
+            # invoke http call
+            ops.map(lambda x: self._http(x, **x.key.kwargs)),
+            # catch exception to fail batch response
+            ops.catch(handler=lambda exception, source: rx.just(_BatchResponse(exception=exception, data=data))),
+        )
+
+    def _on_next(self, response: _BatchResponse):
+        if response.exception:
+            logger.error("The batch item wasn't processed successfully because: %s", response.exception)
+            if self._error_callback:
+                try:
+                    self._error_callback(response.data.to_key_tuple(), response.data.data, response.exception)
+                except Exception as e:
+                    """
+                    Unfortunately, because callbacks are user-provided generic code, exceptions can be entirely
+                    arbitrary
+
+                    We trap it, log that it occurred and then proceed - there's not much more that we can
+                    really do.
+                    """
+                    logger.error("The configured error callback threw an exception: %s", e)
+
+        else:
+            logger.debug("The batch item: %s was processed successfully.", response)
+            if self._success_callback:
+                try:
+                    self._success_callback(response.data.to_key_tuple(), response.data.data)
+                except Exception as e:
+                    logger.error("The configured success callback threw an exception: %s", e)
 
     def __getstate__(self):
         """Return a dict of attributes that you want to pickle."""
