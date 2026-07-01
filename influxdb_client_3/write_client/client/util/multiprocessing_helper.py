@@ -154,7 +154,16 @@ class MultiprocessingWriter(multiprocessing.Process):
                                    error_callback=self.kwargs.get('error_callback', _error_callback),
                                    retry_callback=self.kwargs.get('retry_callback', _retry_callback)
                                    )
+
+        # Still need to create the InfluxDBClient3 because the init logics of InfluxDBClient3 will create the WriteApi.
+        # it will make WriteApi class created properly.
         self.client = InfluxDBClient3(write_client_options=wco, **self.kwargs)
+
+        # Close and set _query_api to None because query_api is not needed in this process.
+        # We only need write_api.
+        self.client._query_api.close()
+        self.client._query_api = None
+
         self.write_api = self.client._write_api
         # Infinite loop - until poison pill
         while True:

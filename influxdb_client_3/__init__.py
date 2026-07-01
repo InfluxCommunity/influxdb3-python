@@ -740,8 +740,10 @@ class InfluxDBClient3:
 
     def close(self):
         """Close the client and clean up resources."""
-        self._write_api.close()
-        self._query_api.close()
+        if self._write_api is not None:
+            self._write_api.close()
+        if self._query_api is not None:
+            self._query_api.close()
 
     def __enter__(self):
         return self
