@@ -164,6 +164,10 @@ class RestClient(object):
 
         return r
 
+    def close(self):
+        self.pool_manager.close()
+        self.pool_manager = None
+
     def __getstate__(self):
         """Return a dict of attributes that you want to pickle."""
         state = self.__dict__.copy()

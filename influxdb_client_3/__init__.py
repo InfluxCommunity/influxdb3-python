@@ -744,6 +744,8 @@ class InfluxDBClient3:
             self._write_api.close()
         if self._query_api is not None:
             self._query_api.close()
+        if self.rest_client is not None:
+            self.rest_client.close()
 
     def __enter__(self):
         return self
