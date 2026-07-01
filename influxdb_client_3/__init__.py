@@ -1,3 +1,5 @@
+import multiprocessing
+
 import importlib.util
 import json
 import os
@@ -326,7 +328,8 @@ class InfluxDBClient3:
             ssl_context=kwargs.get('ssl_context', None),
             proxy=kwargs.get('proxy', None),
             proxy_headers=kwargs.get('proxy_headers', None),
-            retries=kwargs.get('retries', False)
+            retries=kwargs.get('retries', False),
+            connection_pool_maxsize=kwargs.get('connection_pool_maxsize', multiprocessing.cpu_count() * 5,)
         )
 
         if point_settings is None:
