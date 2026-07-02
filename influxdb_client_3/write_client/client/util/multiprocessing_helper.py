@@ -7,7 +7,8 @@ For more information how the multiprocessing works see Python's
 import logging
 import multiprocessing
 
-from influxdb_client_3.write_client import InfluxDBClient, WriteOptions
+from influxdb_client_3 import InfluxDBClient3, write_client_options
+from influxdb_client_3.write_client import WriteOptions
 from influxdb_client_3.exceptions import InfluxDBError
 
 logger = logging.getLogger('influxdb_client.client.util.multiprocessing_helper')
@@ -148,11 +149,22 @@ class MultiprocessingWriter(multiprocessing.Process):
     def run(self):
         """Initialize ``InfluxDBClient`` and waits for data to writes into InfluxDB."""
         # Initialize Client and Write API
-        self.client = InfluxDBClient(**self.kwargs)
-        self.write_api = self.client.write_api(write_options=self.kwargs.get('write_options', WriteOptions()),
-                                               success_callback=self.kwargs.get('success_callback', _success_callback),
-                                               error_callback=self.kwargs.get('error_callback', _error_callback),
-                                               retry_callback=self.kwargs.get('retry_callback', _retry_callback))
+        wco = write_client_options(write_options=self.kwargs.get('write_options', WriteOptions()),
+                                   success_callback=self.kwargs.get('success_callback', _success_callback),
+                                   error_callback=self.kwargs.get('error_callback', _error_callback),
+                                   retry_callback=self.kwargs.get('retry_callback', _retry_callback)
+                                   )
+
+        # Still need to create the InfluxDBClient3 because the init logics of InfluxDBClient3 will create the WriteApi.
+        # it will make WriteApi class created properly.
+        self.client = InfluxDBClient3(write_client_options=wco, **self.kwargs)
+
+        # Close and set _query_api to None because query_api is not needed in this process.
+        # We only need write_api.
+        self.client._query_api.close()
+        self.client._query_api = None
+
+        self.write_api = self.client._write_api
         # Infinite loop - until poison pill
         while True:
             next_record = self.queue_.get()
@@ -181,7 +193,7 @@ class MultiprocessingWriter(multiprocessing.Process):
             self.write_api.__del__()
             self.write_api = None
         if self.client:
-            self.client.__del__()
+            self.client.close()
             self.client = None
             logger.info("closed")
 
