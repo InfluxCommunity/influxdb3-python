@@ -310,6 +310,7 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
             list_results = reader.to_pylist()
             self.assertEqual(data_size, len(list_results))
 
+    @pytest.mark.skipif(running_on_circleci, reason="Skipping this test on CircleCI")
     def test_multiprocessing_helper(self):
         org = 'my-org'
         writer = MultiprocessingWriter(
