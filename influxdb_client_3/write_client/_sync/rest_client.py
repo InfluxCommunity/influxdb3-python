@@ -33,10 +33,10 @@ class RESTResponse(io.IOBase):
         return self.urllib3_response.headers.get(name, default)
 
     def get_string_body(self):
-        string = self.urllib3_response.data.decode('utf-8')
-        if string is None or string == '':
+        data = self.urllib3_response.data
+        if not data:
             return None
-        return string
+        return data.decode('utf-8') if isinstance(data, (bytes, bytearray)) else str(data)
 
 
 class RestClient(object):

@@ -342,6 +342,7 @@ class WriteApi:
         self.auth_scheme = auth_scheme
         self.timeout = timeout
         self.pool_threads = pool_threads
+        self._pool = None
         self.default_header = default_header
         self._point_settings = point_settings if point_settings is not None else PointSettings()
         self._write_options = write_options if write_options is not None else WriteOptions()
