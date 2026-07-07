@@ -169,8 +169,6 @@ class RestClient(object):
             r.data = ''
 
         if not 200 <= r.status <= 299:
-            print('hahaha')
-            print(r.data)
             raise ApiException(http_resp=r)
 
         return r
