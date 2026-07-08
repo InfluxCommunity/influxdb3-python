@@ -3,8 +3,10 @@
 from __future__ import absolute_import
 
 import io
+import logging
 import multiprocessing
 import ssl
+from typing import Dict
 from urllib.parse import urlencode
 
 from influxdb_client_3.write_client.rest import ApiException
@@ -41,6 +43,8 @@ class RESTResponse(io.IOBase):
 
 class RestClient(object):
 
+    logger = logging.getLogger('influxdb_client.client.http')
+
     def __init__(self,
                  base_url,
                  default_header=None,
@@ -56,6 +60,7 @@ class RestClient(object):
                  maxsize=None,
                  timeout=None,
                  retries=False,
+                 debug=False,
                  connection_pool_maxsize=multiprocessing.cpu_count() * 5,
                  ):
         """Initialize REST client."""
@@ -79,6 +84,7 @@ class RestClient(object):
         self.cert_file = cert_file
         self.cert_key_file = cert_key_file
         self.cert_key_password = cert_key_password
+        self.debug = debug
         self.connection_pool_maxsize = connection_pool_maxsize
 
         # cert_reqs
@@ -157,6 +163,11 @@ class RestClient(object):
 
         effective_timeout = timeout if timeout is not None else self.timeout
 
+        if self.debug:
+            RestClient.log_request(method, f"{url}?{urlencode(query_params)}")
+            RestClient.log_headers(headers, '>>>')
+            RestClient.log_body(body, '>>>')
+
         r = self.pool_manager.request(method, url,
                                       body=body,
                                       headers=merged_headers,
@@ -169,10 +180,39 @@ class RestClient(object):
         elif r.data is None:
             r.data = ''
 
+        if self.debug:
+            RestClient.log_response(r.status)
+            if hasattr(r, 'headers'):
+                RestClient.log_headers(r.headers, '<<<')
+            if hasattr(r, 'urllib3_response'):
+                RestClient.log_headers(r.urllib3_response.headers, '<<<')
+            RestClient.log_body(r.data, '<<<')
+
         if not 200 <= r.status <= 299:
             raise ApiException(http_resp=r)
 
         return r
+
+    @staticmethod
+    def log_request(method: str, url: str):
+        RestClient.logger.debug(f">>> Request: '{method} {url}'")
+
+    @staticmethod
+    def log_response(status: str):
+        RestClient.logger.debug(f"<<< Response: {status}")
+
+    @staticmethod
+    def log_body(body: object, prefix: str):
+        RestClient.logger.debug(f"{prefix} Body: {body}")
+
+    @staticmethod
+    def log_headers(headers: Dict[str, str], prefix: str):
+        for key, v in headers.items():
+            value = v
+            if 'authorization' == key.lower():
+                value = '***'
+            RestClient.logger.debug(f"{prefix} {key}: {value}")
+
 
     def close(self):
         self.pool_manager.close()

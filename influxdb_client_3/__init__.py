@@ -204,6 +204,7 @@ class InfluxDBClient3:
             query_port_overwrite=None,
             disable_grpc_compression=False,
             point_settings=None,
+            debug=False,
             **kwargs):
         """
         Initialize an InfluxDB client.
@@ -224,6 +225,8 @@ class InfluxDBClient3:
         :type disable_grpc_compression: bool
         :param point_settings The settings for Points
         :type point_settings: PointSettings
+        :param debug: enable verbose logging of http requests
+        :type debug: bool
         :param enable_gzip: Enable GZIP compression for write requests.
         :type enable_gzip: bool
         :param gzip_threshold: Minimum payload size (bytes) to trigger GZIP when enable_gzip is True.
@@ -329,6 +332,7 @@ class InfluxDBClient3:
             proxy=kwargs.get('proxy', None),
             proxy_headers=kwargs.get('proxy_headers', None),
             retries=kwargs.get('retries', False),
+            debug=debug,
             connection_pool_maxsize=kwargs.get('connection_pool_maxsize', multiprocessing.cpu_count() * 5,)
         )
 
