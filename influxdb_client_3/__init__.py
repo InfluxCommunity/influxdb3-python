@@ -335,6 +335,10 @@ class InfluxDBClient3:
         if point_settings is None:
             point_settings = PointSettings()
 
+        # Keep WriteOptions.timeout in sync with the resolved write_timeout
+        if isinstance(self._write_client_options, dict) and self._write_client_options.get("write_options") is not None:
+            self._write_client_options["write_options"].timeout = write_timeout
+
         self._write_api = _WriteApi(
             token=self._token,
             bucket=self._database,
