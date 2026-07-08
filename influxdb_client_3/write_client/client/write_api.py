@@ -448,6 +448,7 @@ class WriteApi:
         :param str org: An organization name. (required)
         :param str bucket: A bucket name or ID. InfluxDB writes all points in the batch to the specified bucket. (required)
         :param str body: In the request body, provide data in [line protocol format](https://docs.influxdata.com/influxdb/latest/reference/syntax/line-protocol/).  To send compressed data, do the following:    1. Use [GZIP](https://www.gzip.org/) to compress the line protocol data.   2. In your request, send the compressed data and the      `Content-Encoding: gzip` header.  #### Related guides  - [Best practices for optimizing writes](https://docs.influxdata.com/influxdb/latest/write-data/best-practices/optimize-writes/)  (required)
+        :param str org_id: An organization ID.  #### InfluxDB Cloud  - Doesn't use the `org` parameter or `orgID` parameter. - Writes data to the bucket in the organization   associated with the authorization (API token).  #### InfluxDB OSS  - Requires either the `org` parameter or the `orgID` parameter. - If you pass both `orgID` and `org`, they must both be valid. - Writes data to the bucket in the specified organization.
         :return: None
                  If the method is called asynchronously,
                  returns the request thread.
@@ -767,7 +768,7 @@ class WriteApi:
         local_var_params = dict(locals())
 
         all_params = ['org', 'bucket', 'body', 'content_encoding', 'content_type', 'content_length',
-                      'accept', 'precision', 'no_sync', 'accept_partial', 'use_v2_api']  # noqa: E501
+                      'accept', 'org_id', 'precision', 'no_sync', 'accept_partial', 'use_v2_api']  # noqa: E501
         self._check_operation_params('_post_write', all_params, local_var_params)
         local_var_params.setdefault('use_v2_api', DEFAULT_WRITE_USE_V2_API)
         local_var_params.setdefault('no_sync', DEFAULT_WRITE_NO_SYNC)
@@ -793,6 +794,8 @@ class WriteApi:
         accept_partial = local_var_params['accept_partial']
         if 'org' in local_var_params:
             query_params.append(('org', local_var_params['org']))  # noqa: E501
+        if 'org_id' in local_var_params:
+            query_params.append(('orgID', local_var_params['org_id']))  # noqa: E501
         if 'bucket' in local_var_params:
             query_params.append(('bucket' if use_v2_api else 'db', local_var_params['bucket']))  # noqa: E501
 
