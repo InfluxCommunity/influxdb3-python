@@ -1086,19 +1086,3 @@ class WriteApi:
     def __del__(self):
         """Close WriteApi."""
         self.close()
-
-    def __setstate__(self, state):
-        """Set your object with the provided dict."""
-        self.__dict__.update(state)
-        # Init Rx
-        self.__init__(token=self.token,
-                      bucket=self.bucket,
-                      org=self.org,
-                      rest_client=self.rest_client,
-                      default_header=self.default_header,
-                      write_options=self._write_options,
-                      point_settings=self._point_settings,
-                      success_callback=self._success_callback,
-                      error_callback=self._error_callback,
-                      retry_callback=self._retry_callback
-                      )

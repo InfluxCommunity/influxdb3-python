@@ -79,6 +79,7 @@ class RestClient(object):
         self.cert_file = cert_file
         self.cert_key_file = cert_key_file
         self.cert_key_password = cert_key_password
+        self.connection_pool_maxsize = connection_pool_maxsize
 
         # cert_reqs
         if verify_ssl:
@@ -202,4 +203,5 @@ class RestClient(object):
             cert_file=self.cert_file,
             cert_key_file=self.cert_key_file,
             cert_key_password=self.cert_key_password,
+            connection_pool_maxsize=self.connection_pool_maxsize
         )
