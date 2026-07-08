@@ -812,10 +812,18 @@ class WriteApi:
                 query_params.append(('accept_partial', 'false'))
 
         header_params = dict(default_header) if default_header is not None else {}
-        header_params.setdefault('Accept', 'application/json')
-        header_params.setdefault('Content-Type', 'text/plain; charset=utf-8')
+        if local_var_params.get('accept') is not None:
+            header_params['Accept'] = local_var_params['accept']
+        else:
+            header_params.setdefault('Accept', 'application/json')
+        if local_var_params.get('content_type') is not None:
+            header_params['Content-Type'] = local_var_params['content_type']
+        else:
+            header_params.setdefault('Content-Type', 'text/plain; charset=utf-8')
+        if local_var_params.get('content_length') is not None:
+            header_params['Content-Length'] = local_var_params['content_length']
 
-        if 'content_encoding' in local_var_params:
+        if local_var_params.get('content_encoding') is not None:
             header_params['Content-Encoding'] = local_var_params['content_encoding']  # noqa: E501
 
         body_params = None
