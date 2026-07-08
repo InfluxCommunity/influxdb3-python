@@ -282,16 +282,6 @@ class WriteApi:
     """
     Implementation for '/api/v2/write' and '/api/v3/write_lp' endpoint.
 
-    Example:
-        .. code-block:: python
-
-            from influxdb_client import InfluxDBClient
-            from influxdb_client.client.write_api import SYNCHRONOUS
-
-
-            # Initialize SYNCHRONOUS instance of WriteApi
-            with InfluxDBClient(url="http://localhost:8086", token="my-token", org="my-org") as client:
-                write_api = client.write_api(write_options=SYNCHRONOUS)
     """
 
     def __init__(self,
