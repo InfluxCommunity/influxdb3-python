@@ -213,7 +213,6 @@ class RestClient(object):
                 value = '***'
             RestClient.logger.debug(f"{prefix} {key}: {value}")
 
-
     def close(self):
         self.pool_manager.close()
 
