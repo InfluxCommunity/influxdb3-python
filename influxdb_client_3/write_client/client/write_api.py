@@ -1,6 +1,6 @@
 """Collect and write time series data to InfluxDB Cloud or InfluxDB OSS."""
 from __future__ import absolute_import
-# coding: utf-8
+
 # TODO Remove after this program no longer supports Python 3.8.*
 from __future__ import annotations
 
@@ -785,15 +785,15 @@ class WriteApi:
         # verify the required parameter 'org' is set
         if ('org' not in local_var_params or
                 local_var_params['org'] is None):
-            raise ValueError("Missing the required parameter `org` when calling `post_write`")  # noqa: E501
+            raise ValueError("Missing the required parameter `org` when calling `_post_write`")  # noqa: E501
         # verify the required parameter 'bucket' is set
         if ('bucket' not in local_var_params or
                 local_var_params['bucket'] is None):
-            raise ValueError("Missing the required parameter `bucket` when calling `post_write`")  # noqa: E501
+            raise ValueError("Missing the required parameter `bucket` when calling `_post_write`")  # noqa: E501
         # verify the required parameter 'body' is set
         if ('body' not in local_var_params or
                 local_var_params['body'] is None):
-            raise ValueError("Missing the required parameter `body` when calling `post_write`")  # noqa: E501
+            raise ValueError("Missing the required parameter `body` when calling `_post_write`")  # noqa: E501
 
         path_params = {}
         query_params = []
