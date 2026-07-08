@@ -147,7 +147,7 @@ class MultiprocessingWriter(multiprocessing.Process):
         self.queue_.put(kwargs)
 
     def run(self):
-        """Initialize ``InfluxDBClient`` and waits for data to writes into InfluxDB."""
+        """Initialize ``InfluxDBClient3`` and wait for data to write into InfluxDB."""
         # Initialize Client and Write API
         wco = write_client_options(write_options=self.kwargs.get('write_options', WriteOptions()),
                                    success_callback=self.kwargs.get('success_callback', _success_callback),
