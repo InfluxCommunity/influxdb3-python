@@ -6,6 +6,7 @@ import io
 import logging
 import multiprocessing
 import ssl
+import sys
 from typing import Dict
 from urllib.parse import urlencode
 
@@ -42,7 +43,6 @@ class RESTResponse(io.IOBase):
 
 
 class RestClient(object):
-
     logger = logging.getLogger('influxdb_client.client.http')
 
     def __init__(self,
@@ -192,6 +192,38 @@ class RestClient(object):
             raise ApiException(http_resp=r)
 
         return r
+
+    @property
+    def debug(self):
+        """Debug status.
+
+        :param value: The debug status, True or False.
+        :type: bool
+        """
+        return self.__debug
+
+    @debug.setter
+    def debug(self, value):
+        """Debug status.
+
+        :param value: The debug status, True or False.
+        :type: bool
+        """
+        self.__debug = value
+        if self.__debug:
+            # if debug status is True, turn on debug logging
+            self.logger.setLevel(logging.DEBUG)
+            if not any(map(lambda h: isinstance(h, logging.StreamHandler) and h.stream == sys.stdout,
+                           self.logger.handlers)):
+                self.logger.addHandler(logging.StreamHandler(sys.stdout))
+            # we use 'influxdb_client.client.http' logger instead of this
+            # httplib.HTTPConnection.debuglevel = 1
+        else:
+            # if debug status is False, turn off debug logging,
+            # setting log level to default `logging.WARNING`
+            self.logger.setLevel(logging.WARNING)
+            # we use 'influxdb_client.client.http' logger instead of this
+            # httplib.HTTPConnection.debuglevel = 0
 
     @staticmethod
     def log_request(method: str, url: str):
