@@ -1090,6 +1090,35 @@ class WriteApi:
         """
         return self
 
+    def __getstate__(self):
+        """Return a dict of attributes that you want to pickle."""
+        state = self.__dict__.copy()
+        # Remove rx
+        del state['_subject']
+        del state['_disposable']
+        return state
+
+    def __setstate__(self, state):
+        """Set your object with the provided dict."""
+        self.__dict__.update(state)
+        # Init Rx
+        self.__init__(token=self.token,
+                      bucket=self.bucket,
+                      org=self.org,
+                      gzip_threshold=self.gzip_threshold,
+                      enable_gzip=self.enable_gzip,
+                      auth_scheme=self.auth_scheme,
+                      timeout=self.timeout,
+                      rest_client=self.rest_client,
+                      pool_threads=self.pool_threads,
+                      default_header=self.default_header,
+                      write_options=self._write_options,
+                      point_settings=self._point_settings,
+                      success_callback=self._success_callback,
+                      error_callback=self._error_callback,
+                      retry_callback=self._retry_callback
+                      )
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Exit the runtime context related to this object and close the WriteApi."""
         self.close()

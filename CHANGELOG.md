@@ -2,10 +2,11 @@
 
 ## 0.21.0 [unreleased]
 
-### Others
+### Breaking Changes
 
-1. [#217](https://github.com/InfluxCommunity/influxdb3-python/pull/217):
-    - Refactor Write API.
+1. [#217](https://github.com/InfluxCommunity/influxdb3-python/pull/217): Make Write API simpler and consistent with other v3 clients.
+    - Remove redundant lasses: `Configuration`, `ApiClient`, `WriteService`, `InfluxDBClient`, and `InfluxLoggingHandler`.
+    - Update `InfluxDBClient3` constructor parameters.
     - Refactor Multiprocessing helper class.
 
 ## 0.20.0 [2026-06-11]
