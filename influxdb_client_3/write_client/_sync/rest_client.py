@@ -242,5 +242,6 @@ class RestClient(object):
             cert_file=self.cert_file,
             cert_key_file=self.cert_key_file,
             cert_key_password=self.cert_key_password,
+            debug=self.debug,
             connection_pool_maxsize=self.connection_pool_maxsize
         )
