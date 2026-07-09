@@ -164,8 +164,8 @@ class RestClient(object):
         effective_timeout = timeout if timeout is not None else self.timeout
 
         if self.debug:
-            RestClient.log_request(method, f"{url}?{urlencode(query_params)}")
-            RestClient.log_headers(headers, '>>>')
+            RestClient.log_request(method, url)
+            RestClient.log_headers(merged_headers, '>>>')
             RestClient.log_body(body, '>>>')
 
         r = self.pool_manager.request(method, url,

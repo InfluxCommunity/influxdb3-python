@@ -5,7 +5,7 @@
 ### Breaking Changes
 
 1. [#217](https://github.com/InfluxCommunity/influxdb3-python/pull/217): Make Write API simpler and consistent with other v3 clients.
-    - Remove redundant lasses: `Configuration`, `ApiClient`, `WriteService`, `InfluxDBClient`, and `InfluxLoggingHandler`.
+    - Remove redundant classes: `Configuration`, `ApiClient`, `WriteService`, `InfluxDBClient`, and `InfluxLoggingHandler`.
     - Update `InfluxDBClient3` constructor parameters.
     - Refactor Multiprocessing helper class.
 
