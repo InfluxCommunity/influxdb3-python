@@ -251,7 +251,7 @@ class RestClient(object):
     def __getstate__(self):
         """Return a dict of attributes that you want to pickle."""
         state = self.__dict__.copy()
-        # Remove Pool managaer
+        # Remove Pool manager
         del state['pool_manager']
         return state
 
