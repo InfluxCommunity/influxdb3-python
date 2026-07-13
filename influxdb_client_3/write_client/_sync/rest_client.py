@@ -168,11 +168,17 @@ class RestClient(object):
             RestClient.log_headers(merged_headers, '>>>')
             RestClient.log_body(body, '>>>')
 
-        r = self.pool_manager.request(method, url,
-                                      body=body,
-                                      headers=merged_headers,
-                                      timeout=effective_timeout,
-                                      **urlopen_kw)
+        try:
+            r = self.pool_manager.request(
+                method, url,
+                body=body,
+                headers=merged_headers,
+                timeout=effective_timeout,
+                **urlopen_kw
+            )
+        except urllib3.exceptions.SSLError as e:
+            msg = "{0}\n{1}".format(type(e).__name__, str(e))
+            raise ApiException(status=0, reason=msg)
 
         r = RESTResponse(r)
         if isinstance(r.data, (bytes, bytearray)):

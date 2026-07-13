@@ -5,6 +5,7 @@
 ### Breaking Changes
 
 1. [#217](https://github.com/InfluxCommunity/influxdb3-python/pull/217): Make Write API simpler and consistent with other v3 clients.
+    - Remove unsued `InfluxLoggingHandler` class.
     - WriteApi now has all functions to write to InfluxDB. `Configuration`, `ApiClient`, `WriteService`, `InfluxDBClient` are no longer needed.
     All settings needed for writing now can be passed to the constructor of WriteApi.
     ``` python
@@ -13,7 +14,7 @@
         from influxdb_client_3.write_client._sync import rest_client
 
         default_header = {
-            'Authorization': f'Token {self.token}'
+            'Authorization': 'Token my-token'
         }
         rest = rest_client.RestClient(
             base_url='http://localhost:8181',
@@ -27,15 +28,23 @@
             proxy=None,
             proxy_headers=None,
             retries=False,
-            debug=debug,
-            connection_pool_maxsize=multiprocessing.cpu_count() * 5
+            debug=False,
+            connection_pool_maxsize=25
         )
-
+        
+        write_client_options["write_options"].timeout = 1000
         write_api = WriteApi(
             bucket='bucket_name',
             org='my-org',
             default_header=default_header,
-            rest_client=rest,
+            gzip_threshold=None,
+            enable_gzip=False,
+            auth_scheme='Token',
+            timeout=None,
+            default_header=default_header,
+            rest_client=self.rest,
+            point_settings=None,
+            **write_client_options
         )
 
         test_id = time.time_ns()

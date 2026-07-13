@@ -318,6 +318,8 @@ class WriteApi:
             - error_callback: A function to call upon errors (used in batching mode).
             - retry_callback: A function to call upon retries (used in batching mode).
         """
+        if rest_client is None:
+            raise ValueError("Invalid value for `rest_client`, must be defined.")
         self.rest_client = rest_client
         self.bucket = bucket
         self.org = org
