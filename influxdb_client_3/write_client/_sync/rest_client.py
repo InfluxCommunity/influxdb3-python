@@ -8,7 +8,7 @@ import multiprocessing
 import ssl
 import sys
 from typing import Dict
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urljoin
 
 from influxdb_client_3.write_client.rest import ApiException
 
@@ -121,7 +121,7 @@ class RestClient(object):
                 proxy_headers=proxy_headers,
                 ssl_context=ssl_context,
                 **addition_pool_args
-            ).connection_from_url(url=base_url)
+            )
         else:
             self.pool_manager = urllib3.PoolManager(
                 num_pools=pools_size,
@@ -133,7 +133,7 @@ class RestClient(object):
                 key_password=cert_key_password,
                 ssl_context=ssl_context,
                 **addition_pool_args
-            ).connection_from_url(url=base_url)
+            )
 
     def request(self, method, url, query_params=None, headers=None,
                 body=None, timeout=None, **urlopen_kw):
@@ -152,8 +152,9 @@ class RestClient(object):
                            :meth:`urllib3.request.RequestMethods.request`
         """
 
+        request_url = url if url.startswith(("http://", "https://")) else urljoin(self.base_url, url)
         if query_params:
-            url += '?' + urlencode(query_params)
+            request_url += '?' + urlencode(query_params)
 
         merged_headers = {}
         if self.default_header:
@@ -164,13 +165,13 @@ class RestClient(object):
         effective_timeout = timeout if timeout is not None else self.timeout
 
         if self.debug:
-            RestClient.log_request(method, url)
+            RestClient.log_request(method, request_url)
             RestClient.log_headers(merged_headers, '>>>')
             RestClient.log_body(body, '>>>')
 
         try:
             r = self.pool_manager.request(
-                method, url,
+                method, request_url,
                 body=body,
                 headers=merged_headers,
                 timeout=effective_timeout,

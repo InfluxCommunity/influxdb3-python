@@ -11,6 +11,7 @@ from urllib3.exceptions import ConnectTimeoutError
 from influxdb_client_3 import InfluxDBClient3, InfluxDBError
 from influxdb_client_3.exceptions import InfluxDBPartialWriteError
 from influxdb_client_3.version import VERSION
+from influxdb_client_3.write_client._sync.rest_client import RestClient
 from influxdb_client_3.write_client.rest import ApiException
 
 _package = "influxdb3-python"
@@ -294,6 +295,21 @@ class WriteApiTests(unittest.TestCase):
                                     _request_timeout=100)
         self.assertEqual(0.1, self.received_timeout_total)
         self.received_timeout_total = None
+
+    @mock.patch("influxdb_client_3.write_client._sync.rest_client.urllib3.ProxyManager")
+    def test_rest_client_proxy_uses_proxy_manager_instance(self, proxy_manager_cls):
+        manager = mock.Mock()
+        manager.request.return_value = response.HTTPResponse(status=200, reason='OK', body=b'')
+        proxy_manager_cls.return_value = manager
+
+        rest = RestClient(base_url='http://localhost:8181', proxy='http://proxy:3128')
+        self.assertIs(rest.pool_manager, manager)
+
+        rest.request(method='GET', url='/ping')
+
+        manager.request.assert_called_once()
+        args, _ = manager.request.call_args
+        self.assertEqual(('GET', 'http://localhost:8181/ping'), args[:2])
 
     def test_should_gzip(self):
         client = InfluxDBClient3(
