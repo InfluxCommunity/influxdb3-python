@@ -344,7 +344,6 @@ class InfluxDBClient3:
             self._write_client_options["write_options"].timeout = write_timeout
 
         self._write_api = _WriteApi(
-            token=self._token,
             bucket=self._database,
             org=self._org,
             gzip_threshold=gzip_threshold,

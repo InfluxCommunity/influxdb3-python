@@ -285,12 +285,10 @@ class WriteApi:
     """
 
     def __init__(self,
-                 token: str,
                  bucket: str,
                  org: str,
                  gzip_threshold=None,
                  enable_gzip=False,
-                 auth_scheme=None,
                  timeout=None,
                  pool_threads=None,
                  default_header=None,
@@ -302,14 +300,11 @@ class WriteApi:
         Initializes the client with the necessary configurations for interaction with
         the InfluxDB.
 
-        :param token: The authentication token used for accessing the InfluxDB.
         :param bucket: The target bucket in the InfluxDB to write data into.
         :param org: The target organization in the InfluxDB for operations.
         :param gzip_threshold: The size threshold (in bytes) for determining whether
             to enable GZIP compression.
         :param enable_gzip: Boolean indicating whether GZIP compression is enabled.
-        :param auth_scheme: The authentication scheme to use for the connection
-            (e.g., Basic, Bearer).
         :param timeout: Timeout duration (in milliseconds) for HTTP requests.
         :param pool_threads: Number of threads used for connection pools.
         :param default_header: Default HTTP headers to include in every request.
@@ -324,12 +319,10 @@ class WriteApi:
             - retry_callback: A function to call upon retries (used in batching mode).
         """
         self.rest_client = rest_client
-        self.token = token
         self.bucket = bucket
         self.org = org
         self.enable_gzip = enable_gzip
         self.gzip_threshold = gzip_threshold
-        self.auth_scheme = auth_scheme
         self.timeout = timeout
         self.pool_threads = pool_threads
         self._pool = None
@@ -1102,12 +1095,10 @@ class WriteApi:
         """Set your object with the provided dict."""
         self.__dict__.update(state)
         # Init Rx
-        self.__init__(token=self.token,
-                      bucket=self.bucket,
+        self.__init__(bucket=self.bucket,
                       org=self.org,
                       gzip_threshold=self.gzip_threshold,
                       enable_gzip=self.enable_gzip,
-                      auth_scheme=self.auth_scheme,
                       timeout=self.timeout,
                       rest_client=self.rest_client,
                       pool_threads=self.pool_threads,
