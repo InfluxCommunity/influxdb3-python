@@ -152,6 +152,7 @@ class RestClient(object):
                            :meth:`urllib3.request.RequestMethods.request`
         """
 
+        # Keep support for absolute URLs while constructing full URLs for relative paths.
         request_url = url if url.startswith(("http://", "https://")) else urljoin(self.base_url, url)
         if query_params:
             request_url += '?' + urlencode(query_params)

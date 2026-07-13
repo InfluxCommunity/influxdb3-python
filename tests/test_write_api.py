@@ -299,7 +299,7 @@ class WriteApiTests(unittest.TestCase):
     @mock.patch("influxdb_client_3.write_client._sync.rest_client.urllib3.ProxyManager")
     def test_rest_client_proxy_uses_proxy_manager_instance(self, proxy_manager_cls):
         manager = mock.Mock()
-        manager.request.return_value = response.HTTPResponse(status=200, reason='OK', body=b'')
+        manager.request.return_value = response.HTTPResponse(status=200, reason='OK', headers={}, body=b'')
         proxy_manager_cls.return_value = manager
 
         rest = RestClient(base_url='http://localhost:8181', proxy='http://proxy:3128')
