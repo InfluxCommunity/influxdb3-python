@@ -1,5 +1,6 @@
 import json
 import logging
+import multiprocessing
 import os
 import random
 import string
@@ -343,28 +344,77 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
             list_results = reader.to_pylist()
             self.assertEqual(data_size, len(list_results))
 
-    @pytest.mark.skipif(running_on_posix, reason="Skipping this test in POSIX environments")
+    # @pytest.mark.skipif(running_on_posix, reason="Skipping this test in POSIX environments")
     def test_multiprocessing_helper(self):
-        org = 'my-org'
-        writer = MultiprocessingWriter(
-            host=self.host,
-            database=self.database,
-            token=self.token,
-            org=org,
-            write_options=WriteOptions(batch_size=1))
-        writer.start()
-        measurement = f'test{random_hex(6)}'.lower()
-        for x in range(1, 10):
-            time.sleep(0.2)
-            writer.write(
-                bucket=self.database,
-                record=f"{measurement},tag=a value=\"number{x}\" {time.time_ns()}"
-            )
-        writer.__del__()
+        default_header = {
+            'Authorization': f'Token {self.token}'
+        }
+        rest = rest_client.RestClient(
+            base_url=self.host,
+            default_header=default_header,
+        )
+
+        with MultiprocessingWriter(
+                host=self.host,
+                database=self.database,
+                token=self.token,
+                org='my-org',
+                default_header=default_header,
+                rest_client=rest,
+                write_options=WriteOptions(batch_size=1)) as mp:
+            self.assertEqual(multiprocessing.get_start_method(), 'spawn')
+
+            measurement = f'test{random_hex(6)}'.lower()
+            for x in range(1, 5):
+                time.sleep(0.5)
+                mp.write(
+                    bucket=self.database,
+                    record=f"{measurement},tag=a value=\"number{x}\" {time.time_ns()}"
+                )
 
         time.sleep(1)
         df = self.client.query(f'select * from {measurement}', mode="pandas")
-        self.assertEqual(9, len(df))
+        self.assertEqual(4, len(df))
+
+    def test_multiprocessing_start_method_forkserver(self):
+        default_header = {
+            'Authorization': f'Token {self.token}'
+        }
+
+        MultiprocessingWriter(
+            host=self.host,
+            database=self.database,
+            token=self.token,
+            org='my-org',
+            default_header=default_header,
+            rest_client=(rest_client.RestClient(
+                base_url=self.host,
+                default_header=default_header,
+            )),
+            write_options=WriteOptions(batch_size=1),
+            start_method='forkserver'
+        )
+        self.assertEqual(multiprocessing.get_start_method(), 'forkserver')
+
+    def test_multiprocessing_start_method_fork(self):
+        default_header = {
+            'Authorization': f'Token {self.token}'
+        }
+
+        MultiprocessingWriter(
+            host=self.host,
+            database=self.database,
+            token=self.token,
+            org='my-org',
+            default_header=default_header,
+            rest_client=(rest_client.RestClient(
+                base_url=self.host,
+                default_header=default_header,
+            )),
+            write_options=WriteOptions(batch_size=1),
+            start_method='fork'
+        )
+        self.assertEqual(multiprocessing.get_start_method(), 'fork')
 
     test_cert = """-----BEGIN CERTIFICATE-----
 MIIDUzCCAjugAwIBAgIUZB55ULutbc9gy6xLp1BkTQU7siowDQYJKoZIhvcNAQEL
