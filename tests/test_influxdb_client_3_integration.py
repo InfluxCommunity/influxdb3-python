@@ -350,67 +350,69 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
             default_header=default_header,
         )
 
+        mp = MultiprocessingWriter(
+            host=self.host,
+            database=self.database,
+            token=self.token,
+            org='my-org',
+            default_header=default_header,
+            rest_client=rest,
+            write_options=WriteOptions(batch_size=1))
+        self.assertEqual(mp.get_start_processing_method(), 'spawn')
+        mp.start()
+
+        measurement = f'test{random_hex(6)}'.lower()
+        for x in range(1, 5):
+            time.sleep(0.5)
+            mp.write(
+                bucket=self.database,
+                record=f"{measurement},tag=a value=\"number{x}\" {time.time_ns()}"
+            )
+        mp.__del__()
+
+        time.sleep(1)
+        df = self.client.query(f'select * from {measurement}', mode="pandas")
+        self.assertEqual(4, len(df))
+
+    def test_multiprocessing_start_method_forkserver(self):
+        default_header = {
+            'Authorization': f'Token {self.token}'
+        }
+
         with MultiprocessingWriter(
                 host=self.host,
                 database=self.database,
                 token=self.token,
                 org='my-org',
                 default_header=default_header,
-                rest_client=rest,
-                write_options=WriteOptions(batch_size=1)) as mp:
-            self.assertEqual(mp.get_start_processing_method(), 'spawn')
+                rest_client=(rest_client.RestClient(
+                    base_url=self.host,
+                    default_header=default_header,
+                )),
+                write_options=WriteOptions(batch_size=1),
+                start_method='forkserver'
+        ) as mp:
+            self.assertEqual(mp.get_start_processing_method(), 'forkserver')
 
-            measurement = f'test{random_hex(6)}'.lower()
-            for x in range(1, 5):
-                time.sleep(0.5)
-                mp.write(
-                    bucket=self.database,
-                    record=f"{measurement},tag=a value=\"number{x}\" {time.time_ns()}"
-                )
+    def test_multiprocessing_start_method_fork(self):
+        default_header = {
+            'Authorization': f'Token {self.token}'
+        }
 
-        time.sleep(1)
-        df = self.client.query(f'select * from {measurement}', mode="pandas")
-        self.assertEqual(4, len(df))
-
-    # def test_multiprocessing_start_method_forkserver(self):
-    #     default_header = {
-    #         'Authorization': f'Token {self.token}'
-    #     }
-    #
-    #     with MultiprocessingWriter(
-    #             host=self.host,
-    #             database=self.database,
-    #             token=self.token,
-    #             org='my-org',
-    #             default_header=default_header,
-    #             rest_client=(rest_client.RestClient(
-    #                 base_url=self.host,
-    #                 default_header=default_header,
-    #             )),
-    #             write_options=WriteOptions(batch_size=1),
-    #             start_method='forkserver'
-    #     ) as mp:
-    #         self.assertEqual(mp.get_start_processing_method(), 'forkserver')
-    #
-    # def test_multiprocessing_start_method_fork(self):
-    #     default_header = {
-    #         'Authorization': f'Token {self.token}'
-    #     }
-    #
-    #     with MultiprocessingWriter(
-    #             host=self.host,
-    #             database=self.database,
-    #             token=self.token,
-    #             org='my-org',
-    #             default_header=default_header,
-    #             rest_client=(rest_client.RestClient(
-    #                 base_url=self.host,
-    #                 default_header=default_header,
-    #             )),
-    #             write_options=WriteOptions(batch_size=1),
-    #             start_method='fork'
-    #     ) as mp:
-    #         self.assertEqual(mp.get_start_processing_method(), 'fork')
+        with MultiprocessingWriter(
+                host=self.host,
+                database=self.database,
+                token=self.token,
+                org='my-org',
+                default_header=default_header,
+                rest_client=(rest_client.RestClient(
+                    base_url=self.host,
+                    default_header=default_header,
+                )),
+                write_options=WriteOptions(batch_size=1),
+                start_method='fork'
+        ) as mp:
+            self.assertEqual(mp.get_start_processing_method(), 'fork')
 
     test_cert = """-----BEGIN CERTIFICATE-----
 MIIDUzCCAjugAwIBAgIUZB55ULutbc9gy6xLp1BkTQU7siowDQYJKoZIhvcNAQEL
