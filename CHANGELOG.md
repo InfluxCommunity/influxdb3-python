@@ -25,6 +25,10 @@
             - `debug` - boolean - toggle debug level logging.
         - Any clients explicitly using the `Configuration`, `ApiClient`, `WriteService` or _legacy_ `InfluxDBClient` classes, will need to migrate their settings to the `InfluxDBClient3` constructor.
 
+1. [#222](https://github.com/InfluxCommunity/influxdb3-python/pull/222): Refactor `MultiprocessingWriter` class.
+    - New Process will be created by using `DefaultContext.Process(target)` to prevent erratic crashes, handle cross-platform code behavior safely, and coordinate complex resource sharing.     
+    - Users can now choose one of the start methods `fork`, `spawn` or `forkserver` when creating new Process. The default will be `spawn`.
+
 ## 0.20.0 [2026-06-11]
 
 ### Features
