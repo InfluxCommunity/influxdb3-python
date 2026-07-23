@@ -4,4 +4,4 @@ coverage:
       default:
         target: auto
         removed_code_behavior: fully_covered_patch
-#        threshold: 1%
+        threshold: 1%
