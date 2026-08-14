@@ -2,6 +2,12 @@
 
 ## 0.21.0 [unreleased]
 
+### Bug Fixes
+
+1. [#234](https://github.com/InfluxCommunity/influxdb3-python/pull/234): Add support for connecting to InfluxDB servers using IPv6 addresses.
+    - IPv6 addresses in server URLs must be enclosed in square brackets, for example, http://[2001:db8::1]:8086.
+    - IPv6 zone identifiers are not currently supported.
+
 ### Breaking Changes
 
 1. [#217](https://github.com/InfluxCommunity/influxdb3-python/pull/217): Makes the writing API simpler and more consistent with other v3 clients.

@@ -1,7 +1,6 @@
-import multiprocessing
-
 import importlib.util
 import json
+import multiprocessing
 import os
 import urllib.parse
 from typing import Any, List, Literal, Optional, TYPE_CHECKING
@@ -209,7 +208,8 @@ class InfluxDBClient3:
         """
         Initialize an InfluxDB client.
 
-        :param host: The hostname or IP address of the InfluxDB server.
+        :param host: The hostname or IP address of the InfluxDB server. IPv6 must be wrapped inside square brackets,
+               e.g. http://[2001:db8::1]:8086, and Zone IDs are not supported.
         :type host: str
         :param org: The InfluxDB organization name for operations.
         :type org: str
@@ -306,10 +306,11 @@ class InfluxDBClient3:
 
         # Parse the host input
         parsed_url = urllib.parse.urlparse(host)
-
-        # Determine the protocol (scheme), hostname, and port
-        scheme = parsed_url.scheme if parsed_url.scheme else "https"
         hostname = parsed_url.hostname if parsed_url.hostname else host
+        if "[" in parsed_url.netloc and "]" in parsed_url.netloc:
+            hostname = f"[{hostname}]"
+
+        scheme = parsed_url.scheme if parsed_url.scheme else "https"
         port = parsed_url.port if parsed_url.port else 443
 
         # Construct the clients using the parsed values

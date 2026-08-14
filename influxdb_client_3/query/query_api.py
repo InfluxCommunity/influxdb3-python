@@ -156,7 +156,8 @@ class QueryApi(object):
         """
         Initialize defaults.
 
-        :param connection_string: Flight/gRPC connection string
+        :param connection_string: Flight/gRPC connection string. IPv6 must be wrapped inside square brackets,
+               e.g. 'grpc+tcp://[2001:db8::1]:8086', and Zone IDs are not supported.
         :param token: access token
         :param flight_client_options: Flight client options
         """

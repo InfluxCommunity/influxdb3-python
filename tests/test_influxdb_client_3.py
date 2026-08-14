@@ -62,6 +62,52 @@ class TestInfluxDBClient3(unittest.TestCase):
         )
         self.assertEqual(client.default_header['Authorization'], "Token my_token")
 
+    def test_parse_addresses(self):
+        tests = [
+            {"url": "http://192.168.0.5/db", "expect": "http://192.168.0.5:443"},
+            {"url": "http://192.168.0.1:80", "expect": "http://192.168.0.1:80"},
+            {"url": "https://[2001:db8::1]", "expect": "https://[2001:db8::1]:443"},
+            {"url": "https://[2001:db8::1]:8086/influx", "expect": "https://[2001:db8::1]:8086"},
+            {"url": "http://[2001:db8::1]:15000?token=my-token", "expect": "http://[2001:db8::1]:15000"},
+            {"url": "http://[2001:db8::1]", "expect": "http://[2001:db8::1]:443"},
+            {"url": "http://[2001:db8:a0b:12f0::1]:80", "expect": "http://[2001:db8:a0b:12f0::1]:80"},
+            {"url": "http://example.com", "expect": "http://example.com:443"},
+            {"url": "http://example.com:3000", "expect": "http://example.com:3000"},
+        ]
+        for test in tests:
+            client = InfluxDBClient3(
+                host=test["url"],
+                org="my_org",
+                database="my_db",
+                token="my_token",
+            )
+            self.assertEqual(client.base_url, test["expect"])
+
+    @patch('influxdb_client_3._QueryApi')
+    def test_ipv6_QueryApi(self, mock_query_api):
+        tests = [
+            {"url": "https://[2001:db8::1]", "expect": "grpc+tls://[2001:db8::1]:443"},
+            {"url": "https://[2001:db8::1]:8086/influx", "expect": "grpc+tls://[2001:db8::1]:8086"},
+            {"url": "http://[2001:db8::1]:15000?token=my-token", "expect": "grpc+tcp://[2001:db8::1]:15000"},
+            {"url": "http://[2001:db8::1]", "expect": "grpc+tcp://[2001:db8::1]:443"},
+            {"url": "http://[2001:db8:a0b:12f0::1]:80", "expect": "grpc+tcp://[2001:db8:a0b:12f0::1]:80"},
+        ]
+        for test in tests:
+            InfluxDBClient3(
+                host=test['url'],
+                org="my_org",
+                database="my_db",
+                token="my_token"
+            )
+            mock_query_api.assert_called_with(
+                connection_string=test['expect'],
+                token="my_token",
+                flight_client_options=None,
+                proxy=None,
+                options=unittest.mock.ANY
+            )
+            mock_query_api.reset_mock()
+
     # test explicit token auth_scheme
     def test_token_auth_scheme_explicit(self):
         client = InfluxDBClient3(
