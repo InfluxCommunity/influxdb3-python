@@ -71,6 +71,16 @@ REQUEST_BUILD_KWARGS = {
     'org_id',
 }
 
+POST_WRITE_KWARGS = REQUEST_BUILD_KWARGS.union({
+    'precision',
+    'no_sync',
+    'accept_partial',
+    'use_v2_api',
+    'async_req',
+    '_request_timeout',
+    'urlopen_kw',
+})
+
 logger = logging.getLogger('influxdb_client_3.write_client.client.write_api')
 
 try:
@@ -454,6 +464,7 @@ class WriteApi:
         if body is None:
             raise ValueError("Missing the required parameter 'body' when calling `post_write_async`")
         http_kwargs = {k: v for k, v in kwargs.items() if k not in SERIALIZER_KWARGS}
+        self._validate_post_write_kwargs(http_kwargs)
         use_v2_api = http_kwargs.get('use_v2_api', DEFAULT_WRITE_USE_V2_API)
         no_sync = http_kwargs.get('no_sync', DEFAULT_WRITE_NO_SYNC)
         accept_partial = http_kwargs.get('accept_partial', DEFAULT_WRITE_ACCEPT_PARTIAL)
@@ -652,6 +663,7 @@ class WriteApi:
             raise ValueError("Missing the required parameter 'body' when calling `_post_write`")
         # Filter out serializer-specific kwargs before building the HTTP request.
         http_kwargs = {k: v for k, v in kwargs.items() if k not in SERIALIZER_KWARGS}
+        self._validate_post_write_kwargs(http_kwargs)
         request_kwargs = {k: v for k, v in http_kwargs.items() if k in REQUEST_BUILD_KWARGS}
         request = self._build_write_request(
             org, bucket, precision, no_sync, accept_partial, use_v2_api, **request_kwargs)
@@ -685,12 +697,12 @@ class WriteApi:
 
     def _build_write_request(self, org, bucket, precision, no_sync, accept_partial, use_v2_api, **kwargs):
         if org is None:
-            raise ValueError("Missing the required parameter `org` when calling `_post_write`")
+            raise ValueError("Missing the required parameter `org` when calling `_build_write_request`")
         if bucket is None:
-            raise ValueError("Missing the required parameter `bucket` when calling `_post_write`")
+            raise ValueError("Missing the required parameter `bucket` when calling `_build_write_request`")
 
         query_params = [('org', org)]
-        if 'org_id' in kwargs:
+        if kwargs.get('org_id') is not None:
             query_params.append(('orgID', kwargs['org_id']))
 
         if use_v2_api:
@@ -723,6 +735,14 @@ class WriteApi:
             header_params['Content-Encoding'] = kwargs['content_encoding']
 
         return path, query_params, header_params
+
+    @staticmethod
+    def _validate_post_write_kwargs(kwargs):
+        for key in kwargs:
+            if key not in POST_WRITE_KWARGS:
+                raise TypeError(
+                    f"Got an unexpected keyword argument '{key}' to method _post_write"
+                )
 
     def _request(self, request, body, _request_timeout=None, urlopen_kw=None):
         resource_path, query_params, header_params = request

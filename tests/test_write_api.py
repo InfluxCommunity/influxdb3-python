@@ -173,6 +173,21 @@ class WriteApiTests(unittest.TestCase):
                 use_v2_api=True,
             )
 
+        _, query_params, _ = client._write_api._build_write_request(
+            org='TEST_ORG',
+            bucket='TEST_BUCKET',
+            precision='ns',
+            no_sync=False,
+            accept_partial=True,
+            use_v2_api=True,
+            org_id=None,
+        )
+        self.assertEqual([
+            ('org', 'TEST_ORG'),
+            ('bucket', 'TEST_BUCKET'),
+            ('precision', 'ns'),
+        ], query_params)
+
     def test_api_error_cloud(self):
         response_body = '{"message": "parsing failed for write_lp endpoint"}'
         with self.assertRaises(InfluxDBError) as err:
@@ -547,6 +562,46 @@ class WriteApiTests(unittest.TestCase):
                 True,
                 True,
             )
+
+    def test_post_write_rejects_unknown_keyword(self):
+        client = InfluxDBClient3(
+            host='http://localhost:8181',
+            token='my-token',
+            database='my-bucket',
+            org='my-org',
+        )
+
+        with self.assertRaisesRegex(TypeError, r"unexpected keyword argument 'unsupported'"):
+            client._write_api._post_write(
+                False,
+                'TEST_BUCKET',
+                'TEST_ORG',
+                'home temp=96',
+                'ns',
+                False,
+                True,
+                True,
+                unsupported=True,
+            )
+
+    def test_post_write_async_rejects_unknown_keyword(self):
+        client = InfluxDBClient3(
+            host='http://localhost:8181',
+            token='my-token',
+            database='my-bucket',
+            org='my-org',
+        )
+
+        async def run():
+            await client._write_api.post_write_async(
+                'TEST_ORG',
+                'TEST_BUCKET',
+                'home temp=96',
+                unsupported=True,
+            )
+
+        with self.assertRaisesRegex(TypeError, r"unexpected keyword argument 'unsupported'"):
+            asyncio.run(run())
 
     def test_post_write_async_translates_v3_unsupported(self):
         client = InfluxDBClient3(
