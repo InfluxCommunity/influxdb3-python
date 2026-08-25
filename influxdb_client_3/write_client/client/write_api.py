@@ -63,6 +63,14 @@ SERIALIZER_KWARGS = {
     'tag_order',
 }
 
+REQUEST_BUILD_KWARGS = {
+    'accept',
+    'content_type',
+    'content_length',
+    'content_encoding',
+    'org_id',
+}
+
 logger = logging.getLogger('influxdb_client_3.write_client.client.write_api')
 
 try:
@@ -444,7 +452,7 @@ class WriteApi:
         :return: The HTTP response.
         """  # noqa: E501
         if body is None:
-            raise ValueError("Missing the required parameter 'body' when calling `_post_write`")
+            raise ValueError("Missing the required parameter 'body' when calling `post_write_async`")
         http_kwargs = {k: v for k, v in kwargs.items() if k not in SERIALIZER_KWARGS}
         use_v2_api = http_kwargs.get('use_v2_api', DEFAULT_WRITE_USE_V2_API)
         no_sync = http_kwargs.get('no_sync', DEFAULT_WRITE_NO_SYNC)
@@ -452,7 +460,7 @@ class WriteApi:
         precision = http_kwargs.get('precision')
         request_kwargs = {
             k: v for k, v in http_kwargs.items()
-            if k not in {'use_v2_api', 'no_sync', 'accept_partial', 'precision'}
+            if k in REQUEST_BUILD_KWARGS
         }
         request = self._build_write_request(
             org, bucket, precision, no_sync, accept_partial, use_v2_api, **request_kwargs)
@@ -644,8 +652,9 @@ class WriteApi:
             raise ValueError("Missing the required parameter 'body' when calling `_post_write`")
         # Filter out serializer-specific kwargs before building the HTTP request.
         http_kwargs = {k: v for k, v in kwargs.items() if k not in SERIALIZER_KWARGS}
+        request_kwargs = {k: v for k, v in http_kwargs.items() if k in REQUEST_BUILD_KWARGS}
         request = self._build_write_request(
-            org, bucket, precision, no_sync, accept_partial, use_v2_api, **http_kwargs)
+            org, bucket, precision, no_sync, accept_partial, use_v2_api, **request_kwargs)
         try:
             if _async_req:
                 result = self.pool.apply_async(
