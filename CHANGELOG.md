@@ -8,12 +8,6 @@
     - IPv6 addresses in server URLs must be enclosed in square brackets, for example, http://[2001:db8::1]:8086.
     - IPv6 zone identifiers are not currently supported.
 
-### Others
-
-1. [#237](https://github.com/InfluxCommunity/influxdb3-python/pull/237): Simplify the `WriteApi` request path.
-    - Centralizes v2/v3 write request construction and uses `RestClient` directly.
-    - Preserves existing write behavior without public API changes.
-
 ### Breaking Changes
 
 1. [#217](https://github.com/InfluxCommunity/influxdb3-python/pull/217): Makes the writing API simpler and more consistent with other v3 clients.
@@ -27,6 +21,7 @@
         - The following internal classes have been refactored:
             - `write_client._sync.RestClient` - this class is now responsible for low-level handling of transport requests. End users should not need to use it directly.
             - `write_client.client.WriteApi` - all internal settings needed for writing are now encapsulated within this Api.
+    - Further simplifies the `WriteApi` request path by constructing v2/v3 requests directly through `RestClient`, while preserving existing write behavior.
     - Refactors Multiprocessing helper class.
     - __Migration Guidance__
         - `InfluxDBClient3` constructor now has additional parameters for configuring the internal `WriteApi` and `RestClient`.
