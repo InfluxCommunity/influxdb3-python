@@ -55,6 +55,62 @@ class WriteApiTests(unittest.TestCase):
         self.assertEqual(f"{_package}/{VERSION}", write_api.default_header["User-Agent"])
         self.assertEqual("Token my-token", write_api.default_header["Authorization"])
 
+    def test_build_write_request_preserves_v2_and_v3_request_matrix(self):
+        client = InfluxDBClient3(
+            host='http://localhost:8181',
+            token='my-token',
+            database='my-bucket',
+            org='my-org'
+        )
+        write_api = client._write_api
+
+        cases = [
+            (
+                "v2 request",
+                True,
+                False,
+                False,
+                'us',
+                '/api/v2/write',
+                [('org', 'TEST_ORG'), ('bucket', 'TEST_BUCKET'), ('precision', 'us')],
+            ),
+            (
+                "v3 request",
+                False,
+                True,
+                False,
+                'us',
+                '/api/v3/write_lp',
+                [('org', 'TEST_ORG'), ('db', 'TEST_BUCKET'), ('precision', 'microsecond'),
+                 ('no_sync', 'true'), ('accept_partial', 'false')],
+            ),
+            (
+                "v3 partial write request",
+                False,
+                False,
+                False,
+                'ns',
+                '/api/v3/write_lp',
+                [('org', 'TEST_ORG'), ('db', 'TEST_BUCKET'), ('precision', 'nanosecond'),
+                 ('accept_partial', 'false')],
+            ),
+        ]
+
+        for name, use_v2_api, no_sync, accept_partial, precision, expected_path, expected_query in cases:
+            with self.subTest(name):
+                path, query_params, headers = write_api._build_write_request(
+                    org='TEST_ORG',
+                    bucket='TEST_BUCKET',
+                    precision=precision,
+                    no_sync=no_sync,
+                    accept_partial=accept_partial,
+                    use_v2_api=use_v2_api,
+                )
+                self.assertEqual(expected_path, path)
+                self.assertEqual(expected_query, query_params)
+                self.assertEqual('application/json', headers['Accept'])
+                self.assertEqual('text/plain; charset=utf-8', headers['Content-Type'])
+
     def test_api_error_cloud(self):
         response_body = '{"message": "parsing failed for write_lp endpoint"}'
         with self.assertRaises(InfluxDBError) as err:
@@ -370,10 +426,9 @@ class WriteApiTests(unittest.TestCase):
                     org='my-org'
                 )
                 write_api = client._write_api
-                write_api.call_api = mock.Mock()
-                thread = mock.Mock()
-                thread.get.side_effect = ApiException(http_resp=http_resp)
-                write_api.call_api.return_value = thread
+                write_api.rest_client.request = mock.Mock(
+                    side_effect=ApiException(http_resp=http_resp)
+                )
                 result = write_api._post_write(
                     org="TEST_ORG",
                     bucket="TEST_BUCKET",
