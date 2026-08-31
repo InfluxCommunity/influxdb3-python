@@ -1,7 +1,10 @@
 import asyncio
+import http
 import json
 import unittest
 import uuid
+from dataclasses import dataclass, field
+from typing import Optional, List
 from unittest import mock
 
 import pytest
@@ -9,12 +12,275 @@ from urllib3 import response
 from urllib3.exceptions import ConnectTimeoutError
 
 from influxdb_client_3 import InfluxDBClient3, InfluxDBError
-from influxdb_client_3.exceptions import InfluxDBPartialWriteError
+from influxdb_client_3.exceptions import InfluxDBPartialWriteError, InfluxDBPartialWriteLineError
 from influxdb_client_3.version import VERSION
 from influxdb_client_3.write_client.write_exceptions import ApiException
 
 _package = "influxdb3-python"
 _sentHeaders = {}
+
+
+@dataclass
+class TestCase:
+    __test__ = False
+    name: str
+    status_code: int
+    response_body: str
+    content_type: Optional[str] = None
+    use_v2_api: bool = False
+    accept_partial: bool = False
+    expected_msg: str = ""
+    expect_partial: bool = False
+    expected_lines: List[InfluxDBPartialWriteLineError] = field(default_factory=list)
+
+    def __str__(self):
+        return self.name
+
+
+POINTS = (
+    "home,room=Sunroom temp=96 1735545600\n"
+    'home,room=Sunroom temp="hi" 1735545610\n'
+    "home,room=Sunroom temp=88i 1735545620"
+)
+REJECTED_LINE = 'home,room=Sunroom temp="hi" 1735545610'
+REJECTED_LINE_JSON = 'home,room=Sunroom temp=\\"hi\\" 1735545610'
+LINE_ERROR = (
+    "invalid column type for column 'temp', expected "
+    "iox::column_type::field::float, got iox::column_type::field::string"
+)
+
+TEST_CASES = [
+    TestCase(
+        name="V3 accept partial with renamed error and non-empty array",
+        status_code=http.client.BAD_REQUEST,
+        content_type="application/json",
+        response_body=(
+            f'{{"error":"write completed with rejected rows","data":['
+            f'{{"error_message":"{LINE_ERROR}","line_number":2,"original_line":"{REJECTED_LINE_JSON}"}}'
+            f"]}}"
+        ),
+        accept_partial=True,
+        expected_msg=f"write completed with rejected rows:\n\tline 2: {LINE_ERROR} ({REJECTED_LINE})",
+        expect_partial=True,
+        expected_lines=[
+            InfluxDBPartialWriteLineError(
+                error_message=LINE_ERROR,
+                line_number=2,
+                original_line=REJECTED_LINE,
+            )
+        ],
+    ),
+    TestCase(
+        name="V3 accept partial without content type",
+        status_code=http.client.BAD_REQUEST,
+        content_type=None,
+        response_body=(
+            f'{{"error":"write completed with rejected rows","data":['
+            f'{{"error_message":"{LINE_ERROR}","line_number":2,"original_line":"{REJECTED_LINE_JSON}"}}'
+            f"]}}"
+        ),
+        accept_partial=True,
+        expected_msg=f"write completed with rejected rows:\n\tline 2: {LINE_ERROR} ({REJECTED_LINE})",
+        expect_partial=True,
+        expected_lines=[
+            InfluxDBPartialWriteLineError(
+                error_message=LINE_ERROR,
+                line_number=2,
+                original_line=REJECTED_LINE,
+            )
+        ],
+    ),
+    TestCase(
+        name="V3 accept partial with malformed non-empty array",
+        status_code=http.client.BAD_REQUEST,
+        content_type="application/json",
+        response_body=(
+            f'{{"error":"write completed with rejected rows","data":['
+            f'{{"line_number":"invalid","original_line":"{REJECTED_LINE_JSON}"}}'
+            f"]}}"
+        ),
+        accept_partial=True,
+        expected_msg=f'write completed with rejected rows:\n\t{{"line_number":"invalid","original_line":'
+                     f'"{REJECTED_LINE_JSON}"}}',
+        expect_partial=True,
+        expected_lines=[],
+    ),
+    TestCase(
+        name="V3 accept partial with mixed primitive and typed entries",
+        status_code=http.client.BAD_REQUEST,
+        content_type="application/json",
+        response_body=(
+            f'{{"error":"write completed with rejected rows","data":['
+            f'1,{{"error_message":"{LINE_ERROR}","line_number":2,"original_line":"{REJECTED_LINE_JSON}"}}'
+            f"]}}"
+        ),
+        accept_partial=True,
+        expected_msg=(
+            f"write completed with rejected rows:\n\t1\n\t"
+            f'{{"error_message":"{LINE_ERROR}","line_number":2,"original_line":"{REJECTED_LINE_JSON}"}}'
+        ),
+        expect_partial=True,
+        expected_lines=[
+            InfluxDBPartialWriteLineError(
+                error_message=LINE_ERROR,
+                line_number=2,
+                original_line=REJECTED_LINE,
+            )
+        ],
+    ),
+    TestCase(
+        name="V3 accept partial with string entries",
+        status_code=http.client.BAD_REQUEST,
+        content_type="application/json",
+        response_body=f'{{"error":"write completed with rejected rows","data":["{REJECTED_LINE_JSON}"]}}',
+        accept_partial=True,
+        expected_msg=f'write completed with rejected rows:\n\t"{REJECTED_LINE_JSON}"',
+        expect_partial=True,
+        expected_lines=[],
+    ),
+    TestCase(
+        name="V3 accept partial with error message only",
+        status_code=http.client.BAD_REQUEST,
+        content_type="application/json",
+        response_body=f'{{"error":"write completed with rejected rows",'
+                      f'"data":[{{"error_message":"{LINE_ERROR}"}}]}}',
+        accept_partial=True,
+        expected_msg=f"write completed with rejected rows:\n\t{LINE_ERROR}",
+        expect_partial=True,
+        expected_lines=[
+            InfluxDBPartialWriteLineError(
+                error_message=LINE_ERROR,
+                line_number=None,
+                original_line=None,
+            )
+        ],
+    ),
+    TestCase(
+        name="V3 accept partial with line number but no original line",
+        status_code=http.client.BAD_REQUEST,
+        content_type="application/json",
+        response_body=f'{{"error":"write completed with rejected rows","data":[{{"error_message":"{LINE_ERROR}",'
+                      f'"line_number":2}}]}}',
+        accept_partial=True,
+        expected_msg=f"write completed with rejected rows:\n\tline 2: {LINE_ERROR}",
+        expect_partial=True,
+        expected_lines=[
+            InfluxDBPartialWriteLineError(
+                error_message=LINE_ERROR,
+                line_number=2,
+                original_line=None,
+            )
+        ],
+    ),
+    TestCase(
+        name="V3 accept partial with entry missing error message",
+        status_code=http.client.BAD_REQUEST,
+        content_type="application/json",
+        response_body=f'{{"error":"write completed with rejected rows",'
+                      f'"data":[{{"line_number":2,"original_line":"{REJECTED_LINE_JSON}"}}]}}',
+        accept_partial=True,
+        expected_msg=f'write completed with rejected rows:\n\t{{"line_number":2,'
+                     f'"original_line":"{REJECTED_LINE_JSON}"}}',
+        expect_partial=True,
+        expected_lines=[],
+    ),
+    TestCase(
+        name="V3 accept partial with empty array",
+        status_code=http.client.BAD_REQUEST,
+        content_type="application/json",
+        response_body='{"error":"write failed","data":[]}',
+        accept_partial=True,
+        expected_msg="write failed",
+        expect_partial=False,
+    ),
+    TestCase(
+        name="V3 accept partial with object details remains generic",
+        status_code=http.client.BAD_REQUEST,
+        content_type="application/json",
+        response_body=(
+            f'{{"error":"line protocol parsing error","data":'
+            f'{{"error_message":"{LINE_ERROR}","line_number":2,"original_line":"{REJECTED_LINE_JSON}"}}}}'
+        ),
+        accept_partial=True,
+        expected_msg=f"line protocol parsing error:\n\tline 2: {LINE_ERROR} ({REJECTED_LINE})",
+        expect_partial=False,
+    ),
+    TestCase(
+        name="V3 reject partial with object details",
+        status_code=http.client.BAD_REQUEST,
+        content_type="application/json",
+        response_body=(
+            f'{{"error":"line protocol parsing error","data":'
+            f'{{"error_message":"{LINE_ERROR}","line_number":2,"original_line":"{REJECTED_LINE_JSON}"}}}}'
+        ),
+        accept_partial=False,
+        expected_msg=f"line protocol parsing error:\n\tline 2: {LINE_ERROR} ({REJECTED_LINE})",
+        expect_partial=False,
+    ),
+    TestCase(
+        name="V2 never returns partial write error",
+        status_code=http.client.BAD_REQUEST,
+        content_type="application/json",
+        response_body=(
+            f'{{"error":"partial write of line protocol occurred","data":['
+            f'{{"error_message":"{LINE_ERROR}","line_number":2,"original_line":"{REJECTED_LINE_JSON}"}}'
+            f"]}}"
+        ),
+        use_v2_api=True,
+        accept_partial=True,
+        expected_msg="partial write of line protocol occurred",
+        expect_partial=False,
+    ),
+    TestCase(
+        name="V3 non-400 never returns partial write error",
+        status_code=http.client.INTERNAL_SERVER_ERROR,
+        content_type="application/json",
+        response_body=(
+            f'{{"error":"partial write of line protocol occurred","data":['
+            f'{{"error_message":"{LINE_ERROR}","line_number":2,"original_line":"{REJECTED_LINE_JSON}"}}'
+            f"]}}"
+        ),
+        accept_partial=True,
+        expected_msg="partial write of line protocol occurred",
+        expect_partial=False,
+    ),
+    TestCase(
+        name="V3 scalar data remains generic",
+        status_code=http.client.BAD_REQUEST,
+        content_type="application/json",
+        response_body='{"error":"write failed","data":"invalid"}',
+        accept_partial=True,
+        expected_msg="write failed",
+        expect_partial=False,
+    ),
+    TestCase(
+        name="V3 empty object data remains generic",
+        status_code=http.client.BAD_REQUEST,
+        content_type="application/json",
+        response_body='{"error":"write failed","data":{}}',
+        accept_partial=True,
+        expected_msg="write failed",
+        expect_partial=False,
+    ),
+    TestCase(
+        name="V3 null data remains generic",
+        status_code=http.client.BAD_REQUEST,
+        content_type="application/json",
+        response_body='{"error":"write failed","data":null}',
+        accept_partial=True,
+        expected_msg="write failed",
+        expect_partial=False,
+    ),
+    TestCase(
+        name="V3 malformed JSON preserves raw response",
+        status_code=http.client.BAD_REQUEST,
+        content_type="application/json",
+        response_body='{"error":"write failed"',
+        accept_partial=True,
+        expected_msg='{"error":"write failed"',
+        expect_partial=False,
+    ),
+]
 
 
 class WriteApiTests(unittest.TestCase):
@@ -29,18 +295,22 @@ class WriteApiTests(unittest.TestCase):
 
         return response.HTTPResponse(status=200, version=4, reason="OK", decode_content=False, request_url=url)
 
-    def _test_api_error(self, body):
+    def _test_api_error(self, body, header=None, accept_partial=None, use_v2_api=None):
         client = InfluxDBClient3(
             host='http://localhost:8181',
             token='my-token',
             database='my-bucket',
             org='my-org'
         )
+        if body is not None:
+            body = body.encode()
+
         client._write_api.rest_client.pool_manager.request \
             = mock.Mock(return_value=response.HTTPResponse(status=400,
+                                                           headers=header or {},
                                                            reason='Bad Request',
-                                                           body=body.encode()))
-        client._write_api.write(record="data,foo=bar val=3.14")
+                                                           body=body))
+        client._write_api.write(record="data,foo=bar val=3.14", accept_partial=accept_partial, use_v2_api=use_v2_api)
 
     def test_default_headers(self):
         client = InfluxDBClient3(
@@ -98,6 +368,8 @@ class WriteApiTests(unittest.TestCase):
                 "\tline 3: invalid column type for column 'v', expected iox::column_type::field::float, "
                 "got iox::column_type::field::uinteger (***.INF.remote_***)",
                 True,
+                False,
+                1
             ),
             # error_message only (no line_number/original_line)
             (
@@ -107,6 +379,8 @@ class WriteApiTests(unittest.TestCase):
                 "partial write of line protocol occurred:\n"
                 "\tonly error message",
                 True,
+                False,
+                1
             ),
             # non-dict item in data list is skipped
             (
@@ -114,8 +388,10 @@ class WriteApiTests(unittest.TestCase):
                 '{"error":"partial write of line protocol occurred","data":[null,'
                 '{"error_message":"bad line","line_number":2,"original_line":"bad lp"}]}',
                 "partial write of line protocol occurred:\n"
-                "\tline 2: bad line (bad lp)",
+                "\t{\"error_message\":\"bad line\",\"line_number\":2,\"original_line\":\"bad lp\"}",
                 True,
+                False,
+                1
             ),
             # details empty -> return error_text
             (
@@ -123,7 +399,9 @@ class WriteApiTests(unittest.TestCase):
                 '{"error":"partial write of line protocol occurred","data":[{"line_number":2}]}',
                 "partial write of line protocol occurred:\n"
                 "\t{\"line_number\":2}",
+                True,
                 False,
+                0
             ),
             # typed parse fails due line_number type -> raw fallback details
             (
@@ -132,7 +410,9 @@ class WriteApiTests(unittest.TestCase):
                 '[{"error_message":"bad line","line_number":"x","original_line":"bad lp"}]}',
                 "partial write of line protocol occurred:\n"
                 "\t{\"error_message\":\"bad line\",\"line_number\":\"x\",\"original_line\":\"bad lp\"}",
+                True,
                 False,
+                0
             ),
             # mixed valid + malformed in array -> raw fallback for whole array
             (
@@ -142,7 +422,9 @@ class WriteApiTests(unittest.TestCase):
                 "partial write of line protocol occurred:\n"
                 "\t{\"error_message\":\"bad line\",\"line_number\":2,\"original_line\":\"bad lp\"}\n"
                 "\t1",
+                True,
                 False,
+                1
             ),
             # data is not a dict when resolving fallback keys
             (
@@ -150,14 +432,18 @@ class WriteApiTests(unittest.TestCase):
                 '{"error":"data not list","data":"oops"}',
                 "data not list",
                 False,
+                True,
+                0
             ),
             # typed object with empty message is dropped
             (
                 "empty error_message in object",
-                '{"error":"partial write of line protocol occurred","data":'
+                '{"error":"parsing failed for write_lp endpoint","data":'
                 '{"error_message":"","line_number":2,"original_line":"bad lp"}}',
-                "partial write of line protocol occurred",
+                "parsing failed for write_lp endpoint",
                 False,
+                True,
+                0
             ),
             # typed array parse fails, raw fallback skips null item
             (
@@ -166,64 +452,79 @@ class WriteApiTests(unittest.TestCase):
                 '[null,{"error_message":123}]}',
                 "partial write of line protocol occurred:\n"
                 "\t{\"error_message\":123}",
+                True,
                 False,
+                1
             ),
         ]
-        for name, response_body, expected, is_partial in cases:
+        for name, response_body, expected, is_partial, use_v2_api, expected_line_error_count in cases:
             with self.subTest(name):
-                with self.assertRaises(InfluxDBError) as err:
-                    self._test_api_error(response_body)
-                self.assertEqual(expected, err.exception.message)
                 if is_partial:
+                    with self.assertRaises(InfluxDBPartialWriteError) as err:
+                        self._test_api_error(body=response_body, accept_partial=is_partial, use_v2_api=use_v2_api)
                     self.assertIsInstance(err.exception, InfluxDBPartialWriteError)
-                    self.assertGreaterEqual(len(err.exception.line_errors), 1)
+                    self.assertGreaterEqual(len(err.exception.line_errors), expected_line_error_count)
                 else:
-                    self.assertNotIsInstance(err.exception, InfluxDBPartialWriteError)
+                    with self.assertRaises(ApiException) as err:
+                        self._test_api_error(body=response_body, accept_partial=is_partial, use_v2_api=use_v2_api)
+                self.assertEqual(expected, err.exception.message)
 
-    def test_api_error_v3_parsing_failed_object_returns_partial_error(self):
+    def test_api_error_v3_parsing_failed_object_returns_error(self):
         response_body = ('{"error":"parsing failed for write_lp endpoint","data":'
                          '{"error_message":"invalid field value","line_number":2,"original_line":"m,t=a f=bad"}}')
-        with self.assertRaises(InfluxDBPartialWriteError) as err:
+        with self.assertRaises(ApiException) as err:
             self._test_api_error(response_body)
-        self.assertEqual(1, len(err.exception.line_errors))
-        self.assertEqual(2, err.exception.line_errors[0].line_number)
-
-    def test_api_error_v3_partial_write_with_message_only_object_returns_partial_error(self):
-        response_body = ('{"error":"partial write of line protocol occurred","data":'
-                         '{"error_message":"only error message"}}')
-        with self.assertRaises(InfluxDBPartialWriteError) as err:
-            self._test_api_error(response_body)
-        self.assertEqual(1, len(err.exception.line_errors))
-        self.assertEqual(0, err.exception.line_errors[0].line_number)
-        self.assertEqual("", err.exception.line_errors[0].original_line)
-
-    def test_api_error_v3_partial_write_with_line_number_without_original_line(self):
-        response_body = ('{"error":"partial write of line protocol occurred","data":'
-                         '{"error_message":"invalid field value","line_number":2}}')
-        with self.assertRaises(InfluxDBPartialWriteError) as err:
-            self._test_api_error(response_body)
-        self.assertEqual(1, len(err.exception.line_errors))
-        self.assertEqual("partial write of line protocol occurred:\n\tline 2: invalid field value",
+        self.assertEqual('parsing failed for write_lp endpoint:\n\tline 2: invalid field value (m,t=a f=bad)',
                          err.exception.message)
 
-    def test_partial_write_from_response_guards(self):
-        self.assertIsNone(InfluxDBPartialWriteError.from_response(None))
+    def test_api_error_v3_write_with_message_only_object_returns(self):
+        response_body = ('{"error":"parsing failed for write_lp endpoint","data":'
+                         '{"error_message":"only error message"}}')
+        with self.assertRaises(ApiException) as err:
+            self._test_api_error(response_body)
+        self.assertEqual("parsing failed for write_lp endpoint:\n\tonly error message", err.exception.message)
 
-        empty_body = response.HTTPResponse(status=400, reason="Bad Request", body=b"")
-        self.assertIsNone(InfluxDBPartialWriteError.from_response(empty_body))
+    def test_api_error_v3_write_with_line_number_without_original_line(self):
+        response_body = ('{"error":"parsing failed for write_lp endpoint","data":'
+                         '{"error_message":"invalid field value","line_number":2}}')
+        with self.assertRaises(ApiException) as err:
+            self._test_api_error(response_body)
+        self.assertEqual("parsing failed for write_lp endpoint:\n\tline 2: invalid field value",
+                         err.exception.message)
 
-        invalid_json = response.HTTPResponse(status=400, reason="Bad Request", body=b"{")
-        self.assertIsNone(InfluxDBPartialWriteError.from_response(invalid_json))
+    def test_fallback_header_or_body(self):
+        for body in ["{err", "[]", "{}"]:
+            for is_partial_write in [False, True]:
+                # Fallback to header message
+                with self.assertRaises(InfluxDBError) as err:
+                    header = {"X-Influx-Error": "not used"}
+                    self._test_api_error(
+                        body=body,
+                        header=header,
+                        accept_partial=is_partial_write,
+                        use_v2_api=False
+                    )
+                self.assertEqual(header["X-Influx-Error"], err.exception.message)
 
-        non_dict_json = response.HTTPResponse(status=400, reason="Bad Request", body=b"[]")
-        self.assertIsNone(InfluxDBPartialWriteError.from_response(non_dict_json))
+                # Fallback to raw body
+                with self.assertRaises(InfluxDBError) as err:
+                    self._test_api_error(
+                        body=body,
+                        accept_partial=is_partial_write,
+                        use_v2_api=False
+                    )
+                self.assertEqual(body, err.exception.message)
 
-        object_without_typed_line_error = response.HTTPResponse(
-            status=400,
-            reason="Bad Request",
-            body=b'{"error":"partial write of line protocol occurred","data":{"error_message":123}}',
-        )
-        self.assertIsNone(InfluxDBPartialWriteError.from_response(object_without_typed_line_error))
+    def test_fallback_status_code_msg(self):
+        for body in ["", None]:
+            for is_partial_write in [False, True]:
+                with self.assertRaises(InfluxDBError) as err:
+                    self._test_api_error(
+                        body=body,
+                        accept_partial=is_partial_write,
+                        use_v2_api=False
+                    )
+                self.assertEqual('Bad Request', err.exception.message)
 
     def test_api_error_headers(self):
         body = '{"error": "test error"}'
@@ -333,6 +634,7 @@ class WriteApiTests(unittest.TestCase):
             (
                 "v2 on v3-only backend",
                 True,
+                False,
                 response.HTTPResponse(status=405, reason="Method Not Allowed", body=b""),
                 ApiException,
                 "Server doesn't support the V2 API endpoint (/api/v2/write). "
@@ -340,6 +642,7 @@ class WriteApiTests(unittest.TestCase):
             ),
             (
                 "v3 on v2-only backend",
+                False,
                 False,
                 response.HTTPResponse(status=405, reason="Method Not Allowed", body=b""),
                 ApiException,
@@ -349,6 +652,7 @@ class WriteApiTests(unittest.TestCase):
             (
                 "v3 partial write response",
                 False,
+                True,
                 response.HTTPResponse(
                     status=400,
                     reason="Bad Request",
@@ -361,7 +665,7 @@ class WriteApiTests(unittest.TestCase):
                 None,
             ),
         ]
-        for name, use_v2_api, http_resp, expected_type, expected_message in cases:
+        for name, use_v2_api, accept_partial, http_resp, expected_type, expected_message in cases:
             with self.subTest(name):
                 client = InfluxDBClient3(
                     host='http://localhost:8181',
@@ -379,7 +683,7 @@ class WriteApiTests(unittest.TestCase):
                     bucket="TEST_BUCKET",
                     body="home,room=Sunroom temp=96 1735545600",
                     precision='s',
-                    accept_partial=False,
+                    accept_partial=accept_partial,
                     no_sync=False,
                     async_req=True,
                     _async_req=True,
@@ -423,3 +727,34 @@ class WriteApiTests(unittest.TestCase):
         expected = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
                     "Set use_v2_api=True to use the V2 API endpoint.")
         self.assertEqual(expected, err.exception.message)
+
+    def test_write_error_classification(self):
+        for tc in TEST_CASES:
+            with self.subTest(tc.name):
+                headers = {"Content-Type": tc.content_type} if tc.content_type is not None else {}
+
+                client = InfluxDBClient3(
+                    host="http://localhost:8086",
+                    token="token",
+                    database="database",
+                )
+                client._write_api.rest_client.pool_manager.request = mock.Mock(
+                    return_value=response.HTTPResponse(
+                        status=tc.status_code,
+                        headers=headers,
+                        body=tc.response_body.encode("utf-8"),
+                    )
+                )
+
+                expected_exc = InfluxDBPartialWriteError if tc.expect_partial else InfluxDBError
+                with self.assertRaises(expected_exc) as cm:
+                    client.write(
+                        record=POINTS,
+                        use_v2_api=tc.use_v2_api,
+                        accept_partial=tc.accept_partial,
+                    )
+
+                err = cm.exception
+                self.assertEqual(tc.expected_msg, err.message)
+                if tc.expect_partial:
+                    self.assertEqual(tc.expected_lines, err.line_errors)

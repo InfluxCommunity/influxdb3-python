@@ -1,21 +1,22 @@
 """Collect and write time series data to InfluxDB Cloud or InfluxDB OSS."""
 from __future__ import absolute_import
-
 # TODO Remove after this program no longer supports Python 3.8.*
 from __future__ import annotations
 
 import asyncio
 import datetime
+import json
 import logging
 import os
 import warnings
 from collections import defaultdict
 from enum import Enum
 from http import HTTPStatus
+from json import JSONDecodeError
 from multiprocessing.pool import ThreadPool
 from random import random
 from time import sleep
-from typing import Union, Any, Iterable, NamedTuple
+from typing import Union, Any, Iterable, NamedTuple, List, Tuple, Optional
 
 import reactivex as rx
 import urllib3
@@ -23,21 +24,20 @@ from reactivex import operators as ops, Observable
 from reactivex.scheduler import ThreadPoolScheduler
 from reactivex.subject import Subject
 
-from influxdb_client_3.exceptions import InfluxDBPartialWriteError
+from influxdb_client_3.exceptions import InfluxDBPartialWriteError, InfluxDBPartialWriteLineError
 from influxdb_client_3.write_client._sync.rest_client import RestClient
-# from influxdb_client_3.write_client.client._base import _HAS_DATACLASS
 from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
 from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION, sanitize_tag_order
 from influxdb_client_3.write_client.client.write.retry import WritesRetry
 from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.domain.write_precision_converter import WritePrecisionConverter
-from influxdb_client_3.write_client.write_exceptions import _UTF_8_encoding, ApiException
 from influxdb_client_3.write_client.write_defaults import (
     DEFAULT_WRITE_ACCEPT_PARTIAL as _DEFAULT_WRITE_ACCEPT_PARTIAL,
     DEFAULT_WRITE_NO_SYNC as _DEFAULT_WRITE_NO_SYNC,
     DEFAULT_WRITE_TIMEOUT as _DEFAULT_WRITE_TIMEOUT,
     DEFAULT_WRITE_USE_V2_API as _DEFAULT_WRITE_USE_V2_API,
 )
+from influxdb_client_3.write_client.write_exceptions import _UTF_8_encoding, ApiException
 
 # Deprecated compatibility aliases.
 # New code should import these defaults from `influxdb_client_3.write_client.write_defaults`.
@@ -481,7 +481,7 @@ class WriteApi:
                 kwargs.get('urlopen_kw', None),
             )
         except ApiException as e:
-            raise self._translate_write_exception(e, use_v2_api)
+            raise self._translate_write_exception(e, use_v2_api, local_var_params['accept_partial'])
 
     def call_api(self, resource_path, method,
                  query_params=None, header_params=None,
@@ -717,12 +717,11 @@ class WriteApi:
                     try:
                         return original_get(timeout=timeout)
                     except ApiException as e:
-                        raise self._translate_write_exception(e, use_v2_api)
-
+                        raise self._translate_write_exception(e, use_v2_api, local_var_params['accept_partial'])
                 result.get = translated_get
             return result
         except ApiException as e:
-            raise self._translate_write_exception(e, use_v2_api)
+            raise self._translate_write_exception(e, use_v2_api, local_var_params['accept_partial'])
 
     def _call_api(
             self, resource_path, method,
@@ -926,25 +925,45 @@ class WriteApi:
         return {key: self._sanitize_for_serialization(val)
                 for key, val in obj_dict.items()}
 
-    def _translate_write_exception(self, exc, use_v2_api):
-        if use_v2_api and exc.status == HTTPStatus.METHOD_NOT_ALLOWED:
-            message = ("Server doesn't support the V2 API endpoint (/api/v2/write). "
-                       "Set use_v2_api=False to use the V3 API endpoint.")
+    def _translate_write_exception(self, exc, use_v2_api, accept_partial):
+        if exc.status == HTTPStatus.METHOD_NOT_ALLOWED:
+            if use_v2_api:
+                message = ("Server doesn't support the V2 API endpoint (/api/v2/write). "
+                           "Set use_v2_api=False to use the V3 API endpoint.")
+            else:
+                message = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
+                           "Set use_v2_api=True to use the V2 API endpoint.")
             ex = ApiException(status=0, reason=message)
             ex.message = message
             ex.args = (message,)
             return ex
-        if not use_v2_api and exc.status == HTTPStatus.METHOD_NOT_ALLOWED:
-            message = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
-                       "Set use_v2_api=True to use the V2 API endpoint.")
-            ex = ApiException(status=0, reason=message)
-            ex.message = message
-            ex.args = (message,)
-            return ex
-        partial = InfluxDBPartialWriteError.from_response(exc.response)
-        if partial is not None:
-            return partial
+
+        root = self._parse_json(exc.body)
+        if (root is None or
+                root == "" or
+                isinstance(root, dict) is False or
+                (isinstance(root, dict) and (not root.get("error") and not root.get("message")))):
+            message = WriteApi._extract_fallback_reason(exc.response)
+            exc.message = message
+            return exc
+
+        if isinstance(root, dict) and WriteApi._is_partial_write_error(exc.status, use_v2_api, accept_partial, root):
+            # InfluxDB 3 Core/Enterprise partial write error format:
+            # {"error":"...","data":[{"error_message":"...","line_number":2,"original_line": "..."}]}
+            return self._handle_partial_write_error(exc.response, root)
+
+        exc.message = WriteApi._get_message(root, exc.response)
         return exc
+
+    @staticmethod
+    def _parse_json(json_str: Optional[Union[str, bytes]]) -> Optional[Any]:
+        if not json_str:
+            return None
+        try:
+            return json.loads(json_str)
+        except (JSONDecodeError, TypeError, ValueError) as e:
+            logger.debug("Can't parse msg from response body %s: %s", json_str, e)
+            return None
 
     def _should_gzip(self, payload: str, enable_gzip: bool = False, gzip_threshold: int = None) -> bool:
         """
@@ -980,6 +999,122 @@ class WriteApi:
                 return True
 
         return False
+
+    @staticmethod
+    def _handle_partial_write_error(response, root: dict) -> InfluxDBPartialWriteError:
+        reason = root.get("error") or ""
+        parse_res = WriteApi._parse_partial_write_line_errors(root.get("data"))
+        all_typed, line_errors = parse_res if parse_res is not None else (False, [])
+        line_error_details = WriteApi._format_partial_write_details(root, all_typed, line_errors)
+        if line_error_details:
+            details_str = "".join(f"\n\t{detail}" for detail in line_error_details)
+            reason = f"{reason}:{details_str}"
+        return InfluxDBPartialWriteError(response, reason, line_errors)
+
+    @staticmethod
+    def _is_partial_write_error(status_code, use_v2_api, accept_partial, root) -> bool:
+        return (status_code == HTTPStatus.BAD_REQUEST and
+                accept_partial is True and
+                use_v2_api is False and
+                (isinstance(root.get('data'), list) and len(root.get('data')) > 0)
+                )
+
+    @staticmethod
+    def _parse_partial_write_data_item(item: Any) -> Optional[InfluxDBPartialWriteLineError]:
+        if not isinstance(item, dict):
+            return None
+
+        line_number = item.get("line_number")
+        if line_number is not None and (not isinstance(line_number, int) or isinstance(line_number, bool)):
+            return None
+
+        error_message = item.get("error_message")
+        if not error_message:
+            return None
+
+        return InfluxDBPartialWriteLineError(line_number, error_message, item.get("original_line"))
+
+    @staticmethod
+    def _parse_partial_write_line_errors(data: Any) -> Optional[Tuple[bool, List[InfluxDBPartialWriteLineError]]]:
+        if not isinstance(data, list):
+            return None
+
+        parsed_items = [WriteApi._parse_partial_write_data_item(item) for item in data]
+        all_typed = all(item is not None for item in parsed_items)
+        line_errors = [item for item in parsed_items if item is not None]
+        return all_typed, line_errors
+
+    @staticmethod
+    def _parse_typed_partial_write_object_or_none(data) -> Optional[InfluxDBPartialWriteLineError]:
+        try:
+            return WriteApi._parse_partial_write_data_item(data)
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _format_line_error(line_error: InfluxDBPartialWriteLineError) -> str:
+        if line_error.line_number is not None and line_error.original_line is not None:
+            return f"line {line_error.line_number}: {line_error.error_message} ({line_error.original_line})"
+        if line_error.line_number is not None:
+            return f"line {line_error.line_number}: {line_error.error_message}"
+        return f"{line_error.error_message}"
+
+    @staticmethod
+    def _format_partial_write_details(
+        root: dict, all_typed: bool, line_errors: List[InfluxDBPartialWriteLineError]
+    ) -> List[str]:
+        if all_typed:
+            return [WriteApi._format_line_error(err) for err in line_errors]
+
+        return [
+            json.dumps(raw, separators=(',', ':'))
+            for raw in (root.get('data') or [])
+            if raw is not None and raw != "null"
+        ]
+
+    @staticmethod
+    def _get_message(root, response):
+        if root:
+            try:
+                if isinstance(root, dict):
+                    # InfluxDB v3 error format: { "code": "...", "message": "..." }
+                    message = root.get("message")
+                    if message:
+                        code = root.get("code")
+                        return f"{code}: {message}" if code else message
+
+                    # Core/Enterprise object format:
+                    # {"error":"...","data":{"error_message":"..."}}
+                    error_text = root.get("error")
+                    if error_text:
+                        data = root.get("data")
+                        if isinstance(data, dict):
+                            line_error = WriteApi._parse_typed_partial_write_object_or_none(data)
+                            if line_error is not None and line_error.error_message:
+                                return f"{error_text}:\n\t{WriteApi._format_line_error(line_error)}"
+                        return error_text
+
+                # return WriteApi._extract_fallback_reason(response)
+            except Exception as e:
+                logger.debug("Cannot parse error response to JSON: %s, %s", response.data, e)
+                return response.data
+
+        # return WriteApi._extract_fallback_reason(response)
+
+    @staticmethod
+    def _extract_fallback_reason(response) -> str:
+        # Fallback to header
+        for header_key in ["X-Platform-Error-Code", "X-Influx-Error", "X-InfluxDb-Error"]:
+            header_value = response.getheader(header_key)
+            if header_value is not None:
+                return header_value
+
+        # Fallback to raw body
+        if response.data is not None and response.data != "":
+            return response.data
+
+        # Fallback to http Status
+        return response.reason
 
     @staticmethod
     def _on_error(ex):
