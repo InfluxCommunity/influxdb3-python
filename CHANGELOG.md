@@ -2,6 +2,10 @@
 
 ## 0.22.0 [unreleased]
 
+### Bug Fixes
+
+1. [#237](https://github.com/InfluxCommunity/influxdb3-python/pull/237): Makes the writing API simpler and more consistent with other v3 clients.
+
 ## 0.21.0 [2026-08-27]
 
 ### Bug Fixes
@@ -12,7 +16,7 @@
 
 ### Breaking Changes
 
-1. [#217](https://github.com/InfluxCommunity/influxdb3-python/pull/217), [#237](https://github.com/InfluxCommunity/influxdb3-python/pull/237): Makes the writing API simpler and more consistent with other v3 clients.
+1. [#217](https://github.com/InfluxCommunity/influxdb3-python/pull/217): Makes the writing API simpler and more consistent with other v3 clients.
     - Removes unused `InfluxLoggingHandler` class.
     - `WriteApi` now handles all functions to write to InfluxDB.
         - The following internal classes have been removed:
