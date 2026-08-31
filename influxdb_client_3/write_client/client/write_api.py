@@ -1102,13 +1102,9 @@ class WriteApi:
                             if line_error is not None and line_error.error_message:
                                 return f"{error_text}:\n\t{WriteApi._format_line_error(line_error)}"
                         return error_text
-
-                # return WriteApi._extract_fallback_reason(response)
             except Exception as e:
                 logger.debug("Cannot parse error response to JSON: %s, %s", response.data, e)
                 return response.data
-
-        # return WriteApi._extract_fallback_reason(response)
 
     @staticmethod
     def _extract_fallback_reason(response) -> str:
