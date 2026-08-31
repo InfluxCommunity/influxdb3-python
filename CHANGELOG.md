@@ -4,7 +4,8 @@
 
 ### Bug Fixes
 
-1. [#237](https://github.com/InfluxCommunity/influxdb3-python/pull/237): Makes the writing API simpler and more consistent with other v3 clients.
+1. [#237](https://github.com/InfluxCommunity/influxdb3-python/pull/237): Makes the writing API simpler and more consistent with other v3 clients:
+    - Further simplifies the `WriteApi` request path by constructing v2/v3 requests directly through `RestClient`, while preserving existing write behavior.
 
 ## 0.21.0 [2026-08-27]
 
@@ -27,7 +28,6 @@
         - The following internal classes have been refactored:
             - `write_client._sync.RestClient` - this class is now responsible for low-level handling of transport requests. End users should not need to use it directly.
             - `write_client.client.WriteApi` - all internal settings needed for writing are now encapsulated within this Api.
-    - Further simplifies the `WriteApi` request path by constructing v2/v3 requests directly through `RestClient`, while preserving existing write behavior.
     - Refactors Multiprocessing helper class.
     - __Migration Guidance__
         - `InfluxDBClient3` constructor now has additional parameters for configuring the internal `WriteApi` and `RestClient`.
