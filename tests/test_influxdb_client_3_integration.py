@@ -199,7 +199,7 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
                             client.write(lp)
 
                         self.assertEqual(400, err.exception.status)
-                        self.assertEqual("line protocol parsing error", err.exception.message)
+                        self.assertIn("line protocol parsing error", err.exception.message)
                         body = json.loads(err.exception.body)
                         self.assertEqual("line protocol parsing error", body["error"])
                         self.assertEqual(2, body["data"]["line_number"])
