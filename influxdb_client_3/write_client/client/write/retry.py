@@ -10,6 +10,7 @@ from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError, ResponseError
 
 from influxdb_client_3.exceptions import InfluxDBError
+from influxdb_client_3.write_client.write_exceptions import ApiException, translate_write_exception
 
 logger = logging.getLogger('influxdb_client.client.write.retry')
 
@@ -124,7 +125,8 @@ class WritesRetry(Retry):
         new_retry = super().increment(method, url, response, error, _pool, _stacktrace)
 
         if response is not None:
-            parsed_error = InfluxDBError(response=response)
+            api_exception = translate_write_exception(exc=ApiException(http_resp=response))
+            parsed_error = InfluxDBError(response=response, message=api_exception.message)
         elif error is not None:
             parsed_error = error
         else:

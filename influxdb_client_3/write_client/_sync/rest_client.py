@@ -175,7 +175,10 @@ class RestClient(object):
             raise ApiException(status=0, reason=msg)
 
         r = RESTResponse(r)
-        r.data = r.data.decode('utf8')
+        if r.data is not None and r.data != "":
+            r.data = r.data.decode('utf8')
+        else:
+            r.data = None
 
         if self.debug:
             RestClient.log_response(r.status)
