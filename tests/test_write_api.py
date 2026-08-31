@@ -758,3 +758,42 @@ class WriteApiTests(unittest.TestCase):
                 self.assertEqual(tc.expected_msg, err.message)
                 if tc.expect_partial:
                     self.assertEqual(tc.expected_lines, err.line_errors)
+
+    def test_translate_write_exception_direct(self):
+        client = InfluxDBClient3(
+            host="http://localhost:8086",
+            token="token",
+            database="database",
+        )
+        write_api = client._write_api
+
+        # 405 Method Not Allowed - use_v2_api=True
+        exc = ApiException(http_resp=response.HTTPResponse(status=405, reason="Method Not Allowed", body=b""))
+        translated = write_api._translate_write_exception(exc, use_v2_api=True, accept_partial=False)
+        self.assertIsInstance(translated, ApiException)
+        self.assertEqual(0, translated.status)
+        self.assertIn("Server doesn't support the V2 API endpoint", translated.message)
+
+        # 405 Method Not Allowed - use_v2_api=False
+        exc = ApiException(http_resp=response.HTTPResponse(status=405, reason="Method Not Allowed", body=b""))
+        translated = write_api._translate_write_exception(exc, use_v2_api=False, accept_partial=False)
+        self.assertIsInstance(translated, ApiException)
+        self.assertEqual(0, translated.status)
+        self.assertIn("Server doesn't support the V3 API endpoint", translated.message)
+
+        # Non-JSON body fallback to reason
+        exc = ApiException(http_resp=response.HTTPResponse(status=500, reason="Internal Server Error", body=b"plain error"))
+        translated = write_api._translate_write_exception(exc, use_v2_api=False, accept_partial=False)
+        self.assertEqual(b"plain error", translated.message)
+
+        # JSON with message field
+        exc = ApiException(http_resp=response.HTTPResponse(status=400, reason="Bad Request", body=b'{"message": "custom error"}'))
+        translated = write_api._translate_write_exception(exc, use_v2_api=False, accept_partial=False)
+        self.assertEqual("custom error", translated.message)
+
+        # Partial write error
+        partial_body = b'{"error":"write failed","data":[{"error_message":"invalid value","line_number":1,"original_line":"m v=1"}]}'
+        exc = ApiException(http_resp=response.HTTPResponse(status=400, reason="Bad Request", body=partial_body))
+        translated = write_api._translate_write_exception(exc, use_v2_api=False, accept_partial=True)
+        self.assertIsInstance(translated, InfluxDBPartialWriteError)
+        self.assertEqual(1, len(translated.line_errors))

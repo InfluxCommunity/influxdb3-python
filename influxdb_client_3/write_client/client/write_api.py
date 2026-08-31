@@ -925,18 +925,27 @@ class WriteApi:
         return {key: self._sanitize_for_serialization(val)
                 for key, val in obj_dict.items()}
 
-    def _translate_write_exception(self, exc, use_v2_api, accept_partial):
+    @staticmethod
+    def _create_unsupported_endpoint_exception(use_v2_api: bool) -> ApiException:
+        if use_v2_api:
+            message = ("Server doesn't support the V2 API endpoint (/api/v2/write). "
+                       "Set use_v2_api=False to use the V3 API endpoint.")
+        else:
+            message = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
+                       "Set use_v2_api=True to use the V2 API endpoint.")
+        ex = ApiException(status=0, reason=message)
+        ex.message = message
+        ex.args = (message,)
+        return ex
+
+    def _translate_write_exception(
+        self,
+        exc: ApiException,
+        use_v2_api: bool,
+        accept_partial: bool,
+    ) -> Union[ApiException, InfluxDBPartialWriteError]:
         if exc.status == HTTPStatus.METHOD_NOT_ALLOWED:
-            if use_v2_api:
-                message = ("Server doesn't support the V2 API endpoint (/api/v2/write). "
-                           "Set use_v2_api=False to use the V3 API endpoint.")
-            else:
-                message = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
-                           "Set use_v2_api=True to use the V2 API endpoint.")
-            ex = ApiException(status=0, reason=message)
-            ex.message = message
-            ex.args = (message,)
-            return ex
+            return WriteApi._create_unsupported_endpoint_exception(use_v2_api)
 
         root = self._parse_json(exc.body)
         if (root is None or
