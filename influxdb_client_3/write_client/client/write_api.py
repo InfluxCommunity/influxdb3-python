@@ -63,6 +63,24 @@ SERIALIZER_KWARGS = {
     'tag_order',
 }
 
+REQUEST_BUILD_KWARGS = {
+    'accept',
+    'content_type',
+    'content_length',
+    'content_encoding',
+    'org_id',
+}
+
+POST_WRITE_KWARGS = REQUEST_BUILD_KWARGS.union({
+    'precision',
+    'no_sync',
+    'accept_partial',
+    'use_v2_api',
+    'async_req',
+    '_request_timeout',
+    'urlopen_kw',
+})
+
 logger = logging.getLogger('influxdb_client_3.write_client.client.write_api')
 
 try:
@@ -74,7 +92,7 @@ except ModuleNotFoundError:
 
 
 class WriteType(Enum):
-    """Configuration which type of writes will client use."""
+    """Defines which type of writes the client will use."""
 
     batching = 1
     asynchronous = 2
@@ -309,7 +327,7 @@ class WriteApi:
         :param pool_threads: Number of threads used for connection pools.
         :param default_header: Default HTTP headers to include in every request.
         :param rest_client: An instance of a RestClient for internal HTTP communication.
-        :param write_options: Configuration options for writing data (e.g., synchronous
+        :param write_options: Options for writing data (e.g., synchronous
             or batching modes).
         :param point_settings: Default settings to apply to all points being written.
         :param kwargs: Additional keyword arguments that may include:
@@ -436,89 +454,40 @@ class WriteApi:
 
     async def post_write_async(self, org, bucket, body, **kwargs):  # noqa: E501,D401,D403
         """
-        Writes data to a bucket. Use this endpoint to send data in [line protocol](https://docs.influxdata.com/influxdb/latest/reference/syntax/line-protocol/) format to InfluxDB. InfluxDB Cloud - Does the following when you send a writing request:
-            1. Validates the request and queues the writing.
-            2. If queued, responds with _success_ (HTTP `2xx` status code); _error_ otherwise.
-            3. Handles to delete it asynchronously and reaches eventual consistency. To ensure that InfluxDB Cloud handles writes and deletes in the order you request them,
-               wait for a success response (HTTP `2xx` status code) before you send the next request.
-               Because writes and deletes are asynchronous, your change might not yet be readable when you receive the response.
-        #### InfluxDB OSS - Validates the request and handles the writing synchronously. - If all points were written successfully, responds with HTTP `2xx` status code;
-        otherwise, returns the first line that failed.\n
-        #### Required permissions - `write-buckets` or `write-bucket BUCKET_ID`. *`BUCKET_ID`* is the ID of the destination bucket.\n
-        #### Rate limits (with InfluxDB Cloud) `write` rate limits apply.
-        For more information, see [limits and adjustable quotas](https://docs.influxdata.com/influxdb/cloud/account-management/limits/).\n
-        #### Related guides - [Write data with the InfluxDB API](https://docs.influxdata.com/influxdb/latest/write-data/developer-tools/api) - [Optimize writes to InfluxDB](https://docs.influxdata.com/influxdb/latest/write-data/best-practices/optimize-writes/) - [Troubleshoot issues writing data](https://docs.influxdata.com/influxdb/latest/write-data/troubleshoot/)\n
-        This method makes an asynchronous HTTP request.
+        Write line protocol asynchronously using the configured write endpoint.
 
-        :param str org: An organization name. (required)
-        :param str bucket: A bucket name or ID. InfluxDB writes all points in the batch to the specified bucket. (required)
-        :param str body: In the request body, provide data in [line protocol format](https://docs.influxdata.com/influxdb/latest/reference/syntax/line-protocol/).
-        To send compressed data, do the following:
-            1. Use [GZIP](https://www.gzip.org/) to compress the line protocol data.
-            2. In your request, send the compressed data and the `Content-Encoding: gzip` header.
-            #### Related guides - [Best practices for optimizing writes](https://docs.influxdata.com/influxdb/latest/write-data/best-practices/optimize-writes/) (required)
-        :param str org_id: An organization ID.#### InfluxDB Cloud - Doesn't use the `org` parameter or `orgID` parameter. - Writes data to the bucket in the organization associated with the authorization (API token).
-        #### InfluxDB OSS - Requires either the `org` parameter or the `orgID` parameter. - If you pass both `orgID` and `org`, they must both be valid. - Writes data to the bucket in the specified organization.
-        :return: None
-                 If the method is called asynchronously,
-                 returns the request thread.
+        :param str org: Organization name.
+        :param str bucket: Bucket or database name.
+        :param str body: Line protocol payload.
+        :return: The HTTP response.
         """  # noqa: E501
-        local_var_params, path, path_params, query_params, header_params, body_params = \
-            self._post_write_prepare(org, bucket, body, self.default_header, **kwargs)  # noqa: E501
-        use_v2_api = local_var_params['use_v2_api']
+        if body is None:
+            raise ValueError("Missing the required parameter 'body' when calling `post_write_async`")
+        http_kwargs = {k: v for k, v in kwargs.items() if k not in SERIALIZER_KWARGS}
+        self._validate_post_write_kwargs(http_kwargs)
+        use_v2_api = http_kwargs.get('use_v2_api', DEFAULT_WRITE_USE_V2_API)
+        no_sync = http_kwargs.get('no_sync', DEFAULT_WRITE_NO_SYNC)
+        accept_partial = http_kwargs.get('accept_partial', DEFAULT_WRITE_ACCEPT_PARTIAL)
+        precision = http_kwargs.get('precision')
+        request_kwargs = {
+            k: v for k, v in http_kwargs.items()
+            if k in REQUEST_BUILD_KWARGS
+        }
+        request = self._build_write_request(
+            org, bucket, precision, no_sync, accept_partial, use_v2_api, **request_kwargs)
 
         try:
             loop = asyncio.get_running_loop()
             return await loop.run_in_executor(
                 None,
-                self._call_api,
-                path,
-                'POST',
-                query_params,
-                header_params,
+                self._request,
+                request,
                 body,
-                local_var_params.get('_request_timeout'),
-                kwargs.get('urlopen_kw', None),
+                http_kwargs.get('_request_timeout'),
+                http_kwargs.get('urlopen_kw', None),
             )
         except ApiException as e:
             raise self._translate_write_exception(e, use_v2_api)
-
-    def call_api(self, resource_path, method,
-                 query_params=None, header_params=None,
-                 body=None, async_req=None, _request_timeout=None, urlopen_kw=None):
-        """Make the HTTP request (synchronous) and Return deserialized data.
-
-        To make an async_req request, set the async_req parameter.
-
-        :param resource_path: Path to method endpoint.
-        :param method: Method to call.
-        :param query_params: Query parameters in the url.
-        :param header_params: Header parameters to be placed in the request header.
-        :param body: Request body.
-        :param async_req bool: execute request asynchronously
-        :param _request_timeout: timeout setting for this request. If one
-                                 number provided, it will be total request
-                                 timeout. It can also be a pair (tuple) of
-                                 (connection, read) timeouts.
-        :param urlopen_kw: Additional parameters are passed to
-                           :meth:`urllib3.request.RequestMethods.request`
-        :return:
-            If async_req parameter is True,
-            the request will be called asynchronously.
-            The method will return the request thread.
-            If parameter async_req is False or missing,
-            then the method will return the response directly.
-        """
-        if not async_req:
-            return self._call_api(resource_path, method,
-                                  query_params, header_params,
-                                  body, _request_timeout, urlopen_kw)
-
-        else:
-            thread = self.pool.apply_async(self._call_api, (resource_path,
-                                                            method, query_params,
-                                                            header_params, body, _request_timeout, urlopen_kw))
-        return thread
 
     def flush(self):
         """
@@ -690,27 +659,23 @@ class WriteApi:
         return _BatchResponse(data=batch_item)
 
     def _post_write(self, _async_req, bucket, org, body, precision, no_sync, accept_partial, use_v2_api, **kwargs):
-        # Filter out serializer-specific kwargs before passing to _post_write
+        if body is None:
+            raise ValueError("Missing the required parameter 'body' when calling `_post_write`")
+        # Filter out serializer-specific kwargs before building the HTTP request.
         http_kwargs = {k: v for k, v in kwargs.items() if k not in SERIALIZER_KWARGS}
-        http_kwargs['precision'] = precision
-        http_kwargs['no_sync'] = no_sync
-        http_kwargs['accept_partial'] = accept_partial
-        http_kwargs['use_v2_api'] = use_v2_api
-
-        local_var_params, path, path_params, query_params, header_params, body_params = \
-            self._post_write_prepare(org, bucket, body, self.default_header, **http_kwargs)  # noqa: E501
-
-        use_v2_api = local_var_params['use_v2_api']
+        self._validate_post_write_kwargs(http_kwargs)
+        request_kwargs = {k: v for k, v in http_kwargs.items() if k in REQUEST_BUILD_KWARGS}
+        request = self._build_write_request(
+            org, bucket, precision, no_sync, accept_partial, use_v2_api, **request_kwargs)
         try:
-            result = self.call_api(
-                path, 'POST',
-                query_params,
-                header_params,
-                body=body_params,
-                async_req=_async_req,
-                _request_timeout=local_var_params.get('_request_timeout'),
-                urlopen_kw=http_kwargs.get('urlopen_kw', None))
             if _async_req:
+                result = self.pool.apply_async(
+                    self._request,
+                    (request, body),
+                    {
+                        '_request_timeout': http_kwargs.get('_request_timeout'),
+                        'urlopen_kw': http_kwargs.get('urlopen_kw', None),
+                    })
                 original_get = result.get
 
                 def translated_get(timeout=None):
@@ -720,31 +685,76 @@ class WriteApi:
                         raise self._translate_write_exception(e, use_v2_api)
 
                 result.get = translated_get
-            return result
+                return result
+
+            return self._request(
+                request,
+                body,
+                http_kwargs.get('_request_timeout'),
+                http_kwargs.get('urlopen_kw', None))
         except ApiException as e:
             raise self._translate_write_exception(e, use_v2_api)
 
-    def _call_api(
-            self, resource_path, method,
-            query_params=None, header_params=None, body=None,
-            _request_timeout=None, urlopen_kw=None):
+    def _build_write_request(self, org, bucket, precision, no_sync, accept_partial, use_v2_api, **kwargs):
+        if org is None:
+            raise ValueError("Missing the required parameter `org` when calling `_build_write_request`")
+        if bucket is None:
+            raise ValueError("Missing the required parameter `bucket` when calling `_build_write_request`")
 
-        # body
+        query_params = [('org', org)]
+        if kwargs.get('org_id') is not None:
+            query_params.append(('orgID', kwargs['org_id']))
+
+        if use_v2_api:
+            path = '/api/v2/write'
+            query_params.append(('bucket', bucket))
+            if precision is not None:
+                query_params.append(('precision', WritePrecisionConverter.to_v2_api_string(precision)))
+        else:
+            path = '/api/v3/write_lp'
+            query_params.append(('db', bucket))
+            if precision is not None:
+                query_params.append(('precision', WritePrecisionConverter.to_v3_api_string(precision)))
+            if no_sync:
+                query_params.append(('no_sync', 'true'))
+            if accept_partial is False:
+                query_params.append(('accept_partial', 'false'))
+
+        header_params = dict(self.default_header) if self.default_header is not None else {}
+        if kwargs.get('accept') is not None:
+            header_params['Accept'] = kwargs['accept']
+        else:
+            header_params.setdefault('Accept', 'application/json')
+        if kwargs.get('content_type') is not None:
+            header_params['Content-Type'] = kwargs['content_type']
+        else:
+            header_params.setdefault('Content-Type', 'text/plain; charset=utf-8')
+        if kwargs.get('content_length') is not None:
+            header_params['Content-Length'] = kwargs['content_length']
+        if kwargs.get('content_encoding') is not None:
+            header_params['Content-Encoding'] = kwargs['content_encoding']
+
+        return path, query_params, header_params
+
+    @staticmethod
+    def _validate_post_write_kwargs(kwargs):
+        for key in kwargs:
+            if key not in POST_WRITE_KWARGS:
+                raise TypeError(
+                    f"Got an unexpected keyword argument '{key}' to method _post_write"
+                )
+
+    def _request(self, request, body, _request_timeout=None, urlopen_kw=None):
+        resource_path, query_params, header_params = request
         should_gzip = False
         if body:
             should_gzip = self._should_gzip(body, self.enable_gzip, self.gzip_threshold)
-            body = self._sanitize_for_serialization(body)
-            body = self._update_request_body(resource_path, body, should_gzip)
-
-        # header parameters
-        header_params = header_params or {}
-        self._update_request_header_params(resource_path, header_params, should_gzip)
-        if header_params:
-            header_params = self._sanitize_for_serialization(header_params)
-
-        # query parameters
-        if query_params:
-            query_params = self._sanitize_for_serialization(query_params)
+            if should_gzip:
+                import gzip
+                body = gzip.compress(body if isinstance(body, bytes) else bytes(body, _UTF_8_encoding))
+                header_params = dict(header_params)
+                header_params['Content-Encoding'] = 'gzip'
+                header_params['Accept-Encoding'] = 'identity'
 
         urlopen_kw = urlopen_kw or {}
 
@@ -760,7 +770,7 @@ class WriteApi:
 
         # perform request and return response
         response_data = self.rest_client.request(
-            method=method,
+            method='POST',
             path=resource_path,
             query_params=query_params,
             headers=header_params,
@@ -772,159 +782,6 @@ class WriteApi:
         self.last_response = response_data
 
         return response_data
-
-    def _post_write_prepare(self, org, bucket, body, default_header, **kwargs):  # noqa: E501,D401,D403
-        local_var_params = dict(locals())
-
-        all_params = ['org', 'bucket', 'body', 'content_encoding', 'content_type', 'content_length',
-                      'accept', 'org_id', 'precision', 'no_sync', 'accept_partial', 'use_v2_api']  # noqa: E501
-        self._check_operation_params('_post_write', all_params, local_var_params)
-        local_var_params.setdefault('use_v2_api', DEFAULT_WRITE_USE_V2_API)
-        local_var_params.setdefault('no_sync', DEFAULT_WRITE_NO_SYNC)
-        local_var_params.setdefault('accept_partial', DEFAULT_WRITE_ACCEPT_PARTIAL)
-        # verify the required parameter 'org' is set
-        if ('org' not in local_var_params or
-                local_var_params['org'] is None):
-            raise ValueError("Missing the required parameter `org` when calling `_post_write`")  # noqa: E501
-        # verify the required parameter 'bucket' is set
-        if ('bucket' not in local_var_params or
-                local_var_params['bucket'] is None):
-            raise ValueError("Missing the required parameter `bucket` when calling `_post_write`")  # noqa: E501
-        # verify the required parameter 'body' is set
-        if ('body' not in local_var_params or
-                local_var_params['body'] is None):
-            raise ValueError("Missing the required parameter `body` when calling `_post_write`")  # noqa: E501
-
-        path_params = {}
-        query_params = []
-
-        use_v2_api = local_var_params['use_v2_api']
-        no_sync = local_var_params['no_sync']
-        accept_partial = local_var_params['accept_partial']
-        if 'org' in local_var_params:
-            query_params.append(('org', local_var_params['org']))  # noqa: E501
-        if 'org_id' in local_var_params:
-            query_params.append(('orgID', local_var_params['org_id']))  # noqa: E501
-        if 'bucket' in local_var_params:
-            query_params.append(('bucket' if use_v2_api else 'db', local_var_params['bucket']))  # noqa: E501
-
-        if use_v2_api:
-            path = '/api/v2/write'
-            if 'precision' in local_var_params:
-                precision = local_var_params['precision']
-                query_params.append(('precision', WritePrecisionConverter.to_v2_api_string(precision)))  # noqa: E501
-        else:
-            path = '/api/v3/write_lp'
-            if 'precision' in local_var_params:
-                precision = local_var_params['precision']
-                query_params.append(('precision', WritePrecisionConverter.to_v3_api_string(precision)))  # noqa: E501
-            if no_sync:
-                query_params.append(('no_sync', 'true'))
-            if accept_partial is False:
-                query_params.append(('accept_partial', 'false'))
-
-        header_params = dict(default_header) if default_header is not None else {}
-        if local_var_params.get('accept') is not None:
-            header_params['Accept'] = local_var_params['accept']
-        else:
-            header_params.setdefault('Accept', 'application/json')
-        if local_var_params.get('content_type') is not None:
-            header_params['Content-Type'] = local_var_params['content_type']
-        else:
-            header_params.setdefault('Content-Type', 'text/plain; charset=utf-8')
-        if local_var_params.get('content_length') is not None:
-            header_params['Content-Length'] = local_var_params['content_length']
-
-        if local_var_params.get('content_encoding') is not None:
-            header_params['Content-Encoding'] = local_var_params['content_encoding']  # noqa: E501
-
-        body_params = None
-        if 'body' in local_var_params:
-            body_params = local_var_params['body']
-
-        return local_var_params, path, path_params, query_params, header_params, body_params
-
-    def _check_operation_params(self, operation_id, supported_params, local_params):
-        supported_params.append('async_req')
-        supported_params.append('_request_timeout')
-        supported_params.append('urlopen_kw')
-        for key, val in local_params['kwargs'].items():
-            if key not in supported_params:
-                raise TypeError(
-                    f"Got an unexpected keyword argument '{key}'"
-                    f" to method {operation_id}"
-                )
-            local_params[key] = val
-        del local_params['kwargs']
-
-    def _update_request_header_params(self, path: str, params: dict, should_gzip: bool = False):
-        if should_gzip:
-            # GZIP Request
-            if path == '/api/v2/write' or path == '/api/v3/write_lp':
-                params["Content-Encoding"] = "gzip"
-                params["Accept-Encoding"] = "identity"
-                pass
-            # GZIP Response
-            if path == '/api/v2/query':
-                # params["Content-Encoding"] = "gzip"
-                params["Accept-Encoding"] = "gzip"
-                pass
-            pass
-        pass
-
-    def _update_request_body(self, path: str, body, should_gzip: bool = False):
-        _body = body
-        if should_gzip:
-            # GZIP Request
-            if path == '/api/v2/write' or path == '/api/v3/write_lp':
-                import gzip
-                if isinstance(_body, bytes):
-                    return gzip.compress(data=_body)
-                else:
-                    return gzip.compress(bytes(_body, _UTF_8_encoding))
-
-        return _body
-
-    def _sanitize_for_serialization(self, obj):
-        """Build a JSON POST object.
-
-        If obj is None, return None.\n
-        If obj is str, int, long, float, bool, return directly.\n
-        If obj is datetime.datetime, datetime.date converts to string in iso8601 format.\n
-        If obj is a list, sanitize each element in the list.\n
-        If obj is dict, return the dict.\n
-        If obj is an OpenAPI model, return the properties dict.\n
-
-        :param obj: The data to serialize.
-        :return: The serialized form of data.
-        """
-        if obj is None:
-            return None
-        elif isinstance(obj, self.PRIMITIVE_TYPES):
-            return obj
-        elif isinstance(obj, list):
-            return [self._sanitize_for_serialization(sub_obj)
-                    for sub_obj in obj]
-        elif isinstance(obj, tuple):
-            return tuple(self._sanitize_for_serialization(sub_obj)
-                         for sub_obj in obj)
-        elif isinstance(obj, (datetime.datetime, datetime.date)):
-            return obj.isoformat()
-
-        if isinstance(obj, dict):
-            obj_dict = obj
-        else:
-            # Convert model obj to dict except
-            # attributes `openapi_types`, `attribute_map`
-            # and attributes which value is not None.
-            # Convert attribute name to json key in
-            # model definition for request.
-            obj_dict = {obj.attribute_map[attr]: getattr(obj, attr)
-                        for attr, _ in obj.openapi_types.items()
-                        if getattr(obj, attr) is not None}
-
-        return {key: self._sanitize_for_serialization(val)
-                for key, val in obj_dict.items()}
 
     def _translate_write_exception(self, exc, use_v2_api):
         if use_v2_api and exc.status == HTTPStatus.METHOD_NOT_ALLOWED:
