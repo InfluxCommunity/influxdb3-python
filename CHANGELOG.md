@@ -2,6 +2,10 @@
 
 ## 0.22.0 [unreleased]
 
+### Breaking Changes
+
+1. [#238](https://github.com/InfluxCommunity/influxdb3-python/pull/238): Drop support for Python 3.9. Python 3.10 or newer is now required.
+
 ### Bug Fixes
 
 1. [#237](https://github.com/InfluxCommunity/influxdb3-python/pull/237): Makes the writing API simpler and more consistent with other v3 clients:

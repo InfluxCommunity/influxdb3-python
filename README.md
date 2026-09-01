@@ -49,7 +49,7 @@ pip install influxdb3-python
 
 Note: This does not include Pandas support. If you would like to use key features such as `to_pandas()`  and `write_file()`, or to use PyArrow data conversion methods with nanosecond timestamp precision, you will need to install `pandas` separately.
 
-*Note: Please make sure you are using 3.9 or above. For the best performance use 3.11+*
+*Note: Please make sure you are using Python 3.10 or above. For the best performance use 3.11+*
 
 ## CLI (Agent-Friendly Query Tool)
 
