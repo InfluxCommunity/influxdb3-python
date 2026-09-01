@@ -2,6 +2,11 @@
 
 ## 0.22.0 [unreleased]
 
+### Bug Fixes
+
+1. [#237](https://github.com/InfluxCommunity/influxdb3-python/pull/237): Makes the writing API simpler and more consistent with other v3 clients:
+    - Further simplifies the `WriteApi` request path by constructing v2/v3 requests directly through `RestClient`, while preserving existing write behavior.
+
 ## 0.21.0 [2026-08-27]
 
 ### Bug Fixes

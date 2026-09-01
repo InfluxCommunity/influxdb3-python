@@ -164,7 +164,7 @@ class TestWritePolars(unittest.TestCase):
             "temperature": [22.4, 21.8],
         })
 
-        self.client._write_api.call_api = mock.Mock()
+        self.client._write_api.rest_client.request = mock.Mock()
 
         self.client.write(
             database="database",
@@ -173,7 +173,7 @@ class TestWritePolars(unittest.TestCase):
             data_frame_timestamp_column="time",
         )
 
-        actual = self.client._write_api.call_api.call_args.kwargs['body']
+        actual = self.client._write_api.rest_client.request.call_args.kwargs['body']
         self.assertEqual(b'measurement temperature=22.4 1722470400000000000\n'
                          b'measurement temperature=21.8 1722474000000000000', actual)
 
@@ -193,7 +193,7 @@ class TestWritePolars(unittest.TestCase):
         )
         self.client._write_api._write_options = WriteOptions(batch_size=2)
 
-        self.client._write_api._call_api = mock.Mock()
+        self.client._write_api.rest_client.request = mock.Mock()
 
         self.client.write(
             database="database",
@@ -203,8 +203,7 @@ class TestWritePolars(unittest.TestCase):
         )
 
         time.sleep(0.5)
-        args = self.client._write_api._call_api.call_args.args
-        body = args[4]
-        self.assertEqual(self.client._write_api._call_api.call_count, 1)
+        body = self.client._write_api.rest_client.request.call_args.kwargs['body']
+        self.assertEqual(self.client._write_api.rest_client.request.call_count, 1)
         self.assertEqual(b'measurement temperature=22.4 1722470400000000000\nmeasurement '
                          b'temperature=21.8 1722474000000000000', body)

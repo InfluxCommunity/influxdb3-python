@@ -55,6 +55,139 @@ class WriteApiTests(unittest.TestCase):
         self.assertEqual(f"{_package}/{VERSION}", write_api.default_header["User-Agent"])
         self.assertEqual("Token my-token", write_api.default_header["Authorization"])
 
+    def test_build_write_request_preserves_v2_and_v3_request_matrix(self):
+        client = InfluxDBClient3(
+            host='http://localhost:8181',
+            token='my-token',
+            database='my-bucket',
+            org='my-org'
+        )
+        write_api = client._write_api
+
+        cases = [
+            (
+                "v2 request",
+                True,
+                False,
+                False,
+                'us',
+                '/api/v2/write',
+                [('org', 'TEST_ORG'), ('bucket', 'TEST_BUCKET'), ('precision', 'us')],
+            ),
+            (
+                "v3 request",
+                False,
+                True,
+                False,
+                'us',
+                '/api/v3/write_lp',
+                [('org', 'TEST_ORG'), ('db', 'TEST_BUCKET'), ('precision', 'microsecond'),
+                 ('no_sync', 'true'), ('accept_partial', 'false')],
+            ),
+            (
+                "v3 strict write request",
+                False,
+                False,
+                False,
+                'ns',
+                '/api/v3/write_lp',
+                [('org', 'TEST_ORG'), ('db', 'TEST_BUCKET'), ('precision', 'nanosecond'),
+                 ('accept_partial', 'false')],
+            ),
+        ]
+
+        for name, use_v2_api, no_sync, accept_partial, precision, expected_path, expected_query in cases:
+            with self.subTest(name):
+                path, query_params, headers = write_api._build_write_request(
+                    org='TEST_ORG',
+                    bucket='TEST_BUCKET',
+                    precision=precision,
+                    no_sync=no_sync,
+                    accept_partial=accept_partial,
+                    use_v2_api=use_v2_api,
+                )
+                self.assertEqual(expected_path, path)
+                self.assertEqual(expected_query, query_params)
+                self.assertEqual('application/json', headers['Accept'])
+                self.assertEqual('text/plain; charset=utf-8', headers['Content-Type'])
+
+    def test_build_write_request_preserves_header_and_org_id_options(self):
+        client = InfluxDBClient3(
+            host='http://localhost:8181',
+            token='my-token',
+            database='my-bucket',
+            org='my-org'
+        )
+
+        path, query_params, headers = client._write_api._build_write_request(
+            org='TEST_ORG',
+            bucket='TEST_BUCKET',
+            precision='ns',
+            no_sync=False,
+            accept_partial=True,
+            use_v2_api=True,
+            org_id='ORG_ID',
+            accept='text/csv',
+            content_type='application/custom',
+            content_length=42,
+            content_encoding='gzip',
+        )
+
+        self.assertEqual('/api/v2/write', path)
+        self.assertEqual([
+            ('org', 'TEST_ORG'),
+            ('orgID', 'ORG_ID'),
+            ('bucket', 'TEST_BUCKET'),
+            ('precision', 'ns'),
+        ], query_params)
+        self.assertEqual('text/csv', headers['Accept'])
+        self.assertEqual('application/custom', headers['Content-Type'])
+        self.assertEqual(42, headers['Content-Length'])
+        self.assertEqual('gzip', headers['Content-Encoding'])
+
+    def test_build_write_request_requires_org_and_bucket(self):
+        client = InfluxDBClient3(
+            host='http://localhost:8181',
+            token='my-token',
+            database='my-bucket',
+            org='my-org'
+        )
+
+        with self.assertRaisesRegex(ValueError, r"required parameter `org`"):
+            client._write_api._build_write_request(
+                org=None,
+                bucket='TEST_BUCKET',
+                precision='ns',
+                no_sync=False,
+                accept_partial=True,
+                use_v2_api=True,
+            )
+
+        with self.assertRaisesRegex(ValueError, r"required parameter `bucket`"):
+            client._write_api._build_write_request(
+                org='TEST_ORG',
+                bucket=None,
+                precision='ns',
+                no_sync=False,
+                accept_partial=True,
+                use_v2_api=True,
+            )
+
+        _, query_params, _ = client._write_api._build_write_request(
+            org='TEST_ORG',
+            bucket='TEST_BUCKET',
+            precision='ns',
+            no_sync=False,
+            accept_partial=True,
+            use_v2_api=True,
+            org_id=None,
+        )
+        self.assertEqual([
+            ('org', 'TEST_ORG'),
+            ('bucket', 'TEST_BUCKET'),
+            ('precision', 'ns'),
+        ], query_params)
+
     def test_api_error_cloud(self):
         response_body = '{"message": "parsing failed for write_lp endpoint"}'
         with self.assertRaises(InfluxDBError) as err:
@@ -370,10 +503,9 @@ class WriteApiTests(unittest.TestCase):
                     org='my-org'
                 )
                 write_api = client._write_api
-                write_api.call_api = mock.Mock()
-                thread = mock.Mock()
-                thread.get.side_effect = ApiException(http_resp=http_resp)
-                write_api.call_api.return_value = thread
+                write_api.rest_client.request = mock.Mock(
+                    side_effect=ApiException(http_resp=http_resp)
+                )
                 result = write_api._post_write(
                     org="TEST_ORG",
                     bucket="TEST_BUCKET",
@@ -392,6 +524,84 @@ class WriteApiTests(unittest.TestCase):
                     self.assertEqual(expected_message, err.exception.reason)
                 else:
                     self.assertEqual(1, len(err.exception.line_errors))
+
+    def test_post_write_async_requires_body(self):
+        client = InfluxDBClient3(
+            host='http://localhost:8181',
+            token='my-token',
+            database='my-bucket',
+            org='my-org',
+        )
+
+        async def run():
+            await client._write_api.post_write_async(
+                "TEST_ORG",
+                "TEST_BUCKET",
+                None,
+            )
+
+        with self.assertRaisesRegex(ValueError, r"post_write_async"):
+            asyncio.run(run())
+
+    def test_post_write_requires_body(self):
+        client = InfluxDBClient3(
+            host='http://localhost:8181',
+            token='my-token',
+            database='my-bucket',
+            org='my-org',
+        )
+
+        with self.assertRaisesRegex(ValueError, r"_post_write"):
+            client._write_api._post_write(
+                False,
+                'TEST_BUCKET',
+                'TEST_ORG',
+                None,
+                'ns',
+                False,
+                True,
+                True,
+            )
+
+    def test_post_write_rejects_unknown_keyword(self):
+        client = InfluxDBClient3(
+            host='http://localhost:8181',
+            token='my-token',
+            database='my-bucket',
+            org='my-org',
+        )
+
+        with self.assertRaisesRegex(TypeError, r"unexpected keyword argument 'unsupported'"):
+            client._write_api._post_write(
+                False,
+                'TEST_BUCKET',
+                'TEST_ORG',
+                'home temp=96',
+                'ns',
+                False,
+                True,
+                True,
+                unsupported=True,
+            )
+
+    def test_post_write_async_rejects_unknown_keyword(self):
+        client = InfluxDBClient3(
+            host='http://localhost:8181',
+            token='my-token',
+            database='my-bucket',
+            org='my-org',
+        )
+
+        async def run():
+            await client._write_api.post_write_async(
+                'TEST_ORG',
+                'TEST_BUCKET',
+                'home temp=96',
+                unsupported=True,
+            )
+
+        with self.assertRaisesRegex(TypeError, r"unexpected keyword argument 'unsupported'"):
+            asyncio.run(run())
 
     def test_post_write_async_translates_v3_unsupported(self):
         client = InfluxDBClient3(
