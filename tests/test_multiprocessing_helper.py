@@ -9,7 +9,7 @@ from influxdb_client_3.write_client.client.util.multiprocessing_helper import Mu
 
 def make_writer(**kwargs):
     return MultiprocessingWriter(
-        start_method="fork",
+        start_method="spawn",
         host="http://localhost:8086",
         database="test",
         rest_client=Mock(),
