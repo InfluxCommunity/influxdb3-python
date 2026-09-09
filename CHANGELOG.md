@@ -6,6 +6,11 @@
 
 1. [#237](https://github.com/InfluxCommunity/influxdb3-python/pull/237): Makes the writing API simpler and more consistent with other v3 clients:
     - Further simplifies the `WriteApi` request path by constructing v2/v3 requests directly through `RestClient`, while preserving existing write behavior.
+1. [#241](https://github.com/InfluxCommunity/influxdb3-python/pull/241): Harden `MultiprocessingWriter` shutdown and error handling:
+    - Replaces assertion-based runtime state validation with explicit exceptions.
+    - Guarantees queue task completion when worker writes fail.
+    - Adds idempotent `close()` with bounded worker shutdown and a configurable `close_timeout`.
+    - Ensures `on_shutdown` is invoked at most once.
 
 ## 0.21.0 [2026-08-27]
 
