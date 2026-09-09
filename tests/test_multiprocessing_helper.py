@@ -1,10 +1,16 @@
 import logging
 import queue
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
-from influxdb_client_3.write_client.client.util.multiprocessing_helper import MultiprocessingWriter, _PoisonPill
+from influxdb_client_3.write_client.client.util.multiprocessing_helper import (
+    MultiprocessingWriter,
+    _PoisonPill,
+    _error_callback,
+    _retry_callback,
+    _success_callback,
+)
 
 
 def make_writer(**kwargs):
@@ -119,6 +125,37 @@ def test_start_twice_raises_runtime_error():
 
 def test_get_start_processing_method_returns_context_method():
     assert make_writer().get_start_processing_method() == "spawn"
+
+
+def test_default_callbacks_log_batch_events(caplog):
+    caplog.set_level(logging.DEBUG)
+    conf = ("database", "org", "precision")
+    exception = ValueError("write failed")
+
+    _success_callback(conf, "data")
+    _error_callback(conf, "data", exception)
+    _retry_callback(conf, "data", exception)
+
+    assert "Written batch" in caplog.text
+    assert "Cannot write batch" in caplog.text
+    assert "Retryable error occurs" in caplog.text
+
+
+def test_constructor_builds_rest_client_from_host_and_token():
+    rest_client_path = "influxdb_client_3.write_client.client.util.multiprocessing_helper.rest_client.RestClient"
+    with patch(rest_client_path) as rest_client:
+        writer = MultiprocessingWriter(
+            start_method="spawn",
+            host="http://localhost:8086",
+            token="my-token",
+            database="test",
+        )
+
+    rest_client.assert_called_once_with(
+        base_url="http://localhost:8086",
+        default_header={"Authorization": "Token my-token"},
+    )
+    writer.close()
 
 
 def test_worker_timeout_closes_api_and_invokes_callback_once():
