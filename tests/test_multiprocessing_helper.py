@@ -118,7 +118,7 @@ def test_start_twice_raises_runtime_error():
 
 
 def test_get_start_processing_method_returns_context_method():
-    assert make_writer().get_start_processing_method() == "fork"
+    assert make_writer().get_start_processing_method() == "spawn"
 
 
 def test_worker_timeout_closes_api_and_invokes_callback_once():
