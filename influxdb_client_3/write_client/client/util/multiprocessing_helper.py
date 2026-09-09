@@ -13,7 +13,7 @@ from influxdb_client_3.exceptions import InfluxDBError
 from influxdb_client_3.write_client import WriteOptions, WriteApi
 from influxdb_client_3.write_client._sync import rest_client
 
-logger = logging.getLogger('influxdb_client.client.util.multiprocessing_helper')
+logger = logging.getLogger('influxdb_client_3.write_client.client.util.multiprocessing_helper')
 
 
 def _success_callback(conf: (str, str, str), data: str):
@@ -44,8 +44,8 @@ class MultiprocessingWriter:
     Example:
         .. code-block:: python
 
-            from influxdb_client import WriteOptions
-            from influxdb_client.client.util.multiprocessing_helper import MultiprocessingWriter
+            from influxdb_client_3 import WriteOptions
+            from influxdb_client_3.write_client.client.util.multiprocessing_helper import MultiprocessingWriter
 
 
             def main():
@@ -66,8 +66,8 @@ class MultiprocessingWriter:
     How to use with context_manager:
         .. code-block:: python
 
-            from influxdb_client import WriteOptions
-            from influxdb_client.client.util.multiprocessing_helper import MultiprocessingWriter
+            from influxdb_client_3 import WriteOptions
+            from influxdb_client_3.write_client.client.util.multiprocessing_helper import MultiprocessingWriter
 
 
             def main():
@@ -84,9 +84,9 @@ class MultiprocessingWriter:
     How to handle batch events:
         .. code-block:: python
 
-            from influxdb_client import WriteOptions
-            from influxdb_client.client.exceptions import InfluxDBError
-            from influxdb_client.client.util.multiprocessing_helper import MultiprocessingWriter
+            from influxdb_client_3 import WriteOptions
+            from influxdb_client_3.exceptions import InfluxDBError
+            from influxdb_client_3.write_client.client.util.multiprocessing_helper import MultiprocessingWriter
 
 
             class BatchingCallback(object):

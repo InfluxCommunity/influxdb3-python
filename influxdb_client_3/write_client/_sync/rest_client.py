@@ -37,7 +37,7 @@ class RESTResponse(io.IOBase):
 
 
 class RestClient(object):
-    logger = logging.getLogger('influxdb_client.client.http')
+    logger = logging.getLogger('influxdb_client_3.write_client._sync.rest_client')
 
     def __init__(self,
                  base_url,
@@ -213,13 +213,13 @@ class RestClient(object):
             if not any(map(lambda h: isinstance(h, logging.StreamHandler) and h.stream == sys.stdout,
                            self.logger.handlers)):
                 self.logger.addHandler(logging.StreamHandler(sys.stdout))
-            # we use 'influxdb_client.client.http' logger instead of this
+            # we use 'influxdb_client_3.write_client._sync.rest_client' logger instead of this
             # httplib.HTTPConnection.debuglevel = 1
         else:
             # if debug status is False, turn off debug logging,
             # setting log level to default `logging.WARNING`
             self.logger.setLevel(logging.WARNING)
-            # we use 'influxdb_client.client.http' logger instead of this
+            # we use 'influxdb_client_3.write_client._sync.rest_client' logger instead of this
             # httplib.HTTPConnection.debuglevel = 0
 
     @staticmethod

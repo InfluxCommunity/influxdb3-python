@@ -19,7 +19,7 @@ The result will not be shaped to optimal processing by pandas.DataFrame. Use the
 
 You can disable this warning by:
     import warnings
-    from influxdb_client.client.warnings import MissingPivotFunction
+    from influxdb_client_3.write_client.client.warnings import MissingPivotFunction
 
     warnings.simplefilter("ignore", MissingPivotFunction)
 
@@ -45,7 +45,7 @@ For more info see:
 
 You can disable this warning by:
     import warnings
-    from influxdb_client.client.warnings import CloudOnlyWarning
+    from influxdb_client_3.write_client.client.warnings import CloudOnlyWarning
 
     warnings.simplefilter("ignore", CloudOnlyWarning)
 """
