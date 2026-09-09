@@ -39,8 +39,27 @@ class FakeProcess:
     def start(self):
         self.start_calls += 1
 
-    def join(self):
+    def join(self, timeout=None):
         self.join_calls += 1
+
+    def is_alive(self):
+        return False
+
+
+class HangingProcess(FakeProcess):
+    def __init__(self):
+        super().__init__()
+        self.join_timeouts = []
+        self.terminate_calls = 0
+
+    def join(self, timeout=None):
+        self.join_timeouts.append(timeout)
+
+    def is_alive(self):
+        return True
+
+    def terminate(self):
+        self.terminate_calls += 1
 
 
 class FakeQueue:
@@ -106,6 +125,17 @@ def test_close_is_idempotent_and_sends_one_poison_pill():
     assert writer.process.start_calls == 1
     assert writer.process.join_calls == 1
     assert len(writer.queue_.items) == 1
+
+
+def test_close_terminates_worker_after_join_timeout():
+    writer = make_writer(close_timeout=0.01)
+    writer.process = HangingProcess()
+    writer.queue_ = FakeQueue()
+    writer.start()
+    writer.close()
+
+    assert writer.process.join_timeouts == [0.01, 0.01]
+    assert writer.process.terminate_calls == 1
 
 
 def test_context_manager_uses_close():
