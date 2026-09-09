@@ -4,7 +4,7 @@
 
 ### Bug Fixes
 
-1. [#242](https://github.com/InfluxCommunity/influxdb3-python/issues/242): Remove stale `influxdb_client` references from v3 docstrings, examples, comments, and logger names.
+1. [#243](https://github.com/InfluxCommunity/influxdb3-python/pull/243): Remove stale `influxdb_client` references from v3 docstrings, examples, comments, and logger names. (Closes #242)
 
 2. [#237](https://github.com/InfluxCommunity/influxdb3-python/pull/237): Makes the writing API simpler and more consistent with other v3 clients:
     - Further simplifies the `WriteApi` request path by constructing v2/v3 requests directly through `RestClient`, while preserving existing write behavior.
