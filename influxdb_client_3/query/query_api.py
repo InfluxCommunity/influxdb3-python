@@ -145,7 +145,7 @@ class QueryApi(object):
 
             # Initialize instance of QueryApi
             with InfluxDBClient3(host="http://localhost:8086", token="my-token", database="my-database") as client:
-                result = client.query("from(bucket: \"my-bucket\") |> range(start: -1h)")
+                result = client.query("SELECT * FROM my_measurement", language="sql")
     """
 
     def __init__(self,

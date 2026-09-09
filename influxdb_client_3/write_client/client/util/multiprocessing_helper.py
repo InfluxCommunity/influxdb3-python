@@ -49,7 +49,8 @@ class MultiprocessingWriter:
 
 
             def main():
-                writer = MultiprocessingWriter(url="http://localhost:8086", token="my-token", org="my-org",
+                writer = MultiprocessingWriter(host="http://localhost:8086", token="my-token", org="my-org",
+                                               database="my-bucket",
                                                write_options=WriteOptions(batch_size=100))
                 writer.start()
 
@@ -71,7 +72,8 @@ class MultiprocessingWriter:
 
 
             def main():
-                with MultiprocessingWriter(url="http://localhost:8086", token="my-token", org="my-org",
+                with MultiprocessingWriter(host="http://localhost:8086", token="my-token", org="my-org",
+                                           database="my-bucket",
                                            write_options=WriteOptions(batch_size=100)) as writer:
                     for x in range(1, 1000):
                         writer.write(bucket="my-bucket", record=f"mem,tag=a value={x}i {x}")
@@ -103,7 +105,8 @@ class MultiprocessingWriter:
 
             def main():
                 callback = BatchingCallback()
-                with MultiprocessingWriter(url="http://localhost:8086", token="my-token", org="my-org",
+                with MultiprocessingWriter(host="http://localhost:8086", token="my-token", org="my-org",
+                                           database="my-bucket",
                                            success_callback=callback.success,
                                            error_callback=callback.error,
                                            retry_callback=callback.retry) as writer:
