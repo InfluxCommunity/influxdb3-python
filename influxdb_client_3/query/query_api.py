@@ -143,7 +143,7 @@ class QueryApi(object):
             from influxdb_client_3 import InfluxDBClient3
 
 
-            # Initialize instance of QueryApi
+            # Query data from InfluxDB
             with InfluxDBClient3(host="http://localhost:8086", token="my-token", database="my-database") as client:
                 result = client.query("SELECT * FROM my_measurement", language="sql")
     """

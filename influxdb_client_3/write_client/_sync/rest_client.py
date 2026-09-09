@@ -213,13 +213,13 @@ class RestClient(object):
             if not any(map(lambda h: isinstance(h, logging.StreamHandler) and h.stream == sys.stdout,
                            self.logger.handlers)):
                 self.logger.addHandler(logging.StreamHandler(sys.stdout))
-            # we use 'influxdb_client_3.write_client._sync.rest_client' logger instead of this
+            # HTTP debug logging is handled by the 'influxdb_client_3.write_client._sync.rest_client' logger.
             # httplib.HTTPConnection.debuglevel = 1
         else:
             # if debug status is False, turn off debug logging,
             # setting log level to default `logging.WARNING`
             self.logger.setLevel(logging.WARNING)
-            # we use 'influxdb_client_3.write_client._sync.rest_client' logger instead of this
+            # HTTP debug logging is handled by the 'influxdb_client_3.write_client._sync.rest_client' logger.
             # httplib.HTTPConnection.debuglevel = 0
 
     @staticmethod

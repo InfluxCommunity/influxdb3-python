@@ -50,12 +50,12 @@ class MultiprocessingWriter:
 
             def main():
                 writer = MultiprocessingWriter(host="http://localhost:8086", token="my-token", org="my-org",
-                                               database="my-bucket",
+                                               database="my-database",
                                                write_options=WriteOptions(batch_size=100))
                 writer.start()
 
                 for x in range(1, 1000):
-                    writer.write(bucket="my-bucket", record=f"mem,tag=a value={x}i {x}")
+                    writer.write(bucket="my-database", record=f"mem,tag=a value={x}i {x}")
 
                 writer.__del__()
 
@@ -73,10 +73,10 @@ class MultiprocessingWriter:
 
             def main():
                 with MultiprocessingWriter(host="http://localhost:8086", token="my-token", org="my-org",
-                                           database="my-bucket",
+                                           database="my-database",
                                            write_options=WriteOptions(batch_size=100)) as writer:
                     for x in range(1, 1000):
-                        writer.write(bucket="my-bucket", record=f"mem,tag=a value={x}i {x}")
+                        writer.write(bucket="my-database", record=f"mem,tag=a value={x}i {x}")
 
 
             if __name__ == '__main__':
@@ -106,13 +106,13 @@ class MultiprocessingWriter:
             def main():
                 callback = BatchingCallback()
                 with MultiprocessingWriter(host="http://localhost:8086", token="my-token", org="my-org",
-                                           database="my-bucket",
+                                           database="my-database",
                                            success_callback=callback.success,
                                            error_callback=callback.error,
                                            retry_callback=callback.retry) as writer:
 
                     for x in range(1, 1000):
-                        writer.write(bucket="my-bucket", record=f"mem,tag=a value={x}i {x}")
+                        writer.write(bucket="my-database", record=f"mem,tag=a value={x}i {x}")
 
 
             if __name__ == '__main__':
