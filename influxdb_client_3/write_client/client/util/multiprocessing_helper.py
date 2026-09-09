@@ -13,7 +13,7 @@ from influxdb_client_3.exceptions import InfluxDBError
 from influxdb_client_3.write_client import WriteOptions, WriteApi
 from influxdb_client_3.write_client._sync import rest_client
 
-logger = logging.getLogger('influxdb_client.client.util.multiprocessing_helper')
+logger = logging.getLogger('influxdb_client_3.write_client.client.util.multiprocessing_helper')
 
 
 def _success_callback(conf: (str, str, str), data: str):
@@ -44,17 +44,18 @@ class MultiprocessingWriter:
     Example:
         .. code-block:: python
 
-            from influxdb_client import WriteOptions
-            from influxdb_client.client.util.multiprocessing_helper import MultiprocessingWriter
+            from influxdb_client_3 import WriteOptions
+            from influxdb_client_3.write_client.client.util.multiprocessing_helper import MultiprocessingWriter
 
 
             def main():
-                writer = MultiprocessingWriter(url="http://localhost:8086", token="my-token", org="my-org",
+                writer = MultiprocessingWriter(host="http://localhost:8086", token="my-token", org="my-org",
+                                               database="my-database",
                                                write_options=WriteOptions(batch_size=100))
                 writer.start()
 
                 for x in range(1, 1000):
-                    writer.write(bucket="my-bucket", record=f"mem,tag=a value={x}i {x}")
+                    writer.write(bucket="my-database", record=f"mem,tag=a value={x}i {x}")
 
                 writer.__del__()
 
@@ -66,15 +67,16 @@ class MultiprocessingWriter:
     How to use with context_manager:
         .. code-block:: python
 
-            from influxdb_client import WriteOptions
-            from influxdb_client.client.util.multiprocessing_helper import MultiprocessingWriter
+            from influxdb_client_3 import WriteOptions
+            from influxdb_client_3.write_client.client.util.multiprocessing_helper import MultiprocessingWriter
 
 
             def main():
-                with MultiprocessingWriter(url="http://localhost:8086", token="my-token", org="my-org",
+                with MultiprocessingWriter(host="http://localhost:8086", token="my-token", org="my-org",
+                                           database="my-database",
                                            write_options=WriteOptions(batch_size=100)) as writer:
                     for x in range(1, 1000):
-                        writer.write(bucket="my-bucket", record=f"mem,tag=a value={x}i {x}")
+                        writer.write(bucket="my-database", record=f"mem,tag=a value={x}i {x}")
 
 
             if __name__ == '__main__':
@@ -84,9 +86,9 @@ class MultiprocessingWriter:
     How to handle batch events:
         .. code-block:: python
 
-            from influxdb_client import WriteOptions
-            from influxdb_client.client.exceptions import InfluxDBError
-            from influxdb_client.client.util.multiprocessing_helper import MultiprocessingWriter
+            from influxdb_client_3 import WriteOptions
+            from influxdb_client_3.exceptions import InfluxDBError
+            from influxdb_client_3.write_client.client.util.multiprocessing_helper import MultiprocessingWriter
 
 
             class BatchingCallback(object):
@@ -103,13 +105,14 @@ class MultiprocessingWriter:
 
             def main():
                 callback = BatchingCallback()
-                with MultiprocessingWriter(url="http://localhost:8086", token="my-token", org="my-org",
+                with MultiprocessingWriter(host="http://localhost:8086", token="my-token", org="my-org",
+                                           database="my-database",
                                            success_callback=callback.success,
                                            error_callback=callback.error,
                                            retry_callback=callback.retry) as writer:
 
                     for x in range(1, 1000):
-                        writer.write(bucket="my-bucket", record=f"mem,tag=a value={x}i {x}")
+                        writer.write(bucket="my-database", record=f"mem,tag=a value={x}i {x}")
 
 
             if __name__ == '__main__':

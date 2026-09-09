@@ -10,7 +10,7 @@ import math
 from influxdb_client_3.write_client.client.write.point import _ESCAPE_KEY, _ESCAPE_STRING, DEFAULT_WRITE_PRECISION, \
     ordered_tag_keys
 
-logger = logging.getLogger('influxdb_client.client.write.polars_dataframe_serializer')
+logger = logging.getLogger('influxdb_client_3.write_client.client.write.polars_dataframe_serializer')
 
 
 class PolarsDataframeSerializer:

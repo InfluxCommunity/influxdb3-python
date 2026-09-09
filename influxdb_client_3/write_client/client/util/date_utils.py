@@ -19,8 +19,8 @@ class DateHelper:
 
     .. code-block:: python
 
-        from influxdb_client.client.util import date_utils
-        from influxdb_client.client.util.date_utils import DateHelper
+        from influxdb_client_3.write_client.client.util import date_utils
+        from influxdb_client_3.write_client.client.util.date_utils import DateHelper
         import dateutil.parser
         from dateutil import tz
 
