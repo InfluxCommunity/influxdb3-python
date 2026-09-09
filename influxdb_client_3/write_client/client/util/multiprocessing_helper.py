@@ -123,6 +123,7 @@ class MultiprocessingWriter:
                  start_method='spawn',
                  process_ttl=300,
                  on_shutdown=None,
+                 close_timeout=60,
                  **kwargs
                  ) -> None:
         """
@@ -135,6 +136,7 @@ class MultiprocessingWriter:
         :param process_ttl: The timeout in seconds for waiting for data in the underlying queue.
         :param on_shutdown: The callback function called when the worker process is shut down
                or when `MultiprocessingWriter` class start closing.
+        :param close_timeout: The timeout in seconds for waiting for the worker to shut down gracefully.
         :param kwargs: Arguments are passed into the ``WriteApi`` and ``write_client_options``.
             Common arguments include: `host`, `token`, `database`, `org`, `write_options`, `success_callback`,
             `error_callback`, `retry_callback`, `default_header`, and `rest_client`.
@@ -166,6 +168,7 @@ class MultiprocessingWriter:
 
         self.ctx = multiprocessing.get_context(start_method)
         self.on_shutdown = on_shutdown
+        self.close_timeout = close_timeout
         self.disposed = self.ctx.Value('i', 0)
         self._shutdown_called = self.ctx.Value('i', 0)
         self.__started__ = False
@@ -289,7 +292,11 @@ class MultiprocessingWriter:
             if self.__started__ and not is_worker_process:
                 if self.disposed.value == 0:
                     self.queue_.put(_PoisonPill())
-                self.process.join()
+                self.process.join(timeout=self.close_timeout)
+                if self.process.is_alive():
+                    logger.warning("The multiprocessing writer worker did not shut down before the timeout")
+                    self.process.terminate()
+                    self.process.join(timeout=self.close_timeout)
         finally:
             self.__started__ = False
             self.disposed.value = 1
