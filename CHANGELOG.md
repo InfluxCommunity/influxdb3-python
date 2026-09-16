@@ -2,6 +2,10 @@
 
 ## 0.22.0 [unreleased]
 
+### Breaking Changes
+
+1. [#238](https://github.com/InfluxCommunity/influxdb3-python/pull/238): Drop support for Python 3.9. Python 3.10 or newer is now required.
+
 ### Bug Fixes
 
 1. [#243](https://github.com/InfluxCommunity/influxdb3-python/pull/243): Remove stale `influxdb_client` references from v3 docstrings, examples, comments, and logger names. (Closes #242)
