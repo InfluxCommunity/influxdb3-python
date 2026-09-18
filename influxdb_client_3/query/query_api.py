@@ -140,12 +140,12 @@ class QueryApi(object):
 
         .. code-block:: python
 
-            from influxdb_client import InfluxDBClient
+            from influxdb_client_3 import InfluxDBClient3
 
 
-            # Initialize instance of QueryApi
-            with InfluxDBClient(url="http://localhost:8086", token="my-token") as client:
-                query_api = client.query_api()
+            # Query data from InfluxDB
+            with InfluxDBClient3(host="http://localhost:8086", token="my-token", database="my-database") as client:
+                result = client.query("SELECT * FROM my_measurement", language="sql")
     """
 
     def __init__(self,

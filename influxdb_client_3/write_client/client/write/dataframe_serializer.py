@@ -12,7 +12,7 @@ from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.client.write.point import _ESCAPE_KEY, _ESCAPE_STRING, _ESCAPE_MEASUREMENT, \
     DEFAULT_WRITE_PRECISION, ordered_tag_keys
 
-logger = logging.getLogger('influxdb_client.client.write.dataframe_serializer')
+logger = logging.getLogger('influxdb_client_3.write_client.client.write.dataframe_serializer')
 
 
 def _not_nan(x):
