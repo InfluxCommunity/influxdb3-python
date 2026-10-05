@@ -4,6 +4,7 @@
 
 ### Breaking Changes
 
+1. [#238](https://github.com/InfluxCommunity/influxdb3-python/pull/238): Drop support for Python 3.9. Python 3.10 or newer is now required.
 1. [#239](https://github.com/InfluxCommunity/influxdb3-python/pull/239): Exception classes now function mostly like a simple data-carrying object, It stores almost no logics.  
     - `InfluxDBPartialWriteError` class constructor will now except `message` as an argument.
     - `InfluxDBPartialWriteError.from_response(cls, response: HTTPResponse):` function was removed.
@@ -18,6 +19,12 @@
         - Error response format `{"error":"...","data":[{"error_message":"...","line_number":2,"original_line": "..."}]}` is returned with `data` must be an array
         - `accept_partial` is set to `true`.
         - Write endpoint must be `api/v3/write_lp`.
+1. [#241](https://github.com/InfluxCommunity/influxdb3-python/pull/241): Harden `MultiprocessingWriter` shutdown and error handling:
+    - Replaces assertion-based runtime state validation with explicit exceptions.
+    - Guarantees queue task completion when worker writes fail.
+    - Adds idempotent `close()` with bounded worker shutdown and a configurable `close_timeout`.
+    - Ensures `on_shutdown` is invoked at most once.
+1. [#243](https://github.com/InfluxCommunity/influxdb3-python/pull/243): Remove stale `influxdb_client` references from v3 docstrings, examples, comments, and logger names. (Closes #242)
 
 ## 0.21.0 [2026-08-27]
 

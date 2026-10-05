@@ -6,6 +6,7 @@ For more information how the multiprocessing works see Python's
 """
 import logging
 import multiprocessing
+import os
 import queue
 
 from influxdb_client_3 import write_client_options
@@ -13,7 +14,7 @@ from influxdb_client_3.exceptions import InfluxDBError
 from influxdb_client_3.write_client import WriteOptions, WriteApi
 from influxdb_client_3.write_client._sync import rest_client
 
-logger = logging.getLogger('influxdb_client.client.util.multiprocessing_helper')
+logger = logging.getLogger('influxdb_client_3.write_client.client.util.multiprocessing_helper')
 
 
 def _success_callback(conf: (str, str, str), data: str):
@@ -44,17 +45,18 @@ class MultiprocessingWriter:
     Example:
         .. code-block:: python
 
-            from influxdb_client import WriteOptions
-            from influxdb_client.client.util.multiprocessing_helper import MultiprocessingWriter
+            from influxdb_client_3 import WriteOptions
+            from influxdb_client_3.write_client.client.util.multiprocessing_helper import MultiprocessingWriter
 
 
             def main():
-                writer = MultiprocessingWriter(url="http://localhost:8086", token="my-token", org="my-org",
+                writer = MultiprocessingWriter(host="http://localhost:8086", token="my-token", org="my-org",
+                                               database="my-database",
                                                write_options=WriteOptions(batch_size=100))
                 writer.start()
 
                 for x in range(1, 1000):
-                    writer.write(bucket="my-bucket", record=f"mem,tag=a value={x}i {x}")
+                    writer.write(bucket="my-database", record=f"mem,tag=a value={x}i {x}")
 
                 writer.__del__()
 
@@ -66,15 +68,16 @@ class MultiprocessingWriter:
     How to use with context_manager:
         .. code-block:: python
 
-            from influxdb_client import WriteOptions
-            from influxdb_client.client.util.multiprocessing_helper import MultiprocessingWriter
+            from influxdb_client_3 import WriteOptions
+            from influxdb_client_3.write_client.client.util.multiprocessing_helper import MultiprocessingWriter
 
 
             def main():
-                with MultiprocessingWriter(url="http://localhost:8086", token="my-token", org="my-org",
+                with MultiprocessingWriter(host="http://localhost:8086", token="my-token", org="my-org",
+                                           database="my-database",
                                            write_options=WriteOptions(batch_size=100)) as writer:
                     for x in range(1, 1000):
-                        writer.write(bucket="my-bucket", record=f"mem,tag=a value={x}i {x}")
+                        writer.write(bucket="my-database", record=f"mem,tag=a value={x}i {x}")
 
 
             if __name__ == '__main__':
@@ -84,9 +87,9 @@ class MultiprocessingWriter:
     How to handle batch events:
         .. code-block:: python
 
-            from influxdb_client import WriteOptions
-            from influxdb_client.client.exceptions import InfluxDBError
-            from influxdb_client.client.util.multiprocessing_helper import MultiprocessingWriter
+            from influxdb_client_3 import WriteOptions
+            from influxdb_client_3.exceptions import InfluxDBError
+            from influxdb_client_3.write_client.client.util.multiprocessing_helper import MultiprocessingWriter
 
 
             class BatchingCallback(object):
@@ -103,13 +106,14 @@ class MultiprocessingWriter:
 
             def main():
                 callback = BatchingCallback()
-                with MultiprocessingWriter(url="http://localhost:8086", token="my-token", org="my-org",
+                with MultiprocessingWriter(host="http://localhost:8086", token="my-token", org="my-org",
+                                           database="my-database",
                                            success_callback=callback.success,
                                            error_callback=callback.error,
                                            retry_callback=callback.retry) as writer:
 
                     for x in range(1, 1000):
-                        writer.write(bucket="my-bucket", record=f"mem,tag=a value={x}i {x}")
+                        writer.write(bucket="my-database", record=f"mem,tag=a value={x}i {x}")
 
 
             if __name__ == '__main__':
@@ -118,12 +122,11 @@ class MultiprocessingWriter:
 
     """
 
-    __started__ = False
-
     def __init__(self,
                  start_method='spawn',
                  process_ttl=300,
                  on_shutdown=None,
+                 close_timeout=60,
                  **kwargs
                  ) -> None:
         """
@@ -136,6 +139,7 @@ class MultiprocessingWriter:
         :param process_ttl: The timeout in seconds for waiting for data in the underlying queue.
         :param on_shutdown: The callback function called when the worker process is shut down
                or when `MultiprocessingWriter` class start closing.
+        :param close_timeout: The timeout in seconds for waiting for the worker to shut down gracefully.
         :param kwargs: Arguments are passed into the ``WriteApi`` and ``write_client_options``.
             Common arguments include: `host`, `token`, `database`, `org`, `write_options`, `success_callback`,
             `error_callback`, `retry_callback`, `default_header`, and `rest_client`.
@@ -167,7 +171,11 @@ class MultiprocessingWriter:
 
         self.ctx = multiprocessing.get_context(start_method)
         self.on_shutdown = on_shutdown
+        self.close_timeout = close_timeout
         self.disposed = self.ctx.Value('i', 0)
+        self._shutdown_called = self.ctx.Value('i', 0)
+        self.__started__ = False
+        self._closed = False
         self.process = self.ctx.Process(target=self.run, args=(write_api, self.disposed, process_ttl, self.on_shutdown))
         self.kwargs = kwargs
         self.queue_ = self.ctx.JoinableQueue()
@@ -181,11 +189,35 @@ class MultiprocessingWriter:
         :param kwargs: arguments are passed into the `` write `` function of ``WriteApi``
         :return: None
         """
-        assert self.__started__ is True, 'Cannot write data: the writer is not started.'
-        if self.disposed.value == 0:
-            self.queue_.put(kwargs)
-        else:
-            raise Exception('Cannot write data: the writer is closed.')
+        if self.disposed.value != 0 or self._closed:
+            raise RuntimeError('Cannot write data: the writer is closed.')
+        if not self.__started__:
+            raise RuntimeError('Cannot write data: the writer is not started.')
+        self.queue_.put(kwargs)
+
+    def _call_on_shutdown(self, callback=None) -> None:
+        """Invoke the shutdown callback once across the parent and worker processes."""
+        callback = self.on_shutdown if callback is None else callback
+        if callback is None:
+            return
+
+        with self._shutdown_called.get_lock():
+            if self._shutdown_called.value != 0:
+                return
+            self._shutdown_called.value = 1
+
+        try:
+            callback()
+        except Exception:
+            logger.exception("The multiprocessing writer shutdown callback failed")
+
+    @staticmethod
+    def _close_write_api(write_api: WriteApi) -> None:
+        """Close the worker's WriteApi without preventing process shutdown."""
+        try:
+            write_api.close()
+        except Exception:
+            logger.exception("The multiprocessing writer failed to close the WriteApi")
 
     def run(self, write_api: WriteApi, disposed, process_ttl, on_shutdown) -> None:
         """
@@ -211,24 +243,32 @@ class MultiprocessingWriter:
                 next_record = self.queue_.get(timeout=process_ttl)
             except queue.Empty:
                 if disposed.value == 0:
-                    write_api.close()
+                    self._close_write_api(write_api)
                     disposed.value = 1
-                    if on_shutdown is not None:
-                        on_shutdown()
+                    self._call_on_shutdown(on_shutdown)
+                break
+
+            try:
+                if type(next_record) is _PoisonPill:
+                    # Poison pill means break the loop
+                    logger.info("flushing data...")
+                    self._close_write_api(write_api)
+                    logger.info("closed")
                     break
 
-            if type(next_record) is _PoisonPill:
-                # Poison pill means break the loop
-                logger.info("flushing data...")
-                write_api.close()
-                logger.info("closed")
+                try:
+                    write_api.write(**next_record)
+                except Exception:
+                    logger.exception("The multiprocessing writer failed to write a record")
+            finally:
                 self.queue_.task_done()
-                break
-            write_api.write(**next_record)
-            self.queue_.task_done()
 
     def start(self) -> None:
         """Start an independent process for writing data into InfluxDB."""
+        if self._closed or self.disposed.value != 0:
+            raise RuntimeError('Cannot start the writer after it has been closed.')
+        if self.__started__:
+            raise RuntimeError('The writer is already started.')
         self.process.start()
         self.__started__ = True
 
@@ -242,16 +282,33 @@ class MultiprocessingWriter:
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Exit the runtime context related to this object."""
-        self.__del__()
+        self.close()
+
+    def close(self) -> None:
+        """Flush queued writes and close the worker process once."""
+        if self._closed:
+            return
+
+        self._closed = True
+        is_worker_process = getattr(self.process, 'pid', None) == os.getpid()
+        try:
+            if self.__started__ and not is_worker_process:
+                if self.disposed.value == 0:
+                    self.queue_.put(_PoisonPill())
+                self.process.join(timeout=self.close_timeout)
+                if self.process.is_alive():
+                    logger.warning("The multiprocessing writer worker did not shut down before the timeout")
+                    self.process.terminate()
+                    self.process.join(timeout=self.close_timeout)
+        finally:
+            self.__started__ = False
+            self.disposed.value = 1
+            if not is_worker_process:
+                self._call_on_shutdown()
 
     def __del__(self):
-        """Dispose of the client and write_api."""
-        if self.__started__ and self.disposed.value == 0:
-            self.queue_.put(_PoisonPill())
-            self.queue_.join()
-            self.process.join()
-            self.queue_ = None
-        self.__started__ = False
-        self.disposed.value = 1
-        if self.on_shutdown is not None:
-            self.on_shutdown()
+        """Best-effort cleanup for writers that were not explicitly closed."""
+        try:
+            self.close()
+        except Exception:
+            logger.debug("The multiprocessing writer cleanup failed", exc_info=True)

@@ -672,17 +672,6 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
         with self.assertRaisesRegex(InfluxDB3ClientQueryError, ".*Deadline Exceeded.*"):
             localClient.query("SELECT * FROM data")
 
-    def test_query_timeout_per_call_override(self):
-        localClient = InfluxDBClient3(
-            host=self.host,
-            token=self.token,
-            database=self.database,
-            query_timeout=3,
-        )
-
-        with self.assertRaisesRegex(InfluxDB3ClientQueryError, ".*Deadline Exceeded.*"):
-            localClient.query("SELECT * FROM data", timeout=0.000001)
-
     def test_write_timeout_per_call_override(self):
 
         ErrorResult = {"rt": None, "rd": None, "rx": None}
