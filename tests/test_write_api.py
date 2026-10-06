@@ -15,7 +15,7 @@ from influxdb_client_3 import InfluxDBClient3, InfluxDBError
 from influxdb_client_3.exceptions import InfluxDBPartialWriteError, InfluxDBPartialWriteLineError
 from influxdb_client_3.version import VERSION
 from influxdb_client_3.write_client.client.write.retry import WritesRetry
-from influxdb_client_3.write_client.write_exceptions import (
+from influxdb_client_3.exceptions.write_exceptions import (
     ApiException,
     translate_write_exception,
     is_partial_write_error,
