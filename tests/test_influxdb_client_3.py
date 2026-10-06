@@ -10,7 +10,7 @@ from influxdb_client_3 import InfluxDBClient3, WritePrecision, DefaultWriteOptio
     write_client_options
 from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
 from influxdb_client_3.write_client.client.write_api import _BatchItemKey
-from influxdb_client_3.write_client.write_exceptions import ApiException
+from influxdb_client_3.exceptions.write_exceptions import ApiException
 from tests.util import asyncio_run
 from tests.util.mocks import ConstantFlightServer, ConstantData, ErrorFlightServer
 

@@ -10,7 +10,7 @@ from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError, ResponseError
 
 from influxdb_client_3.exceptions import InfluxDBError
-from influxdb_client_3.write_client.write_exceptions import ApiException, translate_write_exception
+from influxdb_client_3.exceptions.write_exceptions import ApiException, translate_write_exception
 
 logger = logging.getLogger('influxdb_client_3.write_client.client.write.retry')
 

@@ -20,7 +20,7 @@ from influxdb_client_3.exceptions import InfluxDBError, InfluxDBPartialWriteErro
 from influxdb_client_3.write_client import WriteApi
 from influxdb_client_3.write_client._sync import rest_client
 from influxdb_client_3.write_client.client.util.multiprocessing_helper import MultiprocessingWriter
-from influxdb_client_3.write_client.write_exceptions import ApiException
+from influxdb_client_3.exceptions.write_exceptions import ApiException
 from tests.util import asyncio_run, lp_to_py_object
 
 
