@@ -10,7 +10,7 @@ import sys
 from typing import Dict
 from urllib.parse import urlencode
 
-from influxdb_client_3.write_client.write_exceptions import ApiException
+from influxdb_client_3.exceptions.write_exceptions import ApiException
 
 try:
     import urllib3

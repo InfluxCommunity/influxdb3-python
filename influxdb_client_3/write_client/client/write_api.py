@@ -34,7 +34,7 @@ from influxdb_client_3.write_client.write_defaults import (
     DEFAULT_WRITE_TIMEOUT as _DEFAULT_WRITE_TIMEOUT,
     DEFAULT_WRITE_USE_V2_API as _DEFAULT_WRITE_USE_V2_API,
 )
-from influxdb_client_3.write_client.write_exceptions import _UTF_8_encoding, ApiException, translate_write_exception
+from influxdb_client_3.exceptions.write_exceptions import _UTF_8_encoding, ApiException, translate_write_exception
 
 # Deprecated compatibility aliases.
 # New code should import these defaults from `influxdb_client_3.write_client.write_defaults`.
