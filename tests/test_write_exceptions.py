@@ -2,10 +2,9 @@ import http
 import json
 import unittest
 
-from influxdb_client_3.exceptions import InfluxDBPartialWriteError, InfluxDBPartialWriteLineError
+from influxdb_client_3.exceptions.exceptions import InfluxDBRestClientException
 from influxdb_client_3.exceptions.write_exceptions import (
-    ApiException,
-    translate_write_exception,
+    translate_write_exception, InfluxDBWriteException, InfluxDBPartialWriteException, InfluxDBPartialWriteLineException
 )
 
 
@@ -26,10 +25,10 @@ class DummyHttpResponse:
 class TestWriteException(unittest.TestCase):
 
     def test_method_not_allowed_v3(self):
-        exc = ApiException(status=http.HTTPStatus.METHOD_NOT_ALLOWED, reason="Method Not Allowed")
+        exc = InfluxDBRestClientException(status=http.HTTPStatus.METHOD_NOT_ALLOWED, reason="Method Not Allowed")
         result = translate_write_exception(exc, use_v2_api=False)
 
-        self.assertIsInstance(result, ApiException)
+        self.assertIsInstance(result, InfluxDBWriteException)
         self.assertEqual(0, result.status)
         expected_msg = (
             "Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
@@ -40,10 +39,10 @@ class TestWriteException(unittest.TestCase):
         self.assertEqual((expected_msg,), result.args)
 
     def test_method_not_allowed_v2(self):
-        exc = ApiException(status=http.HTTPStatus.METHOD_NOT_ALLOWED, reason="Method Not Allowed")
+        exc = InfluxDBRestClientException(status=http.HTTPStatus.METHOD_NOT_ALLOWED, reason="Method Not Allowed")
         result = translate_write_exception(exc, use_v2_api=True)
 
-        self.assertIsInstance(result, ApiException)
+        self.assertIsInstance(result, InfluxDBWriteException)
         self.assertEqual(0, result.status)
         expected_msg = (
             "Server doesn't support the V2 API endpoint (/api/v2/write). "
@@ -54,10 +53,10 @@ class TestWriteException(unittest.TestCase):
         self.assertEqual((expected_msg,), result.args)
 
     def test_status_zero_and_body_none(self):
-        exc = ApiException(status=0, reason="Connection aborted")
+        exc = InfluxDBRestClientException(status=0, reason="Connection aborted")
         result = translate_write_exception(exc)
 
-        self.assertIs(result, exc)
+        self.assertIsInstance(result, InfluxDBWriteException)
         self.assertEqual(0, result.status)
         self.assertEqual("Connection aborted", result.reason)
 
@@ -75,10 +74,10 @@ class TestWriteException(unittest.TestCase):
                     data=b"raw body text",
                     headers={header_key: header_val},
                 )
-                exc = ApiException(http_resp=http_resp)
+                exc = InfluxDBRestClientException(http_resp=http_resp)
                 result = translate_write_exception(exc)
 
-                self.assertIs(result, exc)
+                self.assertIsInstance(result, InfluxDBWriteException)
                 self.assertEqual(header_val, result.message)
 
     def test_fallback_header_precedence(self):
@@ -92,10 +91,10 @@ class TestWriteException(unittest.TestCase):
                 "X-InfluxDb-Error": "influxdb_error",
             },
         )
-        exc = ApiException(http_resp=http_resp)
+        exc = InfluxDBRestClientException(http_resp=http_resp)
         result = translate_write_exception(exc)
 
-        self.assertIs(result, exc)
+        self.assertIsInstance(result, InfluxDBWriteException)
         self.assertEqual("platform_code", result.message)
 
     def test_fallback_to_raw_body_when_no_headers_and_invalid_json(self):
@@ -105,10 +104,10 @@ class TestWriteException(unittest.TestCase):
             data=b"raw plain text error",
             headers={},
         )
-        exc = ApiException(http_resp=http_resp)
+        exc = InfluxDBRestClientException(http_resp=http_resp)
         result = translate_write_exception(exc)
 
-        self.assertIs(result, exc)
+        self.assertIsInstance(result, InfluxDBWriteException)
         self.assertEqual(b"raw plain text error", result.message)
 
     def test_fallback_to_status_reason_when_no_headers_and_empty_body(self):
@@ -120,10 +119,10 @@ class TestWriteException(unittest.TestCase):
                     data=data,
                     headers={},
                 )
-                exc = ApiException(http_resp=http_resp)
+                exc = InfluxDBRestClientException(http_resp=http_resp)
                 result = translate_write_exception(exc)
 
-                self.assertIs(result, exc)
+                self.assertIsInstance(result, InfluxDBWriteException)
                 self.assertEqual("Internal Server Error", result.message)
 
     def test_fallback_when_json_is_not_dict_or_has_no_error_or_message(self):
@@ -144,37 +143,37 @@ class TestWriteException(unittest.TestCase):
                     data=body,
                     headers={},
                 )
-                exc = ApiException(http_resp=http_resp)
+                exc = InfluxDBRestClientException(http_resp=http_resp)
                 result = translate_write_exception(exc)
 
-                self.assertIs(result, exc)
+                self.assertIsInstance(result, InfluxDBWriteException)
                 self.assertEqual(body, result.message)
 
     def test_v3_message_only(self):
         body = json.dumps({"message": "table 'cpu' not found"}).encode("utf-8")
         http_resp = DummyHttpResponse(status=404, reason="Not Found", data=body)
-        exc = ApiException(http_resp=http_resp)
+        exc = InfluxDBRestClientException(http_resp=http_resp)
         result = translate_write_exception(exc)
 
-        self.assertIs(result, exc)
+        self.assertIsInstance(result, InfluxDBWriteException)
         self.assertEqual("table 'cpu' not found", result.message)
 
     def test_v3_code_and_message(self):
         body = json.dumps({"code": "not_found", "message": "table 'cpu' not found"}).encode("utf-8")
         http_resp = DummyHttpResponse(status=404, reason="Not Found", data=body)
-        exc = ApiException(http_resp=http_resp)
+        exc = InfluxDBRestClientException(http_resp=http_resp)
         result = translate_write_exception(exc)
 
-        self.assertIs(result, exc)
+        self.assertIsInstance(result, InfluxDBWriteException)
         self.assertEqual("not_found: table 'cpu' not found", result.message)
 
     def test_error_without_data(self):
         body = json.dumps({"error": "syntax error on token"}).encode("utf-8")
         http_resp = DummyHttpResponse(status=400, reason="Bad Request", data=body)
-        exc = ApiException(http_resp=http_resp)
+        exc = InfluxDBRestClientException(http_resp=http_resp)
         result = translate_write_exception(exc)
 
-        self.assertIs(result, exc)
+        self.assertIsInstance(result, InfluxDBWriteException)
         self.assertEqual("syntax error on token", result.message)
 
     def test_object_data_error_without_line_number(self):
@@ -185,10 +184,10 @@ class TestWriteException(unittest.TestCase):
             }
         }).encode("utf-8")
         http_resp = DummyHttpResponse(status=400, reason="Bad Request", data=body)
-        exc = ApiException(http_resp=http_resp)
+        exc = InfluxDBRestClientException(http_resp=http_resp)
         result = translate_write_exception(exc)
 
-        self.assertIs(result, exc)
+        self.assertIsInstance(result, InfluxDBWriteException)
         self.assertEqual("write failed:\n\ttype conflict for field 'temp'", result.message)
 
     def test_object_data_error_with_line_number_no_original_line(self):
@@ -200,10 +199,10 @@ class TestWriteException(unittest.TestCase):
             }
         }).encode("utf-8")
         http_resp = DummyHttpResponse(status=400, reason="Bad Request", data=body)
-        exc = ApiException(http_resp=http_resp)
+        exc = InfluxDBRestClientException(http_resp=http_resp)
         result = translate_write_exception(exc)
 
-        self.assertIs(result, exc)
+        self.assertIsInstance(result, InfluxDBWriteException)
         self.assertEqual("write failed:\n\tline 4: type conflict for field 'temp'", result.message)
 
     def test_object_data_error_with_line_number_and_original_line(self):
@@ -216,10 +215,10 @@ class TestWriteException(unittest.TestCase):
             }
         }).encode("utf-8")
         http_resp = DummyHttpResponse(status=400, reason="Bad Request", data=body)
-        exc = ApiException(http_resp=http_resp)
+        exc = InfluxDBRestClientException(http_resp=http_resp)
         result = translate_write_exception(exc)
 
-        self.assertIs(result, exc)
+        self.assertIsInstance(result, InfluxDBWriteException)
         self.assertEqual(
             "write failed:\n\tline 4: type conflict for field 'temp' (cpu,tag=1 temp=10 123456789)",
             result.message
@@ -233,10 +232,10 @@ class TestWriteException(unittest.TestCase):
             }
         }).encode("utf-8")
         http_resp = DummyHttpResponse(status=400, reason="Bad Request", data=body)
-        exc = ApiException(http_resp=http_resp)
+        exc = InfluxDBRestClientException(http_resp=http_resp)
         result = translate_write_exception(exc)
 
-        self.assertIs(result, exc)
+        self.assertIsInstance(result, InfluxDBWriteException)
         self.assertEqual("write failed", result.message)
 
     def test_partial_write_error_all_typed_details(self):
@@ -258,10 +257,10 @@ class TestWriteException(unittest.TestCase):
             ]
         }).encode("utf-8")
         http_resp = DummyHttpResponse(status=400, reason="Bad Request", data=body)
-        exc = ApiException(http_resp=http_resp)
+        exc = InfluxDBRestClientException(http_resp=http_resp)
         result = translate_write_exception(exc, use_v2_api=False, accept_partial=True)
 
-        self.assertIsInstance(result, InfluxDBPartialWriteError)
+        self.assertIsInstance(result, InfluxDBPartialWriteException)
         expected_msg = (
             "partial write of line protocol occurred:\n"
             "\tline 1: type mismatch (m,t=a f=1)\n"
@@ -272,9 +271,9 @@ class TestWriteException(unittest.TestCase):
         self.assertEqual(3, len(result.line_errors))
         self.assertEqual(
             [
-                InfluxDBPartialWriteLineError(1, "type mismatch", "m,t=a f=1"),
-                InfluxDBPartialWriteLineError(2, "invalid timestamp", None),
-                InfluxDBPartialWriteLineError(None, "general line error", None),
+                InfluxDBPartialWriteLineException(1, "type mismatch", "m,t=a f=1"),
+                InfluxDBPartialWriteLineException(2, "invalid timestamp", None),
+                InfluxDBPartialWriteLineException(None, "general line error", None),
             ],
             result.line_errors
         )
@@ -296,10 +295,10 @@ class TestWriteException(unittest.TestCase):
             ]
         }).encode("utf-8")
         http_resp = DummyHttpResponse(status=400, reason="Bad Request", data=body)
-        exc = ApiException(http_resp=http_resp)
+        exc = InfluxDBRestClientException(http_resp=http_resp)
         result = translate_write_exception(exc, use_v2_api=False, accept_partial=True)
 
-        self.assertIsInstance(result, InfluxDBPartialWriteError)
+        self.assertIsInstance(result, InfluxDBPartialWriteException)
         expected_msg = (
             "partial write of line protocol occurred:\n"
             '\t{"line_number":"not_an_int","error_message":"type mismatch","original_line":"m,t=a f=1"}\n'
@@ -320,10 +319,10 @@ class TestWriteException(unittest.TestCase):
             ]
         }).encode("utf-8")
         http_resp = DummyHttpResponse(status=400, reason="Bad Request", data=body)
-        exc = ApiException(http_resp=http_resp)
+        exc = InfluxDBRestClientException(http_resp=http_resp)
         result = translate_write_exception(exc, use_v2_api=False, accept_partial=False)
 
-        self.assertIsInstance(result, ApiException)
+        self.assertIsInstance(result, InfluxDBWriteException)
         self.assertEqual("partial write of line protocol occurred", result.message)
 
     def test_partial_write_skipped_when_use_v2_api_is_true(self):
@@ -338,10 +337,10 @@ class TestWriteException(unittest.TestCase):
             ]
         }).encode("utf-8")
         http_resp = DummyHttpResponse(status=400, reason="Bad Request", data=body)
-        exc = ApiException(http_resp=http_resp)
+        exc = InfluxDBRestClientException(http_resp=http_resp)
         result = translate_write_exception(exc, use_v2_api=True, accept_partial=True)
 
-        self.assertIsInstance(result, ApiException)
+        self.assertIsInstance(result, InfluxDBWriteException)
         self.assertEqual("partial write of line protocol occurred", result.message)
 
     def test_partial_write_skipped_when_status_is_not_400(self):
@@ -356,8 +355,8 @@ class TestWriteException(unittest.TestCase):
             ]
         }).encode("utf-8")
         http_resp = DummyHttpResponse(status=500, reason="Internal Server Error", data=body)
-        exc = ApiException(http_resp=http_resp)
+        exc = InfluxDBRestClientException(http_resp=http_resp)
         result = translate_write_exception(exc, use_v2_api=False, accept_partial=True)
 
-        self.assertIsInstance(result, ApiException)
+        self.assertIsInstance(result, InfluxDBWriteException)
         self.assertEqual("partial write of line protocol occurred", result.message)
