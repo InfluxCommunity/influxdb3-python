@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pyarrow as pa
 
 from influxdb_client_3.cli import _coerce_timestamps, _format_table, _run_query, build_parser, main
-from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
+from influxdb_client_3.exceptions import InfluxDB3ClientQueryException
 
 
 def _args(**overrides):
@@ -119,7 +119,7 @@ def test_run_query_reads_query_from_file(tmp_path):
 
 def test_run_query_writes_json_error_for_query_exception():
     args = _args(query="SELECT bad", host="http://localhost:8181", database="db1")
-    mock_client = _mock_client(side_effect=InfluxDB3ClientQueryError("bad query"))
+    mock_client = _mock_client(side_effect=InfluxDB3ClientQueryException("bad query"))
 
     stdout, stderr = io.StringIO(), io.StringIO()
 

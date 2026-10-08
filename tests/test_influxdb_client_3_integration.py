@@ -15,12 +15,11 @@ import pytest
 from urllib3.exceptions import MaxRetryError, TimeoutError as Url3TimeoutError
 
 from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, \
-    WriteType, InfluxDB3ClientQueryError
-from influxdb_client_3.exceptions import InfluxDBError, InfluxDBPartialWriteError
+    WriteType, InfluxDB3ClientQueryException
+from influxdb_client_3.exceptions.write_exceptions import InfluxDBWriteException, InfluxDBPartialWriteException
 from influxdb_client_3.write_client import WriteApi
 from influxdb_client_3.write_client._sync import rest_client
 from influxdb_client_3.write_client.client.util.multiprocessing_helper import MultiprocessingWriter
-from influxdb_client_3.exceptions.write_exceptions import ApiException
 from tests.util import asyncio_run, lp_to_py_object
 
 
@@ -186,7 +185,7 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
                         ))
                 ) as client:
                     if accept_partial:
-                        with self.assertRaises(InfluxDBPartialWriteError) as err:
+                        with self.assertRaises(InfluxDBPartialWriteException) as err:
                             client.write(lp)
 
                         self.assertEqual(1, len(err.exception.line_errors))
@@ -195,7 +194,7 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
                         self.assertIn("invalid column type for column 'temp'", line_error.error_message)
                         self.assertIn("home,room=Sunroom", line_error.original_line)
                     else:
-                        with self.assertRaises(ApiException) as err:
+                        with self.assertRaises(InfluxDBWriteException) as err:
                             client.write(lp)
 
                         self.assertEqual(400, err.exception.status)
@@ -226,11 +225,11 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
                             accept_partial=accept_partial
                         ))
                 ) as client:
-                    with self.assertRaises(ApiException) as err:
+                    with self.assertRaises(InfluxDBWriteException) as err:
                         client.write(lp)
 
                 self.assertEqual(400, err.exception.status)
-                self.assertNotIsInstance(err.exception, InfluxDBPartialWriteError)
+                self.assertNotIsInstance(err.exception, InfluxDBPartialWriteException)
                 body = json.loads(err.exception.body)
                 self.assertEqual("invalid", body["code"])
                 self.assertIn("write buffer error", body["message"])
@@ -238,7 +237,7 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
     def test_auth_error_token(self):
         self.client = InfluxDBClient3(host=self.host, database=self.database, token='fake token')
         test_id = time.time_ns()
-        with self.assertRaises(InfluxDBError) as err:
+        with self.assertRaises(InfluxDBWriteException) as err:
             self.client.write(f"integration_test_python,type=used value=123.0,test_id={test_id}i")
         self.assertEqual('Authorization header was malformed, the request was not in the form of '
                          '\'Authorization: <auth-scheme> <token>\', supported auth-schemes are Bearer, Token and Basic',
@@ -247,7 +246,7 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
     def test_auth_error_auth_scheme(self):
         self.client = InfluxDBClient3(host=self.host, database=self.database, token=self.token, auth_scheme='Any')
         test_id = time.time_ns()
-        with self.assertRaises(InfluxDBError) as err:
+        with self.assertRaises(InfluxDBWriteException) as err:
             self.client.write(f"integration_test_python,type=used value=123.0,test_id={test_id}i")
         self.assertEqual('Authorization header was malformed, the request was not in the form of '
                          '\'Authorization: <auth-scheme> <token>\', supported auth-schemes are Bearer, Token and Basic',
@@ -267,7 +266,7 @@ class TestInfluxDBClient3Integration(unittest.TestCase):
             write_success = True
             write_count += 1
 
-        def error(conf, data, exception: InfluxDBError):
+        def error(conf, data, exception: InfluxDBWriteException):
             nonlocal write_error
             write_error = True
 
@@ -669,7 +668,7 @@ IdKIRUY6EyIVG+Z/nbuVqUlgnIWOMp0yg4RRC91zHy3Xvykf3Vai25H/jQpa6cbU
             query_timeout=1,
         )
 
-        with self.assertRaisesRegex(InfluxDB3ClientQueryError, ".*Deadline Exceeded.*"):
+        with self.assertRaisesRegex(InfluxDB3ClientQueryException, ".*Deadline Exceeded.*"):
             localClient.query("SELECT * FROM data")
 
     def test_write_timeout_per_call_override(self):
