@@ -8,14 +8,15 @@ import datetime
 import logging
 import os
 
-from influxdb_client_3 import (exceptions, InfluxDBClient3, Point,
+from influxdb_client_3 import (InfluxDBClient3, Point,
                                WriteOptions, WritePrecision, WriteType, write_client_options)
+from influxdb_client_3.exceptions import write_exceptions
 
 logger = logging.getLogger("writeoptions")
 
 
 # An illustrative callback - see below
-def error_callback(conf, data: bytes, exception: exceptions.InfluxDBError):
+def error_callback(conf, data: bytes, exception: write_exceptions.InfluxDBWriteException):
     now = datetime.datetime.now()
     logger.warning(f"[{now}] an error occurred on latest write: {exception}")
     logger.warning(f"   conf: {conf}")

@@ -1,6 +1,5 @@
 """Collect and write time series data to InfluxDB Cloud or InfluxDB OSS."""
 from __future__ import absolute_import
-
 # TODO Remove after this program no longer supports Python 3.8.*
 from __future__ import annotations
 
@@ -22,6 +21,8 @@ from reactivex import operators as ops, Observable
 from reactivex.scheduler import ThreadPoolScheduler
 from reactivex.subject import Subject
 
+from influxdb_client_3.exceptions.write_exceptions import _UTF_8_encoding, translate_write_exception
+from influxdb_client_3.exceptions.exceptions import InfluxDBRestClientException
 from influxdb_client_3.write_client._sync.rest_client import RestClient
 from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
 from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION, sanitize_tag_order
@@ -34,7 +35,6 @@ from influxdb_client_3.write_client.write_defaults import (
     DEFAULT_WRITE_TIMEOUT as _DEFAULT_WRITE_TIMEOUT,
     DEFAULT_WRITE_USE_V2_API as _DEFAULT_WRITE_USE_V2_API,
 )
-from influxdb_client_3.exceptions.write_exceptions import _UTF_8_encoding, ApiException, translate_write_exception
 
 # Deprecated compatibility aliases.
 # New code should import these defaults from `influxdb_client_3.write_client.write_defaults`.
@@ -483,7 +483,7 @@ class WriteApi:
                 http_kwargs.get('_request_timeout'),
                 http_kwargs.get('urlopen_kw', None),
             )
-        except ApiException as e:
+        except InfluxDBRestClientException as e:
             raise translate_write_exception(e, use_v2_api, accept_partial=accept_partial)
 
     def flush(self):
@@ -678,7 +678,7 @@ class WriteApi:
                 def translated_get(timeout=None):
                     try:
                         return original_get(timeout=timeout)
-                    except ApiException as e:
+                    except InfluxDBRestClientException as e:
                         raise translate_write_exception(e, use_v2_api, accept_partial)
 
                 result.get = translated_get
@@ -689,7 +689,7 @@ class WriteApi:
                 body,
                 http_kwargs.get('_request_timeout'),
                 http_kwargs.get('urlopen_kw', None))
-        except ApiException as e:
+        except InfluxDBRestClientException as e:
             raise translate_write_exception(e, use_v2_api, accept_partial)
 
     def _build_write_request(self, org, bucket, precision, no_sync, accept_partial, use_v2_api, **kwargs):

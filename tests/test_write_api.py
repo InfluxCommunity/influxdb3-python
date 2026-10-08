@@ -11,15 +11,15 @@ import pytest
 from urllib3 import response
 from urllib3.exceptions import ConnectTimeoutError, ProtocolError, SSLError
 
-from influxdb_client_3 import InfluxDBClient3, InfluxDBError
-from influxdb_client_3.exceptions import InfluxDBPartialWriteError, InfluxDBPartialWriteLineError
+from influxdb_client_3 import InfluxDBClient3
+from influxdb_client_3.exceptions.write_exceptions import (
+    InfluxDBWriteException,
+    InfluxDBPartialWriteLineException,
+    InfluxDBPartialWriteException,
+    translate_write_exception,
+)
 from influxdb_client_3.version import VERSION
 from influxdb_client_3.write_client.client.write.retry import WritesRetry
-from influxdb_client_3.exceptions.write_exceptions import (
-    ApiException,
-    translate_write_exception,
-    is_partial_write_error,
-)
 
 _package = "influxdb3-python"
 _sentHeaders = {}
@@ -36,7 +36,7 @@ class TestCase:
     accept_partial: bool = False
     expected_msg: str = ""
     expect_partial: bool = False
-    expected_lines: List[InfluxDBPartialWriteLineError] = field(default_factory=list)
+    expected_lines: List[InfluxDBPartialWriteLineException] = field(default_factory=list)
 
     def __str__(self):
         return self.name
@@ -68,7 +68,7 @@ TEST_CASES = [
         expected_msg=f"write completed with rejected rows:\n\tline 2: {LINE_ERROR} ({REJECTED_LINE})",
         expect_partial=True,
         expected_lines=[
-            InfluxDBPartialWriteLineError(
+            InfluxDBPartialWriteLineException(
                 error_message=LINE_ERROR,
                 line_number=2,
                 original_line=REJECTED_LINE,
@@ -88,7 +88,7 @@ TEST_CASES = [
         expected_msg=f"write completed with rejected rows:\n\tline 2: {LINE_ERROR} ({REJECTED_LINE})",
         expect_partial=True,
         expected_lines=[
-            InfluxDBPartialWriteLineError(
+            InfluxDBPartialWriteLineException(
                 error_message=LINE_ERROR,
                 line_number=2,
                 original_line=REJECTED_LINE,
@@ -126,7 +126,7 @@ TEST_CASES = [
         ),
         expect_partial=True,
         expected_lines=[
-            InfluxDBPartialWriteLineError(
+            InfluxDBPartialWriteLineException(
                 error_message=LINE_ERROR,
                 line_number=2,
                 original_line=REJECTED_LINE,
@@ -153,7 +153,7 @@ TEST_CASES = [
         expected_msg=f"write completed with rejected rows:\n\t{LINE_ERROR}",
         expect_partial=True,
         expected_lines=[
-            InfluxDBPartialWriteLineError(
+            InfluxDBPartialWriteLineException(
                 error_message=LINE_ERROR,
                 line_number=None,
                 original_line=None,
@@ -170,7 +170,7 @@ TEST_CASES = [
         expected_msg=f"write completed with rejected rows:\n\tline 2: {LINE_ERROR}",
         expect_partial=True,
         expected_lines=[
-            InfluxDBPartialWriteLineError(
+            InfluxDBPartialWriteLineException(
                 error_message=LINE_ERROR,
                 line_number=2,
                 original_line=None,
@@ -465,27 +465,27 @@ class WriteApiTests(unittest.TestCase):
 
     def test_api_error_cloud(self):
         response_body = '{"message": "parsing failed for write_lp endpoint"}'
-        with self.assertRaises(InfluxDBError) as err:
+        with self.assertRaises(InfluxDBWriteException) as err:
             self._test_api_error(response_body)
         self.assertEqual('parsing failed for write_lp endpoint', err.exception.message)
 
     def test_api_error_oss_without_detail(self):
         response_body = '{"error": "parsing failed for write_lp endpoint"}'
-        with self.assertRaises(InfluxDBError) as err:
+        with self.assertRaises(InfluxDBWriteException) as err:
             self._test_api_error(response_body)
         self.assertEqual('parsing failed for write_lp endpoint', err.exception.message)
 
     def test_api_error_oss_with_detail(self):
         response_body = ('{"error":"parsing failed for write_lp endpoint","data":{"error_message":"invalid field value '
                          'in line protocol for field \'val\' on line 1"}}')
-        with self.assertRaises(InfluxDBError) as err:
+        with self.assertRaises(InfluxDBWriteException) as err:
             self._test_api_error(response_body)
         self.assertEqual("parsing failed for write_lp endpoint:\n\tinvalid field value in line protocol for field "
                          "'val' on line 1", err.exception.message)
 
     def test_api_error_unknown(self):
         response_body = '{"detail":"no info"}'
-        with self.assertRaises(InfluxDBError) as err:
+        with self.assertRaises(InfluxDBWriteException) as err:
             self._test_api_error(response_body)
         self.assertEqual(response_body, err.exception.message)
 
@@ -598,19 +598,19 @@ class WriteApiTests(unittest.TestCase):
         for name, response_body, expected, is_partial, use_v2_api, expected_line_error_count in cases:
             with self.subTest(name):
                 if is_partial:
-                    with self.assertRaises(InfluxDBPartialWriteError) as err:
+                    with self.assertRaises(InfluxDBPartialWriteException) as err:
                         self._test_api_error(body=response_body, accept_partial=is_partial, use_v2_api=use_v2_api)
-                    self.assertIsInstance(err.exception, InfluxDBPartialWriteError)
+                    self.assertIsInstance(err.exception, InfluxDBPartialWriteException)
                     self.assertGreaterEqual(len(err.exception.line_errors), expected_line_error_count)
                 else:
-                    with self.assertRaises(ApiException) as err:
+                    with self.assertRaises(InfluxDBWriteException) as err:
                         self._test_api_error(body=response_body, accept_partial=is_partial, use_v2_api=use_v2_api)
                 self.assertEqual(expected, err.exception.message)
 
     def test_api_error_v3_parsing_failed_object_returns_error(self):
         response_body = ('{"error":"parsing failed for write_lp endpoint","data":'
                          '{"error_message":"invalid field value","line_number":2,"original_line":"m,t=a f=bad"}}')
-        with self.assertRaises(ApiException) as err:
+        with self.assertRaises(InfluxDBWriteException) as err:
             self._test_api_error(response_body)
         self.assertEqual('parsing failed for write_lp endpoint:\n\tline 2: invalid field value (m,t=a f=bad)',
                          err.exception.message)
@@ -618,14 +618,14 @@ class WriteApiTests(unittest.TestCase):
     def test_api_error_v3_write_with_message_only_object_returns(self):
         response_body = ('{"error":"parsing failed for write_lp endpoint","data":'
                          '{"error_message":"only error message"}}')
-        with self.assertRaises(ApiException) as err:
+        with self.assertRaises(InfluxDBWriteException) as err:
             self._test_api_error(response_body)
         self.assertEqual("parsing failed for write_lp endpoint:\n\tonly error message", err.exception.message)
 
     def test_api_error_v3_write_with_line_number_without_original_line(self):
         response_body = ('{"error":"parsing failed for write_lp endpoint","data":'
                          '{"error_message":"invalid field value","line_number":2}}')
-        with self.assertRaises(ApiException) as err:
+        with self.assertRaises(InfluxDBWriteException) as err:
             self._test_api_error(response_body)
         self.assertEqual("parsing failed for write_lp endpoint:\n\tline 2: invalid field value",
                          err.exception.message)
@@ -633,7 +633,7 @@ class WriteApiTests(unittest.TestCase):
     def test_api_error_v3_write_with_invalid_line_number(self):
         response_body = ('{"error":"parsing failed for write_lp endpoint","data":'
                          '{"error_message":"bad line","line_number":"aa"}}')
-        with self.assertRaises(ApiException) as err:
+        with self.assertRaises(InfluxDBWriteException) as err:
             self._test_api_error(response_body)
         self.assertEqual("parsing failed for write_lp endpoint:\n\tbad line",
                          err.exception.message)
@@ -642,7 +642,7 @@ class WriteApiTests(unittest.TestCase):
         for body in ["{err", "[]", "{}"]:
             for is_partial_write in [False, True]:
                 # Fallback to header message
-                with self.assertRaises(InfluxDBError) as err:
+                with self.assertRaises(InfluxDBWriteException) as err:
                     header = {"X-Influx-Error": "not used"}
                     self._test_api_error(
                         body=body,
@@ -653,7 +653,7 @@ class WriteApiTests(unittest.TestCase):
                 self.assertEqual(header["X-Influx-Error"], err.exception.message)
 
                 # Fallback to raw body
-                with self.assertRaises(InfluxDBError) as err:
+                with self.assertRaises(InfluxDBWriteException) as err:
                     self._test_api_error(
                         body=body,
                         accept_partial=is_partial_write,
@@ -664,7 +664,7 @@ class WriteApiTests(unittest.TestCase):
     def test_fallback_status_code_msg(self):
         for body in ["", None]:
             for is_partial_write in [False, True]:
-                with self.assertRaises(InfluxDBError) as err:
+                with self.assertRaises(InfluxDBWriteException) as err:
                     self._test_api_error(
                         body=body,
                         accept_partial=is_partial_write,
@@ -698,7 +698,7 @@ class WriteApiTests(unittest.TestCase):
                 body=body.encode()
             )
         )
-        with self.assertRaises(InfluxDBError) as err:
+        with self.assertRaises(InfluxDBWriteException) as err:
             client._write_api.write("TEST_BUCKET", "TEST_ORG", "data,foo=bar val=3.14")
         self.assertEqual(body_dic['error'], err.exception.message)
         headers = err.exception.getheaders()
@@ -782,7 +782,7 @@ class WriteApiTests(unittest.TestCase):
                 True,
                 False,
                 response.HTTPResponse(status=405, reason="Method Not Allowed", body=b""),
-                ApiException,
+                InfluxDBWriteException,
                 "Server doesn't support the V2 API endpoint (/api/v2/write). "
                 "Set use_v2_api=False to use the V3 API endpoint.",
             ),
@@ -791,7 +791,7 @@ class WriteApiTests(unittest.TestCase):
                 False,
                 False,
                 response.HTTPResponse(status=405, reason="Method Not Allowed", body=b""),
-                ApiException,
+                InfluxDBWriteException,
                 "Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
                 "Set use_v2_api=True to use the V2 API endpoint.",
             ),
@@ -807,7 +807,7 @@ class WriteApiTests(unittest.TestCase):
                         b'"line_number":2,"original_line":"home,room=Sunroom temp=\\"hi\\" 1735549200"}]}'
                     ),
                 ),
-                InfluxDBPartialWriteError,
+                InfluxDBPartialWriteException,
                 None,
             ),
         ]
@@ -821,7 +821,7 @@ class WriteApiTests(unittest.TestCase):
                 )
                 write_api = client._write_api
                 write_api.rest_client.request = mock.Mock(
-                    side_effect=ApiException(http_resp=http_resp)
+                    side_effect=InfluxDBWriteException(http_resp=http_resp)
                 )
                 result = write_api._post_write(
                     org="TEST_ORG",
@@ -931,7 +931,7 @@ class WriteApiTests(unittest.TestCase):
         write_api = client._write_api
 
         write_api.rest_client.request = mock.Mock(
-            side_effect=ApiException(
+            side_effect=InfluxDBWriteException(
                 http_resp=response.HTTPResponse(status=405, reason="Method Not Allowed", body=b"")
             )
         )
@@ -944,7 +944,7 @@ class WriteApiTests(unittest.TestCase):
                 use_v2_api=False,
             )
 
-        with self.assertRaises(ApiException) as err:
+        with self.assertRaises(InfluxDBWriteException) as err:
             asyncio.run(run())
 
         expected = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
@@ -969,7 +969,7 @@ class WriteApiTests(unittest.TestCase):
                     )
                 )
 
-                expected_exc = InfluxDBPartialWriteError if tc.expect_partial else InfluxDBError
+                expected_exc = InfluxDBPartialWriteException if tc.expect_partial else InfluxDBWriteException
                 with self.assertRaises(expected_exc) as cm:
                     client.write(
                         record=POINTS,
@@ -1003,7 +1003,7 @@ class WriteApiTests(unittest.TestCase):
 
         callback.assert_called_once()
         called_arg = callback.call_args[0][0]
-        self.assertIsInstance(called_arg, InfluxDBError)
+        self.assertIsInstance(called_arg, InfluxDBWriteException)
         self.assertEqual(called_arg.response, mock_response)
 
     def test_increment_with_error(self):
@@ -1033,8 +1033,8 @@ class WriteApiTests(unittest.TestCase):
         ssl_error = SSLError("certificate verify failed: self-signed certificate")
         msg = "{0}\n{1}".format(type(ssl_error).__name__, str(ssl_error))
 
-        e = translate_write_exception(ApiException(status=0, reason=msg))
-        self.assertIsInstance(e, ApiException)
+        e = translate_write_exception(InfluxDBWriteException(status=0, reason=msg))
+        self.assertIsInstance(e, InfluxDBWriteException)
         self.assertEqual(e.reason, msg)
         self.assertEqual(e.status, 0)
 
@@ -1042,18 +1042,35 @@ class WriteApiTests(unittest.TestCase):
         valid_root = {"error": "partial write of line protocol occurred", "data": [{"line": 1}]}
 
         # Positive cases
-        self.assertTrue(is_partial_write_error(http.HTTPStatus.BAD_REQUEST, False, True, valid_root))
+        self.assertTrue(
+            InfluxDBPartialWriteException.is_partial_write_error(
+                http.HTTPStatus.BAD_REQUEST,
+                False,
+                True,
+                valid_root))
 
         # Negative status codes
         for status in [200, 204, 401, 403, 404, 500, None]:
             with self.subTest(status=status):
-                self.assertFalse(is_partial_write_error(status, False, True, valid_root))
+                self.assertFalse(InfluxDBPartialWriteException.is_partial_write_error(
+                    status,
+                    False,
+                    True,
+                    valid_root))
 
         with self.subTest(use_v2_api=True):
-            self.assertFalse(is_partial_write_error(400, True, True, valid_root))
+            self.assertFalse(InfluxDBPartialWriteException.is_partial_write_error(
+                400,
+                True,
+                True,
+                valid_root))
 
         with self.subTest(accept_partial=False):
-            self.assertFalse(is_partial_write_error(400, False, False, valid_root))
+            self.assertFalse(InfluxDBPartialWriteException.is_partial_write_error(
+                400,
+                False,
+                False,
+                valid_root))
 
         # Negative root shapes
         invalid_roots = [
@@ -1068,4 +1085,8 @@ class WriteApiTests(unittest.TestCase):
         ]
         for root in invalid_roots:
             with self.subTest(root=root):
-                self.assertFalse(is_partial_write_error(400, False, True, root))
+                self.assertFalse(InfluxDBPartialWriteException.is_partial_write_error(
+                    400,
+                    False,
+                    True,
+                    root))
