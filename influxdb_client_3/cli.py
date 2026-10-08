@@ -14,7 +14,8 @@ from influxdb_client_3 import (
     INFLUX_TOKEN,
     InfluxDBClient3,
 )
-from influxdb_client_3.exceptions import InfluxDB3ClientQueryError, InfluxDBError
+from influxdb_client_3.exceptions import InfluxDB3ClientQueryException
+from influxdb_client_3.exceptions.write_exceptions import InfluxDBWriteException
 
 
 def _resolve_option(
@@ -196,7 +197,7 @@ def _run_query(args, stdout, stderr, env: Optional[Mapping[str, str]] = None) ->
         else:
             stdout.write(payload)
         return 0
-    except (InfluxDB3ClientQueryError, InfluxDBError, OSError, pa.ArrowException) as error:
+    except (InfluxDB3ClientQueryException, InfluxDBWriteException, OSError, pa.ArrowException) as error:
         _write_error(stderr, str(error))
         return 1
 

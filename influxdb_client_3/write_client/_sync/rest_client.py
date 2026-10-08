@@ -10,7 +10,7 @@ import sys
 from typing import Dict
 from urllib.parse import urlencode
 
-from influxdb_client_3.write_client.write_exceptions import ApiException
+from influxdb_client_3.exceptions.exceptions import InfluxDBRestClientException
 
 try:
     import urllib3
@@ -172,10 +172,13 @@ class RestClient(object):
             )
         except urllib3.exceptions.SSLError as e:
             msg = "{0}\n{1}".format(type(e).__name__, str(e))
-            raise ApiException(status=0, reason=msg)
+            raise InfluxDBRestClientException(status=0, reason=msg)
 
         r = RESTResponse(r)
-        r.data = r.data.decode('utf8')
+        if r.data is not None and r.data != "":
+            r.data = r.data.decode('utf8')
+        else:
+            r.data = None
 
         if self.debug:
             RestClient.log_response(r.status)
@@ -186,7 +189,7 @@ class RestClient(object):
             RestClient.log_body(r.data, '<<<')
 
         if not 200 <= r.status <= 299:
-            raise ApiException(http_resp=r)
+            raise InfluxDBRestClientException(http_resp=r)
 
         return r
 

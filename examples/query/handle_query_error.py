@@ -6,7 +6,7 @@ import logging
 import os
 
 from influxdb_client_3 import InfluxDBClient3
-from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
+from influxdb_client_3.exceptions import InfluxDB3ClientQueryException
 
 
 def main() -> None:
@@ -29,7 +29,7 @@ def main() -> None:
     try:
         # Select from a bucket that doesn't exist
         client.query("Select a from cpu11")
-    except InfluxDB3ClientQueryError as e:
+    except InfluxDB3ClientQueryException as e:
         logging.log(logging.ERROR, e.message)
 
 

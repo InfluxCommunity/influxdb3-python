@@ -4,7 +4,8 @@ database_transfer.py - is an illustrative examples showing how to copy data from
 import os
 import time
 
-from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions, InfluxDBError
+from influxdb_client_3 import InfluxDBClient3, write_client_options, WriteOptions
+from influxdb_client_3.exceptions.write_exceptions import InfluxDBWriteException
 
 HOST = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
 TOKEN = os.getenv('INFLUXDB_TOKEN') or 'my-token'
@@ -16,10 +17,10 @@ class BatchingCallback(object):
     def success(self, conf, data: str):
         print(f"Written batch: {conf}, data: {data}")
 
-    def error(self, conf, data: str, exception: InfluxDBError):
+    def error(self, conf, data: str, exception: InfluxDBWriteException):
         print(f"Cannot write batch: {conf}, data: {data} due: {exception}")
 
-    def retry(self, conf, data: str, exception: InfluxDBError):
+    def retry(self, conf, data: str, exception: InfluxDBWriteException):
         print(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
 
 

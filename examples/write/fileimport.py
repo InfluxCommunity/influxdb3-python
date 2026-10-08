@@ -11,7 +11,7 @@ import logging
 import os
 
 import influxdb_client_3 as InfluxDBClient3
-from influxdb_client_3 import write_client_options, WriteOptions, InfluxDBError
+from influxdb_client_3 import write_client_options, WriteOptions, InfluxDBWriteException
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -28,10 +28,10 @@ class BatchingCallback(object):
         self.write_count += 1
         print(f"Written batch: {conf}, data: {bytes(data)} bytes")
 
-    def error(self, conf, data: bytes, exception: InfluxDBError):
+    def error(self, conf, data: bytes, exception: InfluxDBWriteException):
         print(f"Cannot write batch: {conf}, data: {data} due: {exception}")
 
-    def retry(self, conf, data: bytes, exception: InfluxDBError):
+    def retry(self, conf, data: bytes, exception: InfluxDBWriteException):
         print(f"Retryable error occurred for batch: {conf}, data: {bytes(data)} bytes, retry: {exception}")
 
 

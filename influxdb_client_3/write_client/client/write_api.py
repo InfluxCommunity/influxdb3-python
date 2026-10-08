@@ -1,6 +1,5 @@
 """Collect and write time series data to InfluxDB Cloud or InfluxDB OSS."""
 from __future__ import absolute_import
-
 # TODO Remove after this program no longer supports Python 3.8.*
 from __future__ import annotations
 
@@ -11,7 +10,6 @@ import os
 import warnings
 from collections import defaultdict
 from enum import Enum
-from http import HTTPStatus
 from multiprocessing.pool import ThreadPool
 from random import random
 from time import sleep
@@ -23,15 +21,14 @@ from reactivex import operators as ops, Observable
 from reactivex.scheduler import ThreadPoolScheduler
 from reactivex.subject import Subject
 
-from influxdb_client_3.exceptions import InfluxDBPartialWriteError
+from influxdb_client_3.exceptions.write_exceptions import _UTF_8_encoding, translate_write_exception
+from influxdb_client_3.exceptions.exceptions import InfluxDBRestClientException
 from influxdb_client_3.write_client._sync.rest_client import RestClient
-# from influxdb_client_3.write_client.client._base import _HAS_DATACLASS
 from influxdb_client_3.write_client.client.write.dataframe_serializer import DataframeSerializer
 from influxdb_client_3.write_client.client.write.point import Point, DEFAULT_WRITE_PRECISION, sanitize_tag_order
 from influxdb_client_3.write_client.client.write.retry import WritesRetry
 from influxdb_client_3.write_client.domain import WritePrecision
 from influxdb_client_3.write_client.domain.write_precision_converter import WritePrecisionConverter
-from influxdb_client_3.write_client.write_exceptions import _UTF_8_encoding, ApiException
 from influxdb_client_3.write_client.write_defaults import (
     DEFAULT_WRITE_ACCEPT_PARTIAL as _DEFAULT_WRITE_ACCEPT_PARTIAL,
     DEFAULT_WRITE_NO_SYNC as _DEFAULT_WRITE_NO_SYNC,
@@ -486,8 +483,8 @@ class WriteApi:
                 http_kwargs.get('_request_timeout'),
                 http_kwargs.get('urlopen_kw', None),
             )
-        except ApiException as e:
-            raise self._translate_write_exception(e, use_v2_api)
+        except InfluxDBRestClientException as e:
+            raise translate_write_exception(e, use_v2_api, accept_partial=accept_partial)
 
     def flush(self):
         """
@@ -681,8 +678,8 @@ class WriteApi:
                 def translated_get(timeout=None):
                     try:
                         return original_get(timeout=timeout)
-                    except ApiException as e:
-                        raise self._translate_write_exception(e, use_v2_api)
+                    except InfluxDBRestClientException as e:
+                        raise translate_write_exception(e, use_v2_api, accept_partial)
 
                 result.get = translated_get
                 return result
@@ -692,8 +689,8 @@ class WriteApi:
                 body,
                 http_kwargs.get('_request_timeout'),
                 http_kwargs.get('urlopen_kw', None))
-        except ApiException as e:
-            raise self._translate_write_exception(e, use_v2_api)
+        except InfluxDBRestClientException as e:
+            raise translate_write_exception(e, use_v2_api, accept_partial)
 
     def _build_write_request(self, org, bucket, precision, no_sync, accept_partial, use_v2_api, **kwargs):
         if org is None:
@@ -782,26 +779,6 @@ class WriteApi:
         self.last_response = response_data
 
         return response_data
-
-    def _translate_write_exception(self, exc, use_v2_api):
-        if use_v2_api and exc.status == HTTPStatus.METHOD_NOT_ALLOWED:
-            message = ("Server doesn't support the V2 API endpoint (/api/v2/write). "
-                       "Set use_v2_api=False to use the V3 API endpoint.")
-            ex = ApiException(status=0, reason=message)
-            ex.message = message
-            ex.args = (message,)
-            return ex
-        if not use_v2_api and exc.status == HTTPStatus.METHOD_NOT_ALLOWED:
-            message = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
-                       "Set use_v2_api=True to use the V2 API endpoint.")
-            ex = ApiException(status=0, reason=message)
-            ex.message = message
-            ex.args = (message,)
-            return ex
-        partial = InfluxDBPartialWriteError.from_response(exc.response)
-        if partial is not None:
-            return partial
-        return exc
 
     def _should_gzip(self, payload: str, enable_gzip: bool = False, gzip_threshold: int = None) -> bool:
         """

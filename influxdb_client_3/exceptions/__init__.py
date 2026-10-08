@@ -1,4 +1,5 @@
 # flake8: noqa
 
-from .exceptions import InfluxDB3ClientQueryError, InfluxDBError, InfluxDB3ClientError, InfluxDBPartialWriteError, \
-    InfluxDBPartialWriteLineError
+from .exceptions import InfluxDB3ClientException, InfluxDB3ClientQueryException
+from .write_exceptions import InfluxDBWriteException, InfluxDBPartialWriteException, InfluxDBRestClientException
+

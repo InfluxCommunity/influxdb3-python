@@ -9,7 +9,9 @@ from typing import Callable
 from urllib3 import Retry
 from urllib3.exceptions import MaxRetryError, ResponseError
 
-from influxdb_client_3.exceptions import InfluxDBError
+from influxdb_client_3.exceptions.write_exceptions import translate_write_exception, \
+    InfluxDBWriteException
+from influxdb_client_3.exceptions.exceptions import InfluxDBRestClientException
 
 logger = logging.getLogger('influxdb_client_3.write_client.client.write.retry')
 
@@ -124,14 +126,14 @@ class WritesRetry(Retry):
         new_retry = super().increment(method, url, response, error, _pool, _stacktrace)
 
         if response is not None:
-            parsed_error = InfluxDBError(response=response)
+            parsed_error = translate_write_exception(exc=InfluxDBRestClientException(http_resp=response))
         elif error is not None:
             parsed_error = error
         else:
             parsed_error = f"Failed request to: {url}"
 
         message = f"The retriable error occurred during request. Reason: '{parsed_error}'."
-        if isinstance(parsed_error, InfluxDBError):
+        if isinstance(parsed_error, InfluxDBWriteException):
             message += f" Retry in {parsed_error.retry_after}s."
 
         if self.retry_callback:

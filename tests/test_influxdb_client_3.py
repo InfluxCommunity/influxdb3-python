@@ -8,9 +8,9 @@ from pytest_httpserver import HTTPServer
 
 from influxdb_client_3 import InfluxDBClient3, WritePrecision, DefaultWriteOptions, Point, WriteOptions, WriteType, \
     write_client_options
-from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
+from influxdb_client_3.exceptions import InfluxDB3ClientQueryException
+from influxdb_client_3.exceptions.exceptions import InfluxDBRestClientException
 from influxdb_client_3.write_client.client.write_api import _BatchItemKey
-from influxdb_client_3.write_client.write_exceptions import ApiException
 from tests.util import asyncio_run
 from tests.util.mocks import ConstantFlightServer, ConstantData, ErrorFlightServer
 
@@ -547,7 +547,7 @@ class TestInfluxDBClient3(unittest.TestCase):
     def test_query_with_arrow_error(self):
         f = ErrorFlightServer()
         with InfluxDBClient3(f"http://localhost:{f.port}", "my_org", "my_db", "my_token") as c:
-            with self.assertRaises(InfluxDB3ClientQueryError) as err:
+            with self.assertRaises(InfluxDB3ClientQueryException) as err:
                 c.query("SELECT * FROM my_data")
             self.assertIn("Error while executing query", str(err.exception))
 
@@ -555,7 +555,7 @@ class TestInfluxDBClient3(unittest.TestCase):
     async def test_async_query_with_arrow_error(self):
         f = ErrorFlightServer()
         with InfluxDBClient3(f"http://localhost:{f.port}", "my_org", "my_db", "my_token") as c:
-            with self.assertRaises(InfluxDB3ClientQueryError) as err:
+            with self.assertRaises(InfluxDB3ClientQueryException) as err:
                 await c.query_async("SELECT * FROM my_data")
             self.assertIn("Error while executing query", str(err.exception))
 
@@ -597,7 +597,7 @@ class TestInfluxDBClient3(unittest.TestCase):
             response_json={"error": "error"},
             status=400
         )
-        with self.assertRaises(ApiException):
+        with self.assertRaises(InfluxDBRestClientException):
             InfluxDBClient3(
                 host=f'http://{server.host}:{server.port}', org="ORG", database="DB", token="TOKEN"
             ).get_server_version()

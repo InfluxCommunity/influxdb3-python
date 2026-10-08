@@ -31,7 +31,7 @@ def main() -> None:
 
     try:
         client.write(lp)
-    except InfluxDBClient3.InfluxDBError as idberr:
+    except InfluxDBClient3.InfluxDBWriteException as idberr:
         logging.log(logging.ERROR, 'WRITE ERROR: %s (%s)',
                     idberr.response.status,
                     idberr.message)
