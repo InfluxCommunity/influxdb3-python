@@ -1,5 +1,4 @@
 """Functions to share utility across client classes."""
-from influxdb_client_3.exceptions.write_exceptions import ApiException
 
 
 def _is_id(value):
@@ -34,17 +33,17 @@ def get_org_query_param(org, client, required_id=False):
         try:
             organizations = client.organizations_api().find_organizations(org=_org)
             if len(organizations) < 1:
-                from write_client.client.exceptions import InfluxDBError
+                from influxdb_client_3.exceptions import InfluxDBRestClientException
                 message = f"The client cannot find organization with name: '{_org}' " \
                           "to determine their ID. Are you using token with sufficient permission?"
-                raise InfluxDBError(response=None, message=message)
+                raise InfluxDBRestClientException(response=None, message=message)
             return organizations[0].id
-        except ApiException as e:
+        except InfluxDBRestClientException as e:
             if e.status == 404:
-                from write_client.client.exceptions import InfluxDBError
+                from influxdb_client_3.exceptions import InfluxDBRestClientException
                 message = f"The client cannot find organization with name: '{_org}' " \
                           "to determine their ID."
-                raise InfluxDBError(response=None, message=message)
+                raise InfluxDBRestClientException(response=None, message=message)
             raise e
 
     return _org

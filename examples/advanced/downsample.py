@@ -9,7 +9,8 @@ import random
 
 import pandas as pd
 
-from influxdb_client_3 import InfluxDBClient3, InfluxDBError, WriteOptions, write_client_options
+from influxdb_client_3 import InfluxDBClient3, WriteOptions, write_client_options
+from influxdb_client_3.exceptions.write_exceptions import InfluxDBWriteException
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -23,10 +24,10 @@ class BatchingCallback(object):
     def success(self, conf, data: str):
         print(f"Written batch: {conf}, data: {data}")
 
-    def error(self, conf, data: str, exception: InfluxDBError):
+    def error(self, conf, data: str, exception: InfluxDBWriteException):
         print(f"Cannot write batch: {conf}, data: {data} due: {exception}")
 
-    def retry(self, conf, data: str, exception: InfluxDBError):
+    def retry(self, conf, data: str, exception: InfluxDBWriteException):
         print(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
 
 
@@ -74,7 +75,6 @@ with InfluxDBClient3(
         database=DATABASE,
         enable_gzip=True,
         write_client_options=wco) as prep_client:
-
     # Generating random data
     for i in range(num_entries):
         trainer = random.choice(trainers)
@@ -129,7 +129,6 @@ with InfluxDBClient3(
         token=TOKEN,
         host=HOST,
         database=DATABASE, enable_gzip=True, write_client_options=wco) as ds_client:
-
     # downsample data to average number of catches per quarter-hour
     sql = ("SELECT date_bin('15 minutes', \"time\") as window_start, \n"
            "AVG(\"num\") as avg\n"

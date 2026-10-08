@@ -153,7 +153,7 @@ Users can import data from CSV, JSON, Feather, ORC, Parquet
 import influxdb_client_3 as InfluxDBClient3
 import pandas as pd
 import numpy as np
-from influxdb_client_3 import write_client_options, WritePrecision, WriteOptions, InfluxDBError
+from influxdb_client_3 import write_client_options, WritePrecision, WriteOptions, InfluxDBWriteException
 
 
 class BatchingCallback(object):
@@ -165,10 +165,10 @@ class BatchingCallback(object):
         self.write_count += 1
         print(f"Written batch: {conf}, data: {data}")
 
-    def error(self, conf, data: str, exception: InfluxDBError):
+    def error(self, conf, data: str, exception: InfluxDBWriteException):
         print(f"Cannot write batch: {conf}, data: {data} due: {exception}")
 
-    def retry(self, conf, data: str, exception: InfluxDBError):
+    def retry(self, conf, data: str, exception: InfluxDBWriteException):
         print(f"Retryable error occurs for batch: {conf}, data: {data} retry: {exception}")
 
 callback = BatchingCallback()
@@ -245,11 +245,11 @@ client.write_dataframe(
 
 ### Accept partial writes and inspect failed lines
 `accept_partial` defaults to `True` and allows partial success when writing through the V3 API endpoint (`use_v2_api=False`) and a batch contains invalid lines.
-On partial failure, the client raises `InfluxDBPartialWriteError` with structured `line_errors`.
+On partial failure, the client raises `InfluxDBPartialWriteException` with structured `line_errors`.
 
 ```python
 from influxdb_client_3 import InfluxDBClient3
-from influxdb_client_3.exceptions import InfluxDBPartialWriteError
+from influxdb_client_3.exceptions import InfluxDBPartialWriteException
 
 client = InfluxDBClient3(
     host="http://localhost:8181",
@@ -261,7 +261,7 @@ lp = "home,room=Sunroom temp=96 1735545600\nhome,room=Sunroom temp=\"hi\" 173554
 
 try:
     client.write(lp)  # accept_partial=True by default on V3 API endpoint
-except InfluxDBPartialWriteError as e:
+except InfluxDBPartialWriteException as e:
     for line_err in e.line_errors:
         print(f"line {line_err.line_number} failed: {line_err.error_message} ({line_err.original_line})")
 ```

@@ -15,8 +15,8 @@ if TYPE_CHECKING:
     import polars as pl
 from pyarrow import ArrowException
 
-from influxdb_client_3.exceptions import InfluxDB3ClientQueryError
-from influxdb_client_3.exceptions import InfluxDBError
+from influxdb_client_3.exceptions import InfluxDB3ClientQueryException
+from influxdb_client_3.exceptions.write_exceptions import InfluxDBWriteException
 from influxdb_client_3.query.query_api import QueryApi as _QueryApi, QueryApiOptionsBuilder
 from influxdb_client_3.read_file import UploadFile
 from influxdb_client_3.write_client import WriteOptions, Point
@@ -517,7 +517,7 @@ class InfluxDBClient3:
         :type database: str, optional
         :param kwargs: Additional arguments to pass to the write API.
         :raises TypeError: If df is not a pandas or polars DataFrame.
-        :raises InfluxDBError: If there is an error writing to the database.
+        :raises InfluxDBWriteException: If there is an error writing to the database.
 
         Example:
             >>> import pandas as pd
@@ -554,7 +554,7 @@ class InfluxDBClient3:
                 data_frame_timestamp_timezone=timestamp_timezone,
                 **kwargs
             )
-        except InfluxDBError as e:
+        except InfluxDBWriteException as e:
             raise e
 
     def write_file(self, file, measurement_name=None, tag_columns=None, timestamp_column='time', database=None,
@@ -637,7 +637,7 @@ class InfluxDBClient3:
         try:
             return self._query_api.query(query=query, language=language, mode=mode, database=database, **kwargs)
         except ArrowException as e:
-            raise InfluxDB3ClientQueryError(f"Error while executing query: {e}")
+            raise InfluxDB3ClientQueryException(f"Error while executing query: {e}")
 
     def query_dataframe(
         self,
@@ -715,7 +715,7 @@ class InfluxDBClient3:
                                                      database=database,
                                                      **kwargs)
         except ArrowException as e:
-            raise InfluxDB3ClientQueryError(f"Error while executing query: {e}")
+            raise InfluxDB3ClientQueryException(f"Error while executing query: {e}")
 
     def get_server_version(self) -> Optional[str]:
         """

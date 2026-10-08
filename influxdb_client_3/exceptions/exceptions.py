@@ -1,15 +1,14 @@
-"""Exceptions utils for InfluxDB."""
+"""Exception utils for InfluxDB."""
+from __future__ import absolute_import
 
 import logging
-from dataclasses import dataclass
-from typing import List, Optional
 
 from urllib3 import HTTPResponse
 
 logger = logging.getLogger('influxdb_client_3.exceptions')
 
 
-class InfluxDB3ClientError(Exception):
+class InfluxDB3ClientException(Exception):
     """
     Exception raised for errors in the InfluxDB client operations.
 
@@ -22,13 +21,13 @@ class InfluxDB3ClientError(Exception):
 
 
 # This error is for all query operations
-class InfluxDB3ClientQueryError(InfluxDB3ClientError):
+class InfluxDB3ClientQueryException(InfluxDB3ClientException):
     """
     Represents an error that occurs when querying an InfluxDB client.
 
     This class is specifically designed to handle errors originating from
     client queries to an InfluxDB database. It extends the general
-    `InfluxDBClientError`, allowing more precise identification and
+    `InfluxDB3ClientException`, allowing more precise identification and
     handling of query-related issues.
 
     :ivar message: Contains the specific error message describing the
@@ -41,37 +40,37 @@ class InfluxDB3ClientQueryError(InfluxDB3ClientError):
         self.message = error_message
 
 
-# This error is for all write operations
-class InfluxDBError(InfluxDB3ClientError):
-    """Raised when a server error occurs."""
-
-    def __init__(self, response: HTTPResponse = None, message: str = None):
-        """Initialize the InfluxDBError handler."""
-        if response is not None:
-            self.response = response
-            self.message = message
-            self.retry_after = response.getheader('Retry-After')
+class InfluxDBRestClientException(InfluxDB3ClientException):
+    def __init__(self, http_resp: HTTPResponse = None, status: int = None, message: str = None, reason: str = None):
+        super().__init__()
+        if http_resp:
+            self.status = http_resp.status
+            self.reason = http_resp.reason
+            self.body = http_resp.data
+            self.message = message or ''
+            self.headers = http_resp.getheaders()
+            self.response = http_resp
         else:
-            self.response = None
+            self.status = status
+            self.reason = reason
+            self.body = None
+            self.headers = None
             self.message = message or 'no response'
-            self.retry_after = None
-        super().__init__(self.message)
+            self.response = None
 
     def getheaders(self):
         """Helper method to make response headers more accessible."""
         return self.response.getheaders()
 
+    def __str__(self):
+        """Get custom error messages for exception."""
+        error_message = "({0})\n" \
+                        "Reason: {1}\n".format(self.status, self.reason)
+        if self.headers:
+            error_message += "HTTP response headers: {0}\n".format(
+                self.headers)
 
-@dataclass(frozen=True)
-class InfluxDBPartialWriteLineError:
-    line_number: Optional[int]
-    error_message: Optional[str]
-    original_line: Optional[str]
+        if self.body:
+            error_message += "HTTP response body: {0}\n".format(self.body)
 
-
-class InfluxDBPartialWriteError(InfluxDBError):
-    """Structured partial-write error with per-line failures."""
-
-    def __init__(self, response: HTTPResponse, message: str, line_errors: List[InfluxDBPartialWriteLineError]):
-        super().__init__(response=response, message=message)
-        self.line_errors = line_errors
+        return error_message

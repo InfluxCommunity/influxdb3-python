@@ -5,8 +5,8 @@
 ### Breaking Changes
 
 1. [#238](https://github.com/InfluxCommunity/influxdb3-python/pull/238): Drop support for Python 3.9. Python 3.10 or newer is now required.
-1. [#239](https://github.com/InfluxCommunity/influxdb3-python/pull/239): Exception classes now function mostly like a simple data-carrying object, It stores almost no logics.  
-    - `InfluxDBPartialWriteError` class constructor will now except `message` as an argument.
+1. [#239](https://github.com/InfluxCommunity/influxdb3-python/pull/239): Exception classes now function mostly like a simple data-carrying object.  
+    - `InfluxDBPartialWriteException` class constructor will now accept `message` as an argument.
     - `InfluxDBPartialWriteError.from_response(cls, response: HTTPResponse):` function was removed.
 
 ### Bug Fixes
@@ -14,7 +14,7 @@
 1. [#237](https://github.com/InfluxCommunity/influxdb3-python/pull/237): Makes the writing API simpler and more consistent with other v3 clients:
     - Further simplifies the `WriteApi` request path by constructing v2/v3 requests directly through `RestClient`, while preserving existing write behavior.
 1. [#239](https://github.com/InfluxCommunity/influxdb3-python/pull/239):
-    - Only throws `InfluxDBPartialWriteError` when:
+    - Only throws `InfluxDBPartialWriteException` when:
         - Error response status code is `400`.
         - Error response format `{"error":"...","data":[{"error_message":"...","line_number":2,"original_line": "..."}]}` is returned with `data` must be an array
         - `accept_partial` is set to `true`.

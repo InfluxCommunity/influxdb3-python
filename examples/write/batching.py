@@ -11,13 +11,15 @@ import time
 from bson import ObjectId
 
 import influxdb_client_3 as InfluxDBClient3
-from influxdb_client_3 import write_client_options, WritePrecision, WriteOptions, InfluxDBError
+from influxdb_client_3 import write_client_options, WritePrecision, WriteOptions
+from influxdb_client_3.exceptions.write_exceptions import InfluxDBWriteException
 
 
 class BatchingCallback(object):
     """
     Prepare callbacks to be used to handle batching states.
     """
+
     def __init__(self):
         self.write_status_msg = None
         self.write_count = 0
@@ -29,11 +31,11 @@ class BatchingCallback(object):
         self.write_count += 1
         self.write_status_msg = f"SUCCESS: {self.write_count} writes"
 
-    def error(self, conf, data: str, exception: InfluxDBError):
+    def error(self, conf, data: str, exception: InfluxDBWriteException):
         print(f"Cannot write batch: {conf}, data: {len(data)} bytes, due_to: {exception}")
         self.write_status_msg = f"FAILURE - cause: {exception}"
 
-    def retry(self, conf, data: str, exception: InfluxDBError):
+    def retry(self, conf, data: str, exception: InfluxDBWriteException):
         print(f"Retryable error occurs for batch: {conf}, data: {len(data)} bytes, retry: {exception}")
         self.retry_count += 1
 
@@ -42,7 +44,6 @@ class BatchingCallback(object):
 
 
 def main() -> None:
-
     host = os.getenv('INFLUXDB_HOST') or 'http://localhost:8181'
     token = os.getenv('INFLUXDB_TOKEN') or 'my-token'
     database = os.getenv('INFLUXDB_DATABASE') or 'my-db'

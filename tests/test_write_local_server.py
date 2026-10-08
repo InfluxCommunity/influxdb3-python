@@ -8,7 +8,7 @@ from pytest_httpserver import HTTPServer, RequestMatcher
 from urllib3.exceptions import TimeoutError as urllib3_TimeoutError
 
 from influxdb_client_3 import InfluxDBClient3, WriteOptions, WritePrecision, write_client_options, WriteType
-from influxdb_client_3.exceptions.write_exceptions import ApiException
+from influxdb_client_3.exceptions.write_exceptions import InfluxDBWriteException
 
 
 class TestWriteLocalServer:
@@ -154,9 +154,9 @@ class TestWriteLocalServer:
 
         expected = ("Server doesn't support the V3 API endpoint (/api/v3/write_lp). "
                     "Set use_v2_api=True to use the V2 API endpoint.")
-        with pytest.raises(ApiException, match=r".*Server doesn't support the V3 API endpoint "
-                                               r"\(/api/v3/write_lp\)\. "
-                                               r"Set use_v2_api=True to use the V2 API endpoint\.") as err:
+        with pytest.raises(InfluxDBWriteException, match=r".*Server doesn't support the V3 API endpoint "
+                                                         r"\(/api/v3/write_lp\)\. "
+                                                         r"Set use_v2_api=True to use the V2 API endpoint\.") as err:
             client.write(self.SAMPLE_RECORD)
         assert err.value.message == expected
         assert err.value.reason == expected
@@ -174,9 +174,9 @@ class TestWriteLocalServer:
 
         expected = ("Server doesn't support the V2 API endpoint (/api/v2/write). "
                     "Set use_v2_api=False to use the V3 API endpoint.")
-        with pytest.raises(ApiException, match=r".*Server doesn't support the V2 API endpoint "
-                                               r"\(/api/v2/write\)\. "
-                                               r"Set use_v2_api=False to use the V3 API endpoint\.") as err:
+        with pytest.raises(InfluxDBWriteException, match=r".*Server doesn't support the V2 API endpoint "
+                                                         r"\(/api/v2/write\)\. "
+                                                         r"Set use_v2_api=False to use the V3 API endpoint\.") as err:
             client.write(self.SAMPLE_RECORD)
         assert err.value.message == expected
         assert err.value.reason == expected
