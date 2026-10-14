@@ -14,7 +14,7 @@ from urllib3.exceptions import ConnectTimeoutError, ProtocolError, SSLError
 from influxdb_client_3 import InfluxDBClient3
 from influxdb_client_3.exceptions.write_exceptions import (
     InfluxDBWriteException,
-    InfluxDBPartialWriteLineException,
+    InfluxDBPartialWriteExceptionLine,
     InfluxDBPartialWriteException,
     translate_write_exception,
 )
@@ -36,7 +36,7 @@ class TestCase:
     accept_partial: bool = False
     expected_msg: str = ""
     expect_partial: bool = False
-    expected_lines: List[InfluxDBPartialWriteLineException] = field(default_factory=list)
+    expected_lines: List[InfluxDBPartialWriteExceptionLine] = field(default_factory=list)
 
     def __str__(self):
         return self.name
@@ -68,7 +68,7 @@ TEST_CASES = [
         expected_msg=f"write completed with rejected rows:\n\tline 2: {LINE_ERROR} ({REJECTED_LINE})",
         expect_partial=True,
         expected_lines=[
-            InfluxDBPartialWriteLineException(
+            InfluxDBPartialWriteExceptionLine(
                 error_message=LINE_ERROR,
                 line_number=2,
                 original_line=REJECTED_LINE,
@@ -88,7 +88,7 @@ TEST_CASES = [
         expected_msg=f"write completed with rejected rows:\n\tline 2: {LINE_ERROR} ({REJECTED_LINE})",
         expect_partial=True,
         expected_lines=[
-            InfluxDBPartialWriteLineException(
+            InfluxDBPartialWriteExceptionLine(
                 error_message=LINE_ERROR,
                 line_number=2,
                 original_line=REJECTED_LINE,
@@ -126,7 +126,7 @@ TEST_CASES = [
         ),
         expect_partial=True,
         expected_lines=[
-            InfluxDBPartialWriteLineException(
+            InfluxDBPartialWriteExceptionLine(
                 error_message=LINE_ERROR,
                 line_number=2,
                 original_line=REJECTED_LINE,
@@ -153,7 +153,7 @@ TEST_CASES = [
         expected_msg=f"write completed with rejected rows:\n\t{LINE_ERROR}",
         expect_partial=True,
         expected_lines=[
-            InfluxDBPartialWriteLineException(
+            InfluxDBPartialWriteExceptionLine(
                 error_message=LINE_ERROR,
                 line_number=None,
                 original_line=None,
@@ -170,7 +170,7 @@ TEST_CASES = [
         expected_msg=f"write completed with rejected rows:\n\tline 2: {LINE_ERROR}",
         expect_partial=True,
         expected_lines=[
-            InfluxDBPartialWriteLineException(
+            InfluxDBPartialWriteExceptionLine(
                 error_message=LINE_ERROR,
                 line_number=2,
                 original_line=None,
