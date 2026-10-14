@@ -4,7 +4,7 @@ import unittest
 
 from influxdb_client_3.exceptions.exceptions import InfluxDBRestClientException
 from influxdb_client_3.exceptions.write_exceptions import (
-    translate_write_exception, InfluxDBWriteException, InfluxDBPartialWriteException, InfluxDBPartialWriteLineException
+    translate_write_exception, InfluxDBWriteException, InfluxDBPartialWriteException, InfluxDBPartialWriteExceptionLine
 )
 
 
@@ -271,9 +271,9 @@ class TestWriteException(unittest.TestCase):
         self.assertEqual(3, len(result.line_errors))
         self.assertEqual(
             [
-                InfluxDBPartialWriteLineException(1, "type mismatch", "m,t=a f=1"),
-                InfluxDBPartialWriteLineException(2, "invalid timestamp", None),
-                InfluxDBPartialWriteLineException(None, "general line error", None),
+                InfluxDBPartialWriteExceptionLine(1, "type mismatch", "m,t=a f=1"),
+                InfluxDBPartialWriteExceptionLine(2, "invalid timestamp", None),
+                InfluxDBPartialWriteExceptionLine(None, "general line error", None),
             ],
             result.line_errors
         )
