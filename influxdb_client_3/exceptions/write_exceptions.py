@@ -33,7 +33,7 @@ class InfluxDBWriteException(InfluxDBRestClientException):
 
 
 @dataclass(frozen=True)
-class InfluxDBPartialWriteLineException:
+class InfluxDBPartialWriteExceptionLine:
     line_number: Optional[int]
     error_message: Optional[str]
     original_line: Optional[str]
@@ -42,7 +42,7 @@ class InfluxDBPartialWriteLineException:
 class InfluxDBPartialWriteException(InfluxDBWriteException):
     """Structured partial-write error with per-line failures."""
 
-    def __init__(self, http_resp: HTTPResponse, message: str, line_errors: List[InfluxDBPartialWriteLineException]):
+    def __init__(self, http_resp: HTTPResponse, message: str, line_errors: List[InfluxDBPartialWriteExceptionLine]):
         super().__init__(http_resp=http_resp, message=message)
         self.line_errors = line_errors
 
@@ -72,7 +72,7 @@ class InfluxDBPartialWriteException(InfluxDBWriteException):
                 )
 
     @staticmethod
-    def parse_partial_write_line_errors(data: Any) -> Tuple[bool, List[InfluxDBPartialWriteLineException]]:
+    def parse_partial_write_line_errors(data: Any) -> Tuple[bool, List[InfluxDBPartialWriteExceptionLine]]:
         all_typed = True
         line_errors = []
         for item in data:
@@ -85,7 +85,7 @@ class InfluxDBPartialWriteException(InfluxDBWriteException):
         return all_typed, line_errors
 
     @staticmethod
-    def parse_partial_write_line_error(item: dict) -> tuple[bool, Optional[InfluxDBPartialWriteLineException]]:
+    def parse_partial_write_line_error(item: dict) -> tuple[bool, Optional[InfluxDBPartialWriteExceptionLine]]:
         ok = True
         if not isinstance(item, dict):
             return False, None
@@ -98,11 +98,11 @@ class InfluxDBPartialWriteException(InfluxDBWriteException):
         if not error_message:
             ok = False
 
-        return ok, InfluxDBPartialWriteLineException(line_number, error_message, item.get("original_line"))
+        return ok, InfluxDBPartialWriteExceptionLine(line_number, error_message, item.get("original_line"))
 
     @staticmethod
     def format_partial_write_details(
-            root: dict, all_typed: bool, line_errors: List[InfluxDBPartialWriteLineException]
+            root: dict, all_typed: bool, line_errors: List[InfluxDBPartialWriteExceptionLine]
     ) -> List[str]:
         if all_typed:
             return [

@@ -8,6 +8,7 @@
 1. [#239](https://github.com/InfluxCommunity/influxdb3-python/pull/239): Exception classes now function mostly like a simple data-carrying object.  
     - `InfluxDBPartialWriteException` class constructor will now accept `message` as an argument.
     - `InfluxDBPartialWriteError.from_response(cls, response: HTTPResponse):` function was removed.
+    - `InfluxDBPartialWriteLineException` class changed to `InfluxDBPartialWriteExceptionLine`.
 
 ### Bug Fixes
 
