@@ -1,4 +1,7 @@
 """Functions to share utility across client classes."""
+from typing import Optional, Union
+
+from cryptography.hazmat.primitives import serialization
 
 
 def _is_id(value):
@@ -47,3 +50,22 @@ def get_org_query_param(org, client, required_id=False):
             raise e
 
     return _org
+
+
+def read_certs(path: str, password: Optional[Union[str, bytes]] = None) -> bytes:
+    with open(path, "rb") as certs_file:
+        data = certs_file.read()
+        if password is not None:
+            password_bytes = password.encode() if isinstance(password, str) else password
+            private_key_obj = serialization.load_pem_private_key(
+                data,
+                password=password_bytes,
+            )
+            data = private_key_obj.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+
+    # Normalize PEM line endings so behavior is stable across platforms.
+    return data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
