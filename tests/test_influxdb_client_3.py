@@ -1,6 +1,11 @@
+import logging
+import os
 import re
+import ssl
 import unittest
 from collections import defaultdict
+from dataclasses import dataclass
+from typing import Optional
 from unittest.mock import patch
 
 import pandas as pd
@@ -601,6 +606,196 @@ class TestInfluxDBClient3(unittest.TestCase):
             InfluxDBClient3(
                 host=f'http://{server.host}:{server.port}', org="ORG", database="DB", token="TOKEN"
             ).get_server_version()
+
+
+class TestTlsInfluxDBClient3(unittest.TestCase):
+
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+
+    server_cert = os.path.join(dir_path, "data/certificates", "influxdb.crt")
+    server_key = os.path.join(dir_path, "data/certificates", "influxdb.key")
+    server_cert_pem = os.path.join(dir_path, "data/certificates", "influxdb.pem")
+
+    other_cert = os.path.join(dir_path, "data/certificates", "other-server.crt")
+    other_cert_key = os.path.join(dir_path, "data/certificates", "other-server.key")
+    other_cert_pem = os.path.join(dir_path, "data/certificates", "other-server.pem")
+
+    client_cert = os.path.join(dir_path, "data/certificates", "client.crt")
+    client_cert_key = os.path.join(dir_path, "data/certificates", "client.key")
+    client_cert_pem = os.path.join(dir_path, "data/certificates", "client.pem")
+
+    # def create_secure_server(self, server_cert, server_key, client_cert):
+    def create_write_secure_server(self, is_mtls):
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_context.load_cert_chain(certfile=self.server_cert, keyfile=self.server_key)
+        if is_mtls is True:
+            ssl_context.verify_mode = ssl.CERT_REQUIRED
+            ssl_context.load_verify_locations(cafile=self.client_cert)
+        server = HTTPServer(ssl_context=ssl_context)
+        server.expect_request("/api/v2/write").respond_with_json(
+            response_json={"data": "success"},
+            status=204
+        )
+
+        return server
+
+    def create_query_secure_server(self, is_mtls):
+        verify_client = False
+        tls_ca_cert = None
+        if is_mtls is True:
+            verify_client = True
+            tls_ca_cert = self.client_cert
+
+        server = ConstantFlightServer(
+            root_certificates=tls_ca_cert,
+            server_cert=self.server_cert,
+            server_cert_key=self.server_key,
+            verify_client=verify_client,
+        )
+        return server
+
+    @dataclass
+    class TlsTestCase:
+        __test__ = False
+        name: str
+        server_cert: str
+        client_cert: Optional[str]
+        client_key: Optional[str]
+        expect_success: bool
+
+        def __str__(self):
+            return self.name
+
+    TEST_CASES = [
+        TlsTestCase(
+            name="Tls success with correct server certificate",
+            server_cert=server_cert,
+            client_cert=None,
+            client_key=None,
+            expect_success=True
+        ),
+        TlsTestCase(
+            name="Tls success with correct server certificate pem",
+            server_cert=server_cert_pem,
+            client_cert=None,
+            client_key=None,
+            expect_success=True
+        ),
+        TlsTestCase(
+            name="Tls fail with incorrect server certificate",
+            server_cert=other_cert,
+            client_cert=None,
+            client_key=None,
+            expect_success=False
+        ),
+        TlsTestCase(
+            name="mtls success with correct client certificate and client key files",
+            server_cert=server_cert,
+            client_cert=client_cert,
+            client_key=client_cert_key,
+            expect_success=True
+        ),
+        TlsTestCase(
+            name="mtls success with correct client certificate and client key bundled in pem file",
+            server_cert=server_cert,
+            client_cert=client_cert_pem,
+            client_key=None,
+            expect_success=True
+        ),
+        TlsTestCase(
+            name="mtls fail with incorrect client certificate and client key bundled in a pem file",
+            server_cert=server_cert,
+            client_cert=other_cert_pem,
+            client_key=None,
+            expect_success=False
+        ),
+        TlsTestCase(
+            name="mtls fail with incorrect client certificate and client key files",
+            server_cert=server_cert,
+            client_cert=other_cert,
+            client_key=other_cert_key,
+            expect_success=False
+        ),
+        TlsTestCase(
+            name="mtls fail with incorrect server certificate file",
+            server_cert=other_cert,
+            client_cert=client_cert,
+            client_key=client_cert_key,
+            expect_success=False
+        ),
+    ]
+
+    def test_write_with_secure_server(self):
+        server = None
+        client = None
+        try:
+            for test_case in self.TEST_CASES:
+                server = self.create_write_secure_server(test_case.client_cert is not None)
+                server.start()
+                client = InfluxDBClient3(
+                    host=f'https://{server.host}:{server.port}',
+                    org="my_org",
+                    database='my_db',
+                    token="my_token",
+                    auth_scheme="my_scheme",
+                    ssl_ca_cert=test_case.server_cert,
+                    cert_file=test_case.client_cert,
+                    cert_key_file=test_case.client_key,
+                )
+                if not test_case.expect_success:
+                    with self.assertRaises(Exception) as err:
+                        client.write(record="data,foo=bar val=3.14")
+                    self.assertIsNotNone(err)
+                    # Some SLL/TLS is issues can be reported at grpc status 14
+                    self.assertTrue(err.exception.message.casefold().__contains__("SSL") or
+                                    err.exception.message.casefold().__contains__(
+                                        "grpc_status:14"))
+                else:
+                    client.write(record="data,foo=bar val=3.14")
+        except Exception as e:
+            raise e
+        finally:
+            if server is not None:
+                server.stop()
+            if client is not None:
+                client.close()
+
+    def test_query_with_secure_server(self):
+        server = None
+        client = None
+        try:
+            for test_case in self.TEST_CASES:
+                server = self.create_query_secure_server(test_case.client_cert is not None)
+                client = InfluxDBClient3(
+                    host=f"https://localhost:{server.port}",
+                    org="my_org",
+                    database='my_db',
+                    token="my_token",
+                    auth_scheme="my_scheme",
+                    ssl_ca_cert=test_case.server_cert,
+                    cert_file=test_case.client_cert,
+                    cert_key_file=test_case.client_key,
+                )
+
+                if not test_case.expect_success:
+                    with self.assertRaises(Exception) as err:
+                        client.query_dataframe("SELECT * FROM test", frame_type="polars")
+                    self.assertIsNotNone(err)
+                    # Some SLL/TLS is issues can be reported at grpc status 14
+                    logging.error(err.exception.message)
+                    self.assertTrue(err.exception.message.casefold().__contains__("SSL") or
+                                    err.exception.message.casefold().__contains__(
+                                        "grpc_status:14"))
+                else:
+                    result = client.query_dataframe("SELECT * FROM test", frame_type="polars")
+                    self.assertIsInstance(result, pl.DataFrame)
+        except Exception as err:
+            raise err
+        finally:
+            if server is not None:
+                server.shutdown()
+            if client is not None:
+                client.close()
 
 
 class TestWriteDataFrame(unittest.TestCase):

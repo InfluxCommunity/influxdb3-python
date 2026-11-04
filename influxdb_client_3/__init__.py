@@ -373,6 +373,10 @@ class InfluxDBClient3:
             q_opts_builder.disable_grpc_compression(True)
         if kw_keys.__contains__('ssl_ca_cert'):
             q_opts_builder.root_certs(kwargs.get('ssl_ca_cert', None))
+        if kw_keys.__contains__('cert_file'):
+            q_opts_builder.cert_chain(kwargs.get('cert_file', None))
+        if kw_keys.__contains__('cert_key_file'):
+            q_opts_builder.private_key(kwargs.get('cert_key_file', None))
         if kw_keys.__contains__('verify_ssl'):
             q_opts_builder.tls_verify(kwargs.get('verify_ssl', True))
         if kw_keys.__contains__('proxy'):

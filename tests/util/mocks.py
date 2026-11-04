@@ -56,6 +56,14 @@ def get_req_headers():
     return req_headers
 
 
+def read_certs(path: str) -> bytes:
+    # TODO refactor this
+    with open(path, "rb") as certs_file:
+        certs = certs_file.read()
+        # Normalize PEM line endings so behavior is stable across platforms.
+        return certs.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
 class ConstantData:
 
     def __init__(self):
@@ -85,12 +93,41 @@ class ConstantData:
 
 class ConstantFlightServer(FlightServerBase):
 
-    def __init__(self, location=None, options=None, **kwargs):
-        super().__init__(location, **kwargs)
+    def __init__(self,
+                 location=None,
+                 options=None,
+                 server_cert=None,
+                 server_cert_key=None,
+                 verify_client=None,
+                 root_certificates=None,
+                 **kwargs):
+        server_cert_bytes = None
+        if server_cert is not None:
+            server_cert_bytes = read_certs(server_cert)
+
+        server_cert_key_bytes = None
+        if server_cert_key is not None:
+            server_cert_key_bytes = read_certs(server_cert_key)
+
+        tls_certificates = None
+        if server_cert_bytes is not None or server_cert_key_bytes is not None:
+            tls_certificates = [(server_cert_bytes, server_cert_key_bytes)]
+
+        root_cert_bytes = None
+        if root_certificates is not None:
+            root_cert_bytes = read_certs(root_certificates)
+
+        super().__init__(
+            location=location,
+            verify_client=verify_client,
+            tls_certificates=tls_certificates,
+            root_certificates=root_cert_bytes,
+            **kwargs
+        )
         self.cd = ConstantData()
         self.options = options
 
-    # respond with Constant Data plus fields from ticket
+        # respond with Constant Data plus fields from ticket
     def do_get(self, context, ticket):
         result_table = Table.from_arrays(self.cd.data, names=self.cd.names)
         tkt = json.loads(ticket.ticket.decode('utf-8'))
