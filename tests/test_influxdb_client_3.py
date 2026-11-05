@@ -747,7 +747,7 @@ class TestTlsInfluxDBClient3(unittest.TestCase):
                         client.write(record="data,foo=bar val=3.14")
                     self.assertIsNotNone(err)
                     # Some SLL/TLS is issues can be reported at grpc status 14
-                    self.assertTrue(err.exception.message.casefold().__contains__("SSL") or
+                    self.assertTrue(err.exception.message.casefold().__contains__("ssl") or
                                     err.exception.message.casefold().__contains__(
                                         "grpc_status:14"))
                 else:
@@ -783,7 +783,7 @@ class TestTlsInfluxDBClient3(unittest.TestCase):
                     self.assertIsNotNone(err)
                     # Some SLL/TLS is issues can be reported at grpc status 14
                     logging.error(err.exception.message)
-                    self.assertTrue(err.exception.message.casefold().__contains__("SSL") or
+                    self.assertTrue(err.exception.message.casefold().__contains__("ssl") or
                                     err.exception.message.casefold().__contains__(
                                         "grpc_status:14"))
                 else:
