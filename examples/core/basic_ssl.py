@@ -78,6 +78,9 @@ def main() -> None:
     query_with_verify_ssl_off(temp_cert_file)
     remove_cert(temp_cert_file)
 
+    # This is not a completed examples, please change the paths to your real certificates path.
+    # config_mtls()
+
 
 def write_and_query_with_explicit_sys_cert():
     print("\nwrite and query with typical linux system cert\n")
@@ -109,6 +112,42 @@ def query_with_verify_ssl_off(cert):
         query = "SELECT * FROM \"escooter\"  ORDER BY time DESC"
         reader: pyarrow.Table = _client.query(query, mode="")
         print_results(reader.to_pylist())
+
+
+# Please change these paths with your real path to your certificates.
+path_client_cert_file = "path/to/cert_file.crt"
+path_client_key_file = "path/to/cert_file.key"
+path_client_cert_file_pem = "path/to/cert_file.pem"
+path_server_cert = "path/to/server_cert.crt"
+
+
+def config_mtls():
+    print("\nConfig tls/mtls for client\n")
+
+    # Config mTLS with client send certificate to the server with separated .crt file and .key file.
+    # `ssl_ca_cert` is optional.
+    with InfluxDBClient3(token=TOKEN,
+                         host=HOST,
+                         database=DATABASE,
+                         ssl_ca_cert=path_server_cert,
+                         cert_file=path_client_cert_file,
+                         cert_key_file=path_client_key_file,
+                         verify_ssl=True) as _client:
+
+        result = _client.get_server_version()
+        print(result)
+
+    # Config mTLS with client send a certificate to the server with both certificate and key bundled inside a .pem file.
+    # `ssl_ca_cert` is optional.
+    with InfluxDBClient3(token=TOKEN,
+                         host=HOST,
+                         database=DATABASE,
+                         ssl_ca_cert=path_server_cert,
+                         cert_file=path_client_cert_file_pem,
+                         verify_ssl=True) as _client:
+
+        result = _client.get_server_version()
+        print(result)
 
 
 if __name__ == "__main__":
