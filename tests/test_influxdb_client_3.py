@@ -1,6 +1,10 @@
+import os
 import re
+import ssl
 import unittest
 from collections import defaultdict
+from dataclasses import dataclass
+from typing import Optional
 from unittest.mock import patch
 
 import pandas as pd
@@ -601,6 +605,189 @@ class TestInfluxDBClient3(unittest.TestCase):
             InfluxDBClient3(
                 host=f'http://{server.host}:{server.port}', org="ORG", database="DB", token="TOKEN"
             ).get_server_version()
+
+
+class TestTlsInfluxDBClient3(unittest.TestCase):
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    certs_dir = os.path.join(dir_path, "data", "certificates")
+
+    server_cert = os.path.join(certs_dir, "influxdb.crt")
+    server_key = os.path.join(certs_dir, "influxdb.key")
+    server_cert_pem = os.path.join(certs_dir, "influxdb.pem")
+    other_cert = os.path.join(certs_dir, "other-server.crt")
+    other_cert_key = os.path.join(certs_dir, "other-server.key")
+    other_cert_pem = os.path.join(certs_dir, "other-server.pem")
+    client_cert = os.path.join(certs_dir, "client.crt")
+    client_cert_key = os.path.join(certs_dir, "client.key")
+    client_cert_key_encrypted = os.path.join(certs_dir, "client-encrypted.key")
+    client_cert_pem = os.path.join(certs_dir, "client.pem")
+
+    @dataclass
+    class TlsTestCase:
+        __test__ = False
+        name: str
+        server_cert: str
+        client_cert: Optional[str] = None
+        client_key: Optional[str] = None
+        client_key_password: Optional[str] = None
+        expect_success: bool = True
+
+        def __str__(self):
+            return self.name
+
+    TEST_CASES = [
+        TlsTestCase(
+            name="Tls success with correct server certificate",
+            server_cert=server_cert,
+        ),
+        TlsTestCase(
+            name="Tls success with correct server certificate pem",
+            server_cert=server_cert_pem,
+        ),
+        TlsTestCase(
+            name="Tls fail with incorrect server certificate",
+            server_cert=other_cert,
+            expect_success=False,
+        ),
+        TlsTestCase(
+            name="mtls success with correct client certificate and client key files",
+            server_cert=server_cert,
+            client_cert=client_cert,
+            client_key=client_cert_key,
+        ),
+        TlsTestCase(
+            name="mtls success with correct client certificate and encrypted client key files",
+            server_cert=server_cert,
+            client_cert=client_cert,
+            client_key=client_cert_key_encrypted,
+            client_key_password="changeit",
+        ),
+        TlsTestCase(
+            name="mtls fail with incorrect password for encrypted client key file",
+            server_cert=server_cert,
+            client_cert=client_cert,
+            client_key=client_cert_key_encrypted,
+            client_key_password="wrongpassword",
+            expect_success=False,
+        ),
+        TlsTestCase(
+            name="mtls success with correct client certificate and client key bundled in pem file",
+            server_cert=server_cert,
+            client_cert=client_cert_pem,
+        ),
+        TlsTestCase(
+            name="mtls fail with incorrect client certificate and client key bundled in a pem file",
+            server_cert=server_cert,
+            client_cert=other_cert_pem,
+            expect_success=False,
+        ),
+        TlsTestCase(
+            name="mtls fail with incorrect client certificate and client key files",
+            server_cert=server_cert,
+            client_cert=other_cert,
+            client_key=other_cert_key,
+            expect_success=False,
+        ),
+        TlsTestCase(
+            name="mtls fail with incorrect server certificate file",
+            server_cert=other_cert,
+            client_cert=client_cert,
+            client_key=client_cert_key,
+            expect_success=False,
+        ),
+    ]
+
+    def create_write_secure_server(self, is_mtls):
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_context.load_cert_chain(certfile=self.server_cert, keyfile=self.server_key)
+        if is_mtls:
+            ssl_context.verify_mode = ssl.CERT_REQUIRED
+            ssl_context.load_verify_locations(cafile=self.client_cert)
+        server = HTTPServer(ssl_context=ssl_context)
+        server.expect_request("/api/v2/write").respond_with_json(
+            response_json={"data": "success"},
+            status=204
+        )
+        return server
+
+    def create_query_secure_server(self, is_mtls):
+        verify_client = False
+        tls_ca_cert = None
+        if is_mtls:
+            verify_client = True
+            tls_ca_cert = self.client_cert
+        return ConstantFlightServer(
+            root_certificates=tls_ca_cert,
+            server_cert=self.server_cert,
+            server_cert_key=self.server_key,
+            verify_client=verify_client,
+        )
+
+    def _create_client(self, host: str, test_case: TlsTestCase) -> InfluxDBClient3:
+        return InfluxDBClient3(
+            host=host,
+            org="my_org",
+            database="my_db",
+            token="my_token",
+            auth_scheme="my_scheme",
+            ssl_ca_cert=test_case.server_cert,
+            cert_file=test_case.client_cert,
+            cert_key_file=test_case.client_key,
+            cert_key_password=test_case.client_key_password,
+        )
+
+    def test_write_with_secure_server(self):
+        for test_case in self.TEST_CASES:
+            with self.subTest(test_case=test_case.name):
+                server = None
+                client = None
+                try:
+                    server = self.create_write_secure_server(test_case.client_cert is not None)
+                    server.start()
+                    if not test_case.expect_success:
+                        with self.assertRaises(Exception) as err:
+                            client = self._create_client(f"https://{server.host}:{server.port}", test_case)
+                            client.write(record="data,foo=bar val=3.14")
+                            if isinstance(err.exception, ValueError):
+                                self.assertIn("Incorrect password, could not decrypt key", str(err.exception))
+                            else:
+                                error_msg = str(err.exception).lower()
+                                self.assertTrue("ssl" in error_msg or "grpc_status:14" in error_msg)
+                    else:
+                        client = self._create_client(f"https://{server.host}:{server.port}", test_case)
+                        client.write(record="data,foo=bar val=3.14")
+                finally:
+                    if server is not None:
+                        server.stop()
+                    if client is not None:
+                        client.close()
+
+    def test_query_with_secure_server(self):
+        for test_case in self.TEST_CASES:
+            with self.subTest(test_case=test_case.name):
+                server = None
+                client = None
+                try:
+                    server = self.create_query_secure_server(test_case.client_cert is not None)
+                    if not test_case.expect_success:
+                        with self.assertRaises(Exception) as err:
+                            client = self._create_client(f"https://localhost:{server.port}", test_case)
+                            client.query("SELECT * FROM test")
+                        exc = err.exception
+                        if isinstance(exc, ValueError):
+                            self.assertIn("Incorrect password, could not decrypt key", str(exc))
+                        else:
+                            error_msg = str(exc).lower()
+                            self.assertTrue("ssl" in error_msg or "server never sent a data message" in error_msg)
+                    else:
+                        client = self._create_client(f"https://localhost:{server.port}", test_case)
+                        result = client.query("SELECT * FROM test")
+                        self.assertIsNotNone(result)
+                finally:
+                    if server is not None:
+                        server.shutdown()
+                    if client is not None:
+                        client.close()
 
 
 class TestWriteDataFrame(unittest.TestCase):

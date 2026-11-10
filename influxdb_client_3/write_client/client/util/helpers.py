@@ -1,4 +1,7 @@
 """Functions to share utility across client classes."""
+from typing import Optional, Union
+
+from cryptography.hazmat.primitives import serialization
 
 
 def _is_id(value):
@@ -47,3 +50,41 @@ def get_org_query_param(org, client, required_id=False):
             raise e
 
     return _org
+
+
+def read_certs(path: str, password: Optional[Union[str, bytes]] = None) -> bytes:
+    """
+    Read PEM certificate or key data from a file and produce a stable byte
+    representation suitable for downstream cryptographic operations. Encrypted
+    private key material is decrypted when credentials are provided, and PEM line
+    endings are normalized so the resulting bytes are consistent across operating
+    systems.
+
+    :param path: Filesystem path to the PEM certificate or private key file.
+    :param password: Optional password used to decrypt encrypted PEM private key
+        material.
+    :return: PEM data as bytes with normalized line endings.
+    :raises OSError: If the file cannot be opened or read.
+    :raises ValueError: If encrypted key material cannot be decrypted or the PEM
+        data is invalid.
+    :raises TypeError: If the provided password is not accepted by the
+        cryptographic loader.
+    :raises cryptography.exceptions.UnsupportedAlgorithm: If the PEM data uses an
+        unsupported key type or encryption algorithm.
+    """
+    with open(path, "rb") as certs_file:
+        data = certs_file.read()
+        if password is not None:
+            password_bytes = password.encode() if isinstance(password, str) else password
+            private_key_obj = serialization.load_pem_private_key(
+                data,
+                password=password_bytes,
+            )
+            data = private_key_obj.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+
+    # Normalize PEM line endings so behavior is stable across platforms.
+    return data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")

@@ -6,6 +6,7 @@ import json
 from pyarrow.flight import FlightClient, Ticket, FlightCallOptions, FlightStreamReader
 
 from influxdb_client_3.version import USER_AGENT
+from influxdb_client_3.write_client.client.util.helpers import read_certs
 
 
 class QueryApiOptions(object):
@@ -14,7 +15,9 @@ class QueryApiOptions(object):
 
     Attributes
     ----------
-    tls_root_certs (bytes):  contents of an SSL root certificate or chain read as bytes
+    tls_root_certs (bytes): contents of an SSL root certificate or chain read as bytes
+    cert_chain (bytes): client certificate if using mutual TLS
+    private_key (bytes): client private key for cert_chain is using mutual TLS
     tls_verify (bool): whether to verify SSL certificates or not
     proxy (str): URL to a proxy server
     flight_client_options (dict): base set of flight client options passed to internal pyarrow.flight.FlightClient
@@ -24,6 +27,9 @@ class QueryApiOptions(object):
     """
     _DEFAULT_TIMEOUT = 300.0
     tls_root_certs: bytes = None
+    cert_chain: bytes = None
+    private_key: bytes = None
+    private_key_password: str = None
     tls_verify: bool = None
     proxy: str = None
     flight_client_options: dict = None
@@ -37,11 +43,17 @@ class QueryApiOptions(object):
                  flight_client_options: dict,
                  timeout: float = _DEFAULT_TIMEOUT,
                  disable_grpc_compression: bool = False,
-                 middleware: list = None):
+                 middleware: list = None,
+                 cert_chain: str = None,
+                 private_key: str = None,
+                 private_key_password: str = None):
         """
         Initialize a set of QueryApiOptions
 
         :param root_certs_path: path to a certificate .pem file.
+        :param cert_chain: client certificate if using mutual TLS
+        :param private_key: client private key for cert_chain is using mutual TLS
+        :param private_key_password: password for private_key if using mutual TLS
         :param verify: whether to verify SSL certificates or not.
         :param proxy: URL of a proxy server, if required.
         :param flight_client_options: set of flight_client_options
@@ -51,19 +63,20 @@ class QueryApiOptions(object):
         :param middleware: list of middleware functions to be applied to Flight calls.
         """
         if root_certs_path:
-            self.tls_root_certs = self._read_certs(root_certs_path)
+            self.tls_root_certs = read_certs(root_certs_path)
+        if cert_chain:
+            self.cert_chain = read_certs(cert_chain)
+        if private_key:
+            if private_key_password:
+                self.private_key = read_certs(private_key, private_key_password)
+            else:
+                self.private_key = read_certs(private_key)
         self.tls_verify = verify
         self.proxy = proxy
         self.flight_client_options = flight_client_options
         self.timeout = timeout
         self.disable_grpc_compression = disable_grpc_compression
         self.middleware = middleware
-
-    def _read_certs(self, path: str) -> bytes:
-        with open(path, "rb") as certs_file:
-            certs = certs_file.read()
-            # Normalize PEM line endings so behavior is stable across platforms.
-            return certs.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
 
 
 class QueryApiOptionsBuilder(object):
@@ -77,12 +90,18 @@ class QueryApiOptionsBuilder(object):
         options = QueryApiOptionsBuilder()\
             .proxy("http://internal.tunnel.proxy:8080") \
             .root_certs("/home/fred/.etc/ssl/alt_certs.pem") \
+            .cert_chain("/home/fred/.etc/ssl/client.crt") \
+            .private_key("/home/fred/.etc/ssl/client.key") \
+            .private_key_password("password") \
             .tls_verify(True) \
             .build()
 
         client = QueryApi(connection, token, None, None, options)
     """
     _root_certs_path: str = None
+    _cert_chain: str = None
+    _private_key: str = None
+    _private_key_password: str = None
     _tls_verify: bool = True
     _proxy: str = None
     _flight_client_options: dict = None
@@ -92,6 +111,18 @@ class QueryApiOptionsBuilder(object):
 
     def root_certs(self, path: str):
         self._root_certs_path = path
+        return self
+
+    def cert_chain(self, path: str):
+        self._cert_chain = path
+        return self
+
+    def private_key(self, path: str):
+        self._private_key = path
+        return self
+
+    def private_key_password(self, password: str):
+        self._private_key_password = password
         return self
 
     def tls_verify(self, verify: bool):
@@ -123,6 +154,9 @@ class QueryApiOptionsBuilder(object):
         """Build a QueryApiOptions object with previously set values"""
         return QueryApiOptions(
             root_certs_path=self._root_certs_path,
+            cert_chain=self._cert_chain,
+            private_key=self._private_key,
+            private_key_password=self._private_key_password,
             verify=self._tls_verify,
             proxy=self._proxy,
             flight_client_options=self._flight_client_options,
@@ -180,8 +214,35 @@ class QueryApi(object):
                 if ('generic_options' in options.flight_client_options and
                         'grpc.secondary_user_agent' in dict(options.flight_client_options["generic_options"]).keys()):
                     self._flight_client_options['generic_options'].remove(default_user_agent)
+
             if options.tls_root_certs:
                 self._flight_client_options["tls_root_certs"] = options.tls_root_certs
+            if options.cert_chain:
+                self._flight_client_options["cert_chain"] = options.cert_chain
+            if options.private_key:
+                self._flight_client_options["private_key"] = options.private_key
+            elif (options.private_key is None and options.cert_chain and
+                  not self._flight_client_options.get("private_key")):
+                # Only fall back to using cert_chain as private_key if the provided PEM
+                # content clearly includes a private key block (common in combined PEM files).
+                pem = options.cert_chain
+                if isinstance(pem, (bytes, bytearray)):
+                    pem_text = pem.decode("utf-8", errors="ignore")
+                else:
+                    pem_text = str(pem)
+                has_private_key = ("BEGIN PRIVATE KEY" in pem_text or
+                                   "BEGIN RSA PRIVATE KEY" in pem_text or
+                                   "BEGIN EC PRIVATE KEY" in pem_text or
+                                   "BEGIN ENCRYPTED PRIVATE KEY" in pem_text
+                                   )
+                if has_private_key:
+                    self._flight_client_options["private_key"] = options.cert_chain
+                else:
+                    raise ValueError(
+                        "mTLS misconfiguration: 'cert_chain' was provided without a "
+                        "'private_key'. Provide 'private_key' explicitly, or pass a "
+                        "combined PEM that includes a private key block."
+                    )
             if options.proxy:
                 self._proxy = options.proxy
             if options.tls_verify is not None:
