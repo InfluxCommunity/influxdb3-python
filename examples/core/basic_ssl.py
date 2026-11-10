@@ -108,7 +108,6 @@ def query_with_verify_ssl_off(cert):
                          database=DATABASE,
                          ssl_ca_cert=cert,
                          verify_ssl=False) as _client:
-
         query = "SELECT * FROM \"escooter\"  ORDER BY time DESC"
         reader: pyarrow.Table = _client.query(query, mode="")
         print_results(reader.to_pylist())
@@ -121,6 +120,7 @@ path_client_cert_file_pem = "path/to/cert_file.pem"
 path_server_cert = "path/to/server_cert.crt"
 key_file_password = "password"
 
+
 def config_mtls():
     print("\nConfig tls/mtls for client\n")
 
@@ -132,9 +132,8 @@ def config_mtls():
                          ssl_ca_cert=path_server_cert,
                          cert_file=path_client_cert_file,
                          cert_key_file=path_client_key_file,
-                         cert_key_file_password=key_file_password, # Optional
+                         cert_key_file_password=key_file_password,  # Optional
                          verify_ssl=True) as _client:
-
         result = _client.get_server_version()
         print(result)
 
@@ -146,7 +145,6 @@ def config_mtls():
                          ssl_ca_cert=path_server_cert,
                          cert_file=path_client_cert_file_pem,
                          verify_ssl=True) as _client:
-
         result = _client.get_server_version()
         print(result)
 
