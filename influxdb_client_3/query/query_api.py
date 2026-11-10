@@ -92,7 +92,7 @@ class QueryApiOptionsBuilder(object):
             .root_certs("/home/fred/.etc/ssl/alt_certs.pem") \
             .cert_chain("/home/fred/.etc/ssl/client.crt") \
             .private_key("/home/fred/.etc/ssl/client.key") \
-            .private_key_password("changeit") \
+            .private_key_password("password") \
             .tls_verify(True) \
             .build()
 
