@@ -53,6 +53,25 @@ def get_org_query_param(org, client, required_id=False):
 
 
 def read_certs(path: str, password: Optional[Union[str, bytes]] = None) -> bytes:
+    """
+    Read PEM certificate or key data from a file and produce a stable byte
+    representation suitable for downstream cryptographic operations. Encrypted
+    private key material is decrypted when credentials are provided, and PEM line
+    endings are normalized so the resulting bytes are consistent across operating
+    systems.
+
+    :param path: Filesystem path to the PEM certificate or private key file.
+    :param password: Optional password used to decrypt encrypted PEM private key
+        material.
+    :return: PEM data as bytes with normalized line endings.
+    :raises OSError: If the file cannot be opened or read.
+    :raises ValueError: If encrypted key material cannot be decrypted or the PEM
+        data is invalid.
+    :raises TypeError: If the provided password is not accepted by the
+        cryptographic loader.
+    :raises cryptography.exceptions.UnsupportedAlgorithm: If the PEM data uses an
+        unsupported key type or encryption algorithm.
+    """
     with open(path, "rb") as certs_file:
         data = certs_file.read()
         if password is not None:
