@@ -89,9 +89,9 @@ class QueryApiOptionsBuilder(object):
 
         options = QueryApiOptionsBuilder()\
             .proxy("http://internal.tunnel.proxy:8080") \
-            .root_certs("/home/fred/.etc/ssl/alt_certs.pem") \
-            .cert_chain("/home/fred/.etc/ssl/client.crt") \
-            .private_key("/home/fred/.etc/ssl/client.key") \
+            .root_certs("/home/.etc/ssl/alt_certs.pem") \
+            .cert_chain("/home/.etc/ssl/client.crt") \
+            .private_key("/home/.etc/ssl/client.key") \
             .private_key_password("password") \
             .tls_verify(True) \
             .build()
