@@ -2,6 +2,12 @@
 
 ## 0.22.0 [unreleased]
 
+### Features
+
+1. [#254](https://github.com/InfluxCommunity/influxdb3-python/pull/254): 
+    - Add support for mTLS in query api.
+    - Add examples for config mTLS.
+
 ### Breaking Changes
 
 1. [#238](https://github.com/InfluxCommunity/influxdb3-python/pull/238): Drop support for Python 3.9. Python 3.10 or newer is now required.

@@ -18,6 +18,8 @@ from pyarrow.flight import (
     ServerAuthHandler
 )
 
+from influxdb_client_3.write_client.client.util.helpers import read_certs
+
 
 class NoopAuthHandler(ServerAuthHandler):
     """A no-op auth handler - as seen in pyarrow tests"""
@@ -85,8 +87,41 @@ class ConstantData:
 
 class ConstantFlightServer(FlightServerBase):
 
-    def __init__(self, location=None, options=None, **kwargs):
-        super().__init__(location, **kwargs)
+    def __init__(self,
+                 location=None,
+                 options=None,
+                 server_cert=None,
+                 server_cert_key=None,
+                 verify_client=None,
+                 root_certificates=None,
+                 **kwargs):
+        server_cert_bytes = None
+        if server_cert is not None:
+            server_cert_bytes = read_certs(server_cert)
+
+        server_cert_key_bytes = None
+        if server_cert_key is not None:
+            server_cert_key_bytes = read_certs(server_cert_key)
+
+        tls_certificates = None
+        if (server_cert_bytes is None) != (server_cert_key_bytes is None):
+            raise ValueError(
+                "Both server_cert and server_cert_key must be provided together to enable TLS."
+            )
+        if server_cert_bytes is not None and server_cert_key_bytes is not None:
+            tls_certificates = [(server_cert_bytes, server_cert_key_bytes)]
+
+        root_cert_bytes = None
+        if root_certificates is not None:
+            root_cert_bytes = read_certs(root_certificates)
+
+        super().__init__(
+            location=location,
+            verify_client=verify_client,
+            tls_certificates=tls_certificates,
+            root_certificates=root_cert_bytes,
+            **kwargs
+        )
         self.cd = ConstantData()
         self.options = options
 
